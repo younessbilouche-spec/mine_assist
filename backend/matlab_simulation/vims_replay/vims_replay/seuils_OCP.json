@@ -1,0 +1,154 @@
+{
+  "_comment": "Seuils officiels OCP/CAT pour la chargeuse 994F (extraits du fichier seulles.xlsx fourni par l'utilisateur, mai 2026). Chaque seuil est mappe au capteur VIMS le plus proche. Le simulateur DOIT respecter ces seuils en mode normal.",
+  "_source": "OCP Benguerir - notification & Alerte Engins (994F)",
+  "engin": "994 F1",
+  "seuils": [
+    {
+      "id": 1,
+      "param_ocp": "Température échappement droit",
+      "capteur_vims": "CH994.P1.Température échappement Droit",
+      "regle": "valeur > 600",
+      "operateur": "max",
+      "limite_max": 600,
+      "unite": "°C",
+      "criticite": "élevée"
+    },
+    {
+      "id": 2,
+      "param_ocp": "Température échappement gauche",
+      "capteur_vims": "CH994.P1.Température échappement gauche",
+      "regle": "valeur > 600",
+      "operateur": "max",
+      "limite_max": 600,
+      "unite": "°C",
+      "criticite": "élevée"
+    },
+    {
+      "id": 3,
+      "param_ocp": "Pression huile moteur (faible)",
+      "capteur_vims": "CH994.P1.Pression huile moteur",
+      "regle": "rpm in [720,780] -> P >= 140 ; rpm in [1650,1750] -> P >= 275",
+      "operateur": "regime_conditionnel",
+      "limites_conditionnelles": [
+        {"rpm_min": 720, "rpm_max": 780, "P_min_kPa": 140},
+        {"rpm_min": 1650, "rpm_max": 1750, "P_min_kPa": 275}
+      ],
+      "unite": "kPa",
+      "criticite": "élevée"
+    },
+    {
+      "id": 4,
+      "param_ocp": "Pression d'air au réservoir (hors plage)",
+      "capteur_vims": "CH994.P2.Pression d\u2019air au réservoir",
+      "regle": "valeur in [600, 900] (alerte si hors plage)",
+      "operateur": "range",
+      "limite_min": 600,
+      "limite_max": 900,
+      "unite": "kPa",
+      "criticite": "moyenne"
+    },
+    {
+      "id": 5,
+      "param_ocp": "Pression d'air faible",
+      "capteur_vims": "CH994.P2.Pression d\u2019air au réservoir",
+      "regle": "valeur < 600",
+      "operateur": "min",
+      "limite_min": 600,
+      "unite": "kPa",
+      "criticite": "moyenne"
+    },
+    {
+      "id": 6,
+      "param_ocp": "Pression pompe équipement principale (faible)",
+      "capteur_vims": "CH994.P2.Pression pompe hydraulique principale",
+      "regle": "rpm > 1500 et hyd_norm > 0.3 -> P >= 15000",
+      "operateur": "regime_conditionnel",
+      "limites_conditionnelles": [
+        {"rpm_min": 1500, "rpm_max": 9999, "hyd_load_min": 0.3, "P_min_kPa": 15000, "P_max_kPa": 25000}
+      ],
+      "unite": "kPa",
+      "criticite": "moyenne"
+    },
+    {
+      "id": 7,
+      "param_ocp": "Échauffement huile transmission",
+      "capteur_vims": "CH994.P2.Température essieux arrière",
+      "regle": "valeur >= 129",
+      "operateur": "max",
+      "limite_max": 129,
+      "unite": "°C",
+      "criticite": "élevée"
+    },
+    {
+      "id": 8,
+      "param_ocp": "Température huile convertisseur",
+      "capteur_vims": "CH994.P1.Température sortie convertisseur",
+      "regle": "valeur >= 129",
+      "operateur": "max",
+      "limite_max": 129,
+      "unite": "°C",
+      "criticite": "élevée"
+    },
+    {
+      "id": 9,
+      "param_ocp": "Température huile direction",
+      "capteur_vims": "CH994.P1.Température huile direction",
+      "regle": "valeur > 70",
+      "operateur": "max",
+      "limite_max": 70,
+      "unite": "°C",
+      "criticite": "moyenne"
+    },
+    {
+      "id": 10,
+      "param_ocp": "Température huile freinage",
+      "capteur_vims": "CH994.P1.Température huile freinage",
+      "regle": "valeur > 70",
+      "operateur": "max",
+      "limite_max": 70,
+      "unite": "°C",
+      "criticite": "élevée"
+    },
+    {
+      "id": 14,
+      "param_ocp": "Pression embrayage impeller (faible)",
+      "capteur_vims": "CH994.P2.Pression embrayage impeller",
+      "regle": "rpm >= 1510 -> P in [1860, 1870]",
+      "operateur": "regime_conditionnel",
+      "limites_conditionnelles": [
+        {"rpm_min": 1510, "rpm_max": 9999, "P_min_kPa": 1860, "P_max_kPa": 1870}
+      ],
+      "unite": "kPa",
+      "criticite": "moyenne",
+      "_note": "Plage tres etroite, regulation CAT serree autour de 1865"
+    },
+    {
+      "id": 17,
+      "param_ocp": "Température huile hydraulique",
+      "capteur_vims": "CH994.P1.Température sortie convertisseur",
+      "regle": "valeur >= 93 (approxime via T_conv en absence de capteur dedie)",
+      "operateur": "max",
+      "limite_max": 93,
+      "unite": "°C",
+      "criticite": "élevée",
+      "_note": "Pas de capteur T_huile_hydraulique direct dans VIMS; on utilise T_sortie_convertisseur comme proxy"
+    },
+    {
+      "id": 18,
+      "param_ocp": "Surrégime moteur",
+      "capteur_vims": "CH994.P1.Régime moteur",
+      "regle": "valeur > 1750",
+      "operateur": "max",
+      "limite_max": 1750,
+      "unite": "Tr/min",
+      "criticite": "élevée"
+    }
+  ],
+  "_seuils_non_mappables": [
+    {"id": 11, "raison": "Pression sortie convertisseur : pas de capteur dedie dans VIMS"},
+    {"id": 12, "raison": "Pression lock-up : VIMS expose Courant lock-up (%) pas pression"},
+    {"id": 13, "raison": "Pression entree convertisseur : pas de capteur dedie dans VIMS"},
+    {"id": 15, "raison": "Pression auto-graissage : pas de capteur dedie dans VIMS"},
+    {"id": 16, "raison": "Pression gasoil : pas de capteur dedie dans VIMS"}
+  ]
+}

@@ -1,0 +1,82 @@
+/* ─────────────────────────────────────────────────────────────────────────────
+ * src/styles/theme.css
+ *
+ * À importer une fois dans main.jsx :
+ *   import "./styles/theme.css"
+ *
+ * Fonctionne main dans la main avec hooks/useTheme.jsx :
+ *   - useTheme injecte les CSS vars `--c-bg`, `--c-text`, etc. sur :root
+ *   - Cette feuille définit les fallbacks (clair) et active une transition douce
+ * ───────────────────────────────────────────────────────────────────────────── */
+
+:root {
+  /* Fallback mode clair (au cas où le JS ne s'est pas encore exécuté) */
+  --c-bg:         #F5F0E8;
+  --c-bgCard:     rgba(255,253,248,0.92);
+  --c-bgSidebar:  rgba(248,244,236,0.97);
+  --c-border:     #D4C9B0;
+  --c-text:       #2A2A1E;
+  --c-textMid:    #5A5240;
+  --c-textMuted:  #8A7D60;
+  --c-textLight:  #B0A080;
+  --c-green:      #00843D;
+  --c-greenDark:  #005C2B;
+  --c-greenPale:  #E8F5EE;
+  --c-orange:     #C4760A;
+  --c-sand:       #C9A84C;
+  --c-danger:     #C0392B;
+  --c-shadow:     rgba(139,105,20,0.07);
+}
+
+/* Transitions douces lors du switch dark/light (uniquement sur les couleurs) */
+*, *::before, *::after {
+  transition:
+    background-color 0.25s ease,
+    color 0.25s ease,
+    border-color 0.25s ease,
+    box-shadow 0.25s ease;
+}
+
+/* Désactive la transition pour les éléments interactifs où ça gênerait */
+button:hover, input:focus, select:focus,
+.recharts-bar, .recharts-line, .recharts-area,
+[data-no-theme-transition] {
+  transition: none;
+}
+
+/* Body fond plein */
+body {
+  background: var(--c-bg);
+  color: var(--c-text);
+}
+
+/* Mode sombre — overrides spécifiques pour Leaflet (le fond tile reste OSM mais on
+   teinte un peu pour atténuer la luminosité en cabine de monitoring nocturne) */
+:root[data-theme="dark"] .leaflet-tile {
+  filter: brightness(0.78) contrast(1.05) hue-rotate(180deg) invert(0.9);
+}
+
+:root[data-theme="dark"] .leaflet-container {
+  background: #0E1814;
+}
+
+:root[data-theme="dark"] .leaflet-popup-content-wrapper,
+:root[data-theme="dark"] .leaflet-popup-tip {
+  background: #1A2B22;
+  color: var(--c-text);
+}
+
+/* Recharts — texte des axes lisible en mode sombre */
+:root[data-theme="dark"] .recharts-cartesian-axis-tick text,
+:root[data-theme="dark"] .recharts-polar-angle-axis-tick-value,
+:root[data-theme="dark"] .recharts-text {
+  fill: var(--c-textMid) !important;
+}
+
+/* Print stylesheet — masque la sidebar et étend les cartes pour export PDF */
+@media print {
+  body { background: white !important; }
+  .no-print, [data-no-print="true"] { display: none !important; }
+  .print-full-width { width: 100% !important; max-width: 100% !important; }
+  .recharts-wrapper { page-break-inside: avoid; }
+}

@@ -1,0 +1,197 @@
+{
+  "_comment": "Definition exacte des 20 capteurs CAT 994F1 P1+P2 lus dans les fichiers VIMS de l'utilisateur (Paramètres Diagnostique export). Les noms / unites / codes correspondent EXACTEMENT a ce que VIMS produit. Les plages (vmin, vmax) sont apprises depuis 5 mois de donnees reelles 994 F1 OCP Benguerir, mai 2025.",
+  "engin": "994 F1",
+  "sampling_hz_typique_VIMS": 0.0083,
+  "sampling_hz_simulateur": 1.0,
+  "capteurs": [
+    {
+      "code": 524,
+      "nom": "CH994.P1.Débit liquide refroidissement",
+      "unite": "0/1",
+      "type": "binaire",
+      "vmin_reel": 1, "vmax_reel": 1, "vmoy_reel": 1.0,
+      "modele": "constant_1_avec_drop_en_panne",
+      "categorie": "moteur"
+    },
+    {
+      "code": 528,
+      "nom": "CH994.P1.Niveau huile moteur bas",
+      "unite": "0/1",
+      "type": "compteur_defaut",
+      "vmin_reel": 1, "vmax_reel": 127, "vmoy_reel": 101.8,
+      "modele": "constant_127_avec_chute_si_niveau_bas",
+      "categorie": "moteur"
+    },
+    {
+      "code": 529,
+      "nom": "CH994.P1.Pression huile moteur",
+      "unite": "kPa",
+      "type": "analogique",
+      "vmin_reel": 1, "vmax_reel": 609, "vmoy_reel": 447.0,
+      "modele": "lineaire_avec_regime_moteur",
+      "categorie": "moteur"
+    },
+    {
+      "code": 530,
+      "nom": "CH994.P1.Régime moteur",
+      "unite": "Tr/min",
+      "type": "analogique",
+      "vmin_reel": 677, "vmax_reel": 1760, "vmoy_reel": 1395.3,
+      "modele": "cycle_chargeur",
+      "categorie": "moteur",
+      "_principal": true
+    },
+    {
+      "code": 532,
+      "nom": "CH994.P1.Température PTO avant",
+      "unite": "°C",
+      "type": "analogique",
+      "vmin_reel": 20, "vmax_reel": 79, "vmoy_reel": 60.1,
+      "modele": "thermique_lent",
+      "categorie": "transmission"
+    },
+    {
+      "code": 541,
+      "nom": "CH994.P1.Température huile direction",
+      "unite": "°C",
+      "type": "analogique",
+      "vmin_reel": 19, "vmax_reel": 69, "vmoy_reel": 54.9,
+      "modele": "thermique_lent",
+      "categorie": "hydraulique"
+    },
+    {
+      "code": 522,
+      "nom": "CH994.P1.Température huile freinage",
+      "unite": "°C",
+      "type": "analogique",
+      "vmin_reel": 22, "vmax_reel": 91, "vmoy_reel": 74.9,
+      "modele": "thermique_lent",
+      "categorie": "freinage"
+    },
+    {
+      "code": 525,
+      "nom": "CH994.P1.Température liquide refroidissement",
+      "unite": "°C",
+      "type": "analogique",
+      "vmin_reel": 20, "vmax_reel": 102, "vmoy_reel": 86.2,
+      "modele": "thermique_eau",
+      "categorie": "moteur",
+      "_principal": true,
+      "seuil_attention": 85.5,
+      "seuil_alerte": 95.0
+    },
+    {
+      "code": 544,
+      "nom": "CH994.P1.Température sortie convertisseur",
+      "unite": "°C",
+      "type": "analogique",
+      "vmin_reel": 24, "vmax_reel": 116, "vmoy_reel": 93.7,
+      "modele": "thermique_lent",
+      "categorie": "transmission"
+    },
+    {
+      "code": 540,
+      "nom": "CH994.P1.Température échappement Droit",
+      "unite": "°C",
+      "type": "analogique",
+      "vmin_reel": 30, "vmax_reel": 572, "vmoy_reel": 394.2,
+      "modele": "lineaire_avec_regime_moteur",
+      "categorie": "echappement"
+    },
+    {
+      "code": 538,
+      "nom": "CH994.P1.Température échappement gauche",
+      "unite": "°C",
+      "type": "analogique",
+      "vmin_reel": 30, "vmax_reel": 551, "vmoy_reel": 386.0,
+      "modele": "lineaire_avec_regime_moteur",
+      "categorie": "echappement"
+    },
+    {
+      "code": 537,
+      "nom": "CH994.P2.Courant embrayage Lock-up",
+      "unite": "%",
+      "type": "analogique",
+      "vmin_reel": 55, "vmax_reel": 241, "vmoy_reel": 63.8,
+      "modele": "etat_transmission_lockup",
+      "categorie": "transmission"
+    },
+    {
+      "code": 535,
+      "nom": "CH994.P2.Courant embrayage impeller",
+      "unite": "%",
+      "type": "analogique",
+      "vmin_reel": 34, "vmax_reel": 241, "vmoy_reel": 63.1,
+      "modele": "etat_transmission_impeller",
+      "categorie": "transmission"
+    },
+    {
+      "code": 542,
+      "nom": "CH994.P2.Pression d\u2019air au réservoir",
+      "unite": "kPa",
+      "type": "analogique",
+      "vmin_reel": 810, "vmax_reel": 1096, "vmoy_reel": 862.7,
+      "modele": "compresseur_charge",
+      "categorie": "freinage"
+    },
+    {
+      "code": 536,
+      "nom": "CH994.P2.Pression embrayage impeller",
+      "unite": "kPa",
+      "type": "analogique",
+      "vmin_reel": 42, "vmax_reel": 2269, "vmoy_reel": 1192.6,
+      "modele": "etat_transmission_impeller",
+      "categorie": "transmission"
+    },
+    {
+      "code": 533,
+      "nom": "CH994.P2.Pression pompe hydraulique principale",
+      "unite": "kPa",
+      "type": "analogique",
+      "vmin_reel": 7, "vmax_reel": 29742, "vmoy_reel": 7378.5,
+      "modele": "cycle_hydraulique",
+      "categorie": "hydraulique",
+      "_principal": true,
+      "seuil_attention_kPa": 25200,
+      "seuil_alerte_kPa": 28000,
+      "seuil_attention_bar": 252,
+      "seuil_alerte_bar": 280
+    },
+    {
+      "code": 545,
+      "nom": "CH994.P2.Régime sortie convertisseur",
+      "unite": "",
+      "type": "analogique",
+      "vmin_reel": 24, "vmax_reel": 2133, "vmoy_reel": 1037.1,
+      "modele": "regime_moteur_sortie",
+      "categorie": "transmission"
+    },
+    {
+      "code": 531,
+      "nom": "CH994.P2.Température Essieux avant",
+      "unite": "°C",
+      "type": "analogique",
+      "vmin_reel": 22, "vmax_reel": 64, "vmoy_reel": 49.6,
+      "modele": "thermique_lent",
+      "categorie": "transmission"
+    },
+    {
+      "code": 539,
+      "nom": "CH994.P2.Température essieux arrière",
+      "unite": "°C",
+      "type": "analogique",
+      "vmin_reel": 19, "vmax_reel": 141, "vmoy_reel": 50.3,
+      "modele": "thermique_lent",
+      "categorie": "transmission"
+    },
+    {
+      "code": 543,
+      "nom": "CH994.P2.Tension électrique de système",
+      "unite": "V",
+      "type": "analogique",
+      "vmin_reel": 14863, "vmax_reel": 27859, "vmoy_reel": 26901.1,
+      "modele": "tension_alternateur",
+      "categorie": "electrique"
+    }
+  ]
+}

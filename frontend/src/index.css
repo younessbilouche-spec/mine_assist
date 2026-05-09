@@ -1,0 +1,170 @@
+@import url('https://fonts.googleapis.com/css2?family=Rajdhani:wght@400;500;600;700&display=swap');
+
+html, body, #root {
+  width: 100%;
+  min-height: 100%;
+  margin: 0;
+  padding: 0;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  min-width: 320px;
+  font-family: 'Rajdhani', system-ui, -apple-system, sans-serif;
+  background: var(--c-bg, #F5F0E8);
+  color: var(--c-text, #2A2A1E);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* ── Scrollbar ───── */
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb {
+  background: var(--c-border, #D4C9B0);
+  border-radius: 999px;
+}
+::-webkit-scrollbar-thumb:hover { background: var(--c-textLight, #B0A080); }
+
+/* ── Animations ───── */
+@keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.4} }
+@keyframes floatIn { from{opacity:0;transform:translateY(10px)} to{opacity:1;transform:translateY(0)} }
+@keyframes shimmer { 0%{background-position:-200% 0} 100%{background-position:200% 0} }
+
+/* ── Responsive grid helpers ───── */
+.grid-2col { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; }
+.grid-3col { display: grid; grid-template-columns: repeat(3,minmax(0,1fr)); gap: 18px; }
+.grid-4col { display: grid; grid-template-columns: repeat(4,minmax(0,1fr)); gap: 16px; }
+.grid-5col { display: grid; grid-template-columns: repeat(5,minmax(0,1fr)); gap: 16px; }
+
+@media (max-width: 1024px) {
+  .grid-4col, .grid-5col { grid-template-columns: repeat(2,minmax(0,1fr)) !important; }
+  .grid-3col { grid-template-columns: 1fr 1fr !important; }
+}
+@media (max-width: 768px) {
+  .sidebar-nav { display: none !important; }
+  .grid-2col, .grid-3col, .grid-4col, .grid-5col { grid-template-columns: 1fr !important; }
+  .sidebar-panel { display: none; }
+}
+@media (max-width: 480px) {
+  .grid-4col, .grid-5col { grid-template-columns: 1fr !important; }
+}
+
+/* ── Buttons ───── */
+button:not(:disabled):hover { filter: brightness(1.04); }
+input::placeholder, textarea::placeholder { color: var(--c-textLight, #B0A080); }
+:root {
+  --bg-card: var(--c-surface, #FFFFFF);
+  --text-secondary: var(--c-textMuted, #8A7D60);
+  --text-muted: var(--c-textLight, #B0A080);
+  --gold: #C4760A;
+  --border: var(--c-border, #D4C9B0);
+}
+
+/* ── Recharts ───── */
+.recharts-surface { border-radius: 8px; }
+
+/* ── Print ───── */
+@media print {
+  body { background: white !important; }
+  .no-print, [data-no-print="true"] { display: none !important; }
+  .print-full-width { width: 100% !important; max-width: 100% !important; }
+  .recharts-wrapper { page-break-inside: avoid; }
+  .sidebar-nav { display: none !important; }
+}
+
+.page { max-width: 1200px; margin: 0 auto; padding: 48px 32px; }
+.page-title {
+  font-family: 'Rajdhani', system-ui, sans-serif;
+  font-size: 48px;
+  font-weight: 900;
+  letter-spacing: -1px;
+  line-height: 1;
+  color: var(--c-text, #2A2A1E);
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin-bottom: 10px;
+}
+.page-subtitle {
+  font-size: 15px;
+  color: var(--c-textMuted, #8A7D60);
+  margin-bottom: 40px;
+}
+.card {
+  background: var(--c-surface, #FFFFFF);
+  border: 1px solid var(--c-border, #D4C9B0);
+  border-radius: 18px;
+}
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+.badge-green {
+  background: #EAF6EE;
+  color: #00843D;
+  border: 1px solid #00A84F55;
+}
+.btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 28px;
+  border-radius: 10px;
+  font-family: inherit;
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+  border: none;
+  transition: all 0.2s;
+}
+.btn-primary {
+  background: #00843D;
+  color: #fff;
+}
+.btn-gold {
+  background: #C4760A;
+  color: #fff;
+}
+.btn-outline {
+  background: transparent;
+  color: #00843D;
+  border: 1px solid #00843D55;
+}
+.btn:disabled { opacity: 0.4; cursor: not-allowed; }
+.spinner {
+  width: 36px;
+  height: 36px;
+  border: 2px solid #D4C9B0;
+  border-top-color: #00843D;
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+.accordion {
+  border: 1px solid var(--c-border, #D4C9B0);
+  border-radius: 16px;
+  overflow: hidden;
+  margin-bottom: 10px;
+  transition: border-color 0.2s;
+}
+.accordion-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 22px;
+  cursor: pointer;
+  background: var(--c-surface, #FFFFFF);
+  transition: background 0.15s;
+}
+.accordion-body {
+  background: rgba(0,0,0,0.03);
+  padding: 0 22px 18px;
+}

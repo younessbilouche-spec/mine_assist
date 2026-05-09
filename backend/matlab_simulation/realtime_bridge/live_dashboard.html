@@ -1,0 +1,186 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<title>MineAssist - Live Dashboard 994F</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', sans-serif; }
+  body { background: #1a1d2e; color: #e0e0e0; padding: 20px; }
+  h1 { color: #FFC72C; font-size: 20px; letter-spacing: 2px; margin-bottom: 4px; }
+  .sub { color: #888; font-size: 12px; margin-bottom: 16px; letter-spacing: 1px; }
+  .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 12px; margin-bottom: 16px; }
+  .card { background: #2a2e44; border-left: 3px solid #FFC72C; padding: 12px 14px; border-radius: 4px; }
+  .card .name { font-size: 10px; color: #888; letter-spacing: 1px; text-transform: uppercase; margin-bottom: 4px; }
+  .card .val { font-size: 22px; font-weight: 700; color: #fff; }
+  .card .unit { font-size: 13px; color: #888; margin-left: 4px; }
+  .card.alert { border-left-color: #C8102E; background: #3a2533; }
+  .card.attention { border-left-color: #E87722; background: #3a2f1f; }
+  canvas { background: #2a2e44; border-radius: 4px; padding: 8px; }
+  .alertes { background: #2a2e44; padding: 12px; border-radius: 4px; max-height: 200px; overflow-y: auto; }
+  .alertes h3 { font-size: 11px; letter-spacing: 1px; color: #FFC72C; margin-bottom: 8px; }
+  .alertes .item { padding: 6px 8px; border-left: 2px solid; margin-bottom: 4px; font-size: 12px; }
+  .alertes .item.ALERTE { border-color: #C8102E; background: #3a2533; }
+  .alertes .item.Attention { border-color: #E87722; background: #3a2f1f; }
+  .row { display: grid; grid-template-columns: 2fr 1fr; gap: 12px; }
+  .meta { color: #888; font-size: 11px; margin-top: 8px; }
+  .ok { color: #5fb878; }
+  .ko { color: #C8102E; }
+</style>
+</head>
+<body>
+  <h1>MineAssist — LIVE FEED CAT 994F-1</h1>
+  <div class="sub">Simulation MATLAB temps reel via /sim/ingest&nbsp; |&nbsp; Polling /sim/state @ 1 Hz</div>
+
+  <div id="meta" class="meta">Connecting...</div>
+
+  <div class="grid" id="cards"></div>
+
+  <div class="row">
+    <canvas id="chart" width="800" height="240"></canvas>
+    <div class="alertes">
+      <h3>Alertes recentes</h3>
+      <div id="alertes"></div>
+    </div>
+  </div>
+
+<script>
+const API = window.localStorage.getItem("MINEASSIST_API") || "http://127.0.0.1:8000";
+
+const SEUILS = {
+  "Pression pompe hydraulique principale": {min:15000, max:25000, unite:"kPa"},
+  "Pression huile moteur": {min:275, unite:"kPa"},
+  "Pression d\u2019air au r\u00e9servoir": {min:600, max:900, unite:"kPa"},
+  "Pression sortie convertisseur": {min:370, max:570, unite:"kPa"},
+  "Temp\u00e9rature liquide refroidissement": {max:107, unite:"\u00b0C"},
+  "Temp\u00e9rature huile direction": {max:70, unite:"\u00b0C"},
+  "Temp\u00e9rature huile freinage": {max:70, unite:"\u00b0C"},
+  "Temp\u00e9rature huile hydraulique": {max:93, unite:"\u00b0C"},
+  "Temp\u00e9rature PTO avant": {max:93, unite:"\u00b0C"},
+  "Temp\u00e9rature \u00e9chappement Droit": {max:600, unite:"\u00b0C"},
+  "Temp\u00e9rature \u00e9chappement gauche": {max:600, unite:"\u00b0C"},
+  "Temp\u00e9rature sortie convertisseur": {max:129, unite:"\u00b0C"},
+  "Temp\u00e9rature essieux avant": {max:120, unite:"\u00b0C"},
+  "Temp\u00e9rature essieux arri\u00e8re": {max:120, unite:"\u00b0C"},
+  "R\u00e9gime moteur": {max:1750, unite:"Tr/min"},
+};
+
+function shortName(p){
+  return p.replace(/^CH994\.(P\d+)\./, "");
+}
+
+function classifyValue(name, value){
+  const k = shortName(name);
+  const s = SEUILS[k];
+  if (!s) return "ok";
+  if (s.max != null && value > s.max) return "alert";
+  if (s.max != null && value > 0.9*s.max) return "attention";
+  if (s.min != null && value < s.min) return "alert";
+  if (s.min != null && value < 1.1*s.min) return "attention";
+  return "ok";
+}
+
+const history = {}; // param -> [{t, v}]
+const MAX_HISTORY = 120;
+
+async function tick(){
+  let st;
+  try {
+    st = await (await fetch(API + "/sim/state?n=2")).json();
+  } catch(e){
+    document.getElementById("meta").innerHTML = `<span class="ko">Backend KO : ${e.message}</span>`;
+    return;
+  }
+
+  const now = new Date();
+  document.getElementById("meta").innerHTML =
+    `<span class="ok">OK</span>&nbsp; buffer = ${st.buffer_size} mesures&nbsp;|&nbsp; ${now.toLocaleTimeString()}`;
+
+  const last = st.recent && st.recent.length ? st.recent[st.recent.length-1] : null;
+  if (!last) {
+    document.getElementById("cards").innerHTML = "<div class='card'>En attente de donnees...</div>";
+    return;
+  }
+
+  // Cards
+  const order = [
+    "Pression pompe hydraulique principale",
+    "Temp\u00e9rature liquide refroidissement",
+    "R\u00e9gime moteur",
+    "Pression huile moteur",
+    "Temp\u00e9rature huile freinage",
+    "Temp\u00e9rature huile direction",
+    "Temp\u00e9rature \u00e9chappement Droit",
+    "Pression d\u2019air au r\u00e9servoir",
+    "Temp\u00e9rature huile hydraulique",
+  ];
+  const cards = [];
+  for (const k of order){
+    const fullName = Object.keys(last.mesures).find(n => shortName(n) === k);
+    if (!fullName) continue;
+    const val = last.mesures[fullName];
+    const cls = classifyValue(fullName, val);
+    const seuil = SEUILS[k];
+    cards.push(`<div class="card ${cls}">
+      <div class="name">${k}</div>
+      <div class="val">${val.toFixed(1)} <span class="unit">${seuil ? seuil.unite : ""}</span></div>
+    </div>`);
+  }
+  document.getElementById("cards").innerHTML = cards.join("");
+
+  // History
+  for (const fullName of Object.keys(last.mesures)){
+    const k = shortName(fullName);
+    if (!history[k]) history[k] = [];
+    history[k].push({t:now, v: last.mesures[fullName]});
+    if (history[k].length > MAX_HISTORY) history[k].shift();
+  }
+
+  // Chart : T_eau & P_pompe
+  draw();
+
+  // Alertes
+  const alertesHtml = (st.alertes_recentes || []).slice(-15).reverse().map(a =>
+    `<div class="item ${a.niveau}"><b>${a.label}</b> = ${a.valeur.toFixed(1)} ${a.unite}<br>
+     <small>${a.motif}</small></div>`
+  ).join("");
+  document.getElementById("alertes").innerHTML = alertesHtml || "<small>Aucune alerte</small>";
+}
+
+function draw(){
+  const c = document.getElementById("chart");
+  const ctx = c.getContext("2d");
+  ctx.fillStyle = "#2a2e44"; ctx.fillRect(0,0,c.width,c.height);
+
+  const series = [
+    {name:"Temp. liquide refroid. (\u00b0C)", k:"Temp\u00e9rature liquide refroidissement", color:"#FFC72C", min:60, max:110},
+    {name:"P. pompe hydr. (bar)", k:"Pression pompe hydraulique principale", color:"#5fb878", min:0, max:300, scale:0.01},
+  ];
+
+  ctx.font = "11px Segoe UI";
+  ctx.fillStyle = "#888";
+  ctx.fillText("Tendance temps reel (120 dernieres secondes)", 10, 16);
+
+  let yOff = 30;
+  for (const s of series){
+    const data = history[s.k] || [];
+    if (data.length < 2) continue;
+    ctx.strokeStyle = s.color;
+    ctx.beginPath();
+    for (let i = 0; i < data.length; i++){
+      const x = 60 + (c.width - 80) * (i / (MAX_HISTORY - 1));
+      const v = (s.scale ? data[i].v * s.scale : data[i].v);
+      const y = c.height - 30 - (c.height - 60 - yOff) * ((v - s.min)/(s.max - s.min));
+      if (i === 0) ctx.moveTo(x,y); else ctx.lineTo(x,y);
+    }
+    ctx.stroke();
+    ctx.fillStyle = s.color;
+    ctx.fillText(s.name, 10, yOff + 12);
+    yOff += 16;
+  }
+}
+
+setInterval(tick, 1000);
+tick();
+</script>
+</body>
+</html>

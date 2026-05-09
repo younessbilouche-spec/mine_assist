@@ -1,0 +1,8 @@
+2026-03-19 15:50:14,316 [INFO] Mode TEST activé
+2026-03-19 15:50:28,698 [ERROR] ❌ Échec envoi email: (535, b'5.7.8 Username and Password not accepted. For more information, go to\n5.7.8  https://support.google.com/mail/?p=BadCredentials ffacd0b85a97d-43b51892273sm14062509f8f.19 - gsmtp')
+2026-03-19 15:53:38,393 [INFO] Mode TEST activé
+2026-03-19 15:53:53,515 [ERROR] ❌ Échec envoi email: (535, b'5.7.8 Username and Password not accepted. For more information, go to\n5.7.8  https://support.google.com/mail/?p=BadCredentials 5b1f17b1804b1-486f4bbe471sm47360525e9.27 - gsmtp')
+2026-03-19 15:57:16,146 [INFO] Mode TEST activé
+2026-03-19 15:57:26,515 [ERROR] ❌ Échec envoi email: (535, b'5.7.8 Username and Password not accepted. For more information, go to\n5.7.8  https://support.google.com/mail/?p=BadCredentials ffacd0b85a97d-43b5189971asm16876281f8f.30 - gsmtp')
+2026-03-21 06:34:19,596 [INFO] Mode TEST activé
+2026-03-21 06:34:20,820 [ERROR] ❌ Échec envoi email: (535, b'5.7.8 Username and Password not accepted. For more information, go to\n5.7.8  https://support.google.com/mail/?p=BadCredentials 5b1f17b1804b1-486fd9845a2sm224184715e9.6 - gsmtp')
