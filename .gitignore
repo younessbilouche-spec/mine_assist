@@ -8,3 +8,8 @@ __pycache__/
 .env.txt
 *.env
 backend/.env.txt
+# Modèles Keras/TF supprimés (remplacés par XGBoost)
+*.keras
+backend/venv/
+*.pyc
+__pycache__/

@@ -5,6 +5,7 @@ Monté sous le préfixe /pred dans l'application principale.
 """
 from fastapi import APIRouter
 from app.ocp.routers import upload, sensors, health, defaut, alertes, prediction
+from app.ocp.routers.rul_router import router as rul_router, load_rul_models
 
 ocp_router = APIRouter()
 
@@ -14,3 +15,5 @@ ocp_router.include_router(defaut.router,     tags=["OCP - Défauts"])
 ocp_router.include_router(health.router,     tags=["OCP - Santé"])
 ocp_router.include_router(prediction.router, tags=["OCP - Prédiction"])
 ocp_router.include_router(alertes.router,    tags=["OCP - Alertes"])
+# ── Nouveau : Prédiction RUL via XGBoost + RandomForest (PFE 2025) ──────────
+ocp_router.include_router(rul_router, prefix="/rul", tags=["OCP - RUL XGBoost"])

@@ -45,8 +45,8 @@ function UrgencePill({ urgence, mini=false }) {
   )
 }
 
-// ── Mini-jauge LSTM ──────────────────────────────────────────────────────────
-function LstmGauge({ label, value, threshold }) {
+// ── Mini-jauge RUL ───────────────────────────────────────────────────────────
+function RulGauge({ label, value }) {
   const v = value == null ? 0 : value
   const pct = (v * 100).toFixed(1)
   const danger = threshold != null && v >= threshold
@@ -125,7 +125,7 @@ function AlerteCard({ alerte, isOpen, onToggle }) {
             fontSize: 9, color: '#B0A080', marginTop: 3,
             textTransform: 'uppercase', letterSpacing: 0.5,
           }}>
-            {alerte.type === 'LSTM' ? '🧠 IA · LSTM' : `🔧 ${alerte.type || 'capteur'}`}
+            {alerte.type === 'RUL' ? '📊 IA · XGBoost RUL' : `🔧 ${alerte.type || 'capteur'}`}
           </div>
         </div>
         <div style={{ flex: '1 1 200px', minWidth: 0 }}>
@@ -461,8 +461,8 @@ export default function AlertesPage(props) {
 
   const urgenceGlobale = data?.urgence_globale || 'NORMALE'
   const uG = URG[urgenceGlobale] || URG.NORMALE
-  const lstm = data?.prediction_lstm
-  const seuilLstm = lstm?.seuil ?? 0.5
+  const rulPred = data?.prediction_rul
+  const rulH = rulPred?.rul_heures?.global_grav2
 
   return (
     <div style={{
@@ -519,7 +519,7 @@ export default function AlertesPage(props) {
                         fontSize: 9, padding: '2px 6px', borderRadius: 8,
                         background: '#F7F0DC', color: '#8C7012',
                         fontWeight: 700, letterSpacing: 0.5,
-                      }}>🧠 LSTM</span>
+                      }}>📊 XGBoost RUL</span>
                     )}
                     {data._timing && (
                       <span style={{ marginLeft: 6, color: '#B0A080' }}>

@@ -5,9 +5,7 @@
 # GET /pred/alertes  → alertes actives + plan d interventions
 #
 # v2 PERF (perf_patch) :
-#   - Utilise model_service.predict_last() (1 inference) au lieu
-#     de predict() (~1500 inferences) pour generer l'alerte LSTM.
-#     => /pred/alertes : ~50s -> ~200ms.
+#   - Utilise le modèle XGBoost/RF (rul_router) pour la prédiction RUL.
 #   - Cache du DataFrame charge (mtime + size).
 #   - Cache du resultat alertes complet (mtime + size).
 # ============================================================
@@ -103,13 +101,15 @@ def _urgence_capteur(val: float, cfg: dict) -> str:
     return "NORMALE"
 
 
-def _urgence_lstm(proba_1d: float, proba_1w: float, threshold: float) -> str:
-    """Calcule le niveau d urgence base sur les probabilites LSTM."""
-    if proba_1d is not None and proba_1d >= threshold:
+def _urgence_rul(rul_heures) -> str:
+    """Calcule le niveau d urgence base sur le RUL (Remaining Useful Life) en heures."""
+    if rul_heures is None:
+        return "NORMALE"
+    if rul_heures < 24:
         return "URGENCE"
-    if proba_1w is not None and proba_1w >= threshold:
+    if rul_heures < 72:
         return "PLANIFIÉE"
-    if proba_1d is not None and proba_1d >= threshold * 0.6:
+    if rul_heures < 120:
         return "SURVEILLANCE"
     return "NORMALE"
 
@@ -187,56 +187,60 @@ def get_alertes(request: Request):
             "interventions":    interventions,
         })
 
-    # ── 3. Alerte LSTM (predict_last : 1 inference, ~50ms)
-    alerte_lstm = None
-    lstm_prediction = {"disponible": False}
-    model_service = (
-        getattr(request.app.state, "ocp_model_service", None)
-        or getattr(request.app.state, "model_service", None)
-    )
-
+    # ── 3. Alerte RUL (XGBoost + RandomForest)
+    alerte_rul = None
+    rul_prediction = {"disponible": False}
     t_pred = 0
-    if model_service and model_service.is_loaded:
-        try:
+    try:
+        from app.ocp.routers.rul_router import _models, _predict_rul, _build_features_from_wide, _pivot_excel_to_wide, load_rul_models
+        load_rul_models()
+        if _models:
             t1 = time.time()
-            r = model_service.predict_last(df)
+            # On construit les features à partir du df courant
+            df_rul = df.rename(columns={
+                "Regime_moteur": "engine_rpm",
+                "Pression_huile": "oil_pressure",
+                "Temp_refroid": "coolant_temp",
+                "Regime_conv": "converter_out_rpm",
+                "Temp_conv": "converter_out_temp",
+                "Temp_huile_dir": "steering_oil_temp",
+            })
+            if "Date" in df_rul.columns:
+                df_rul = df_rul.rename(columns={"Date": "timestamp"})
+            from app.ocp.routers.rul_router import _build_features_from_wide
+            X = _build_features_from_wide(df_rul)
+            r = _predict_rul(X)
             t_pred = round((time.time() - t1) * 1000)
-            if r.get("available"):
-                proba_1d = r.get("proba_1d")
-                proba_1w = r.get("proba_1w")
-                proba_2w = r.get("proba_2w")
-                seuil    = r.get("seuil_decision", 0.5)
-
-                lstm_prediction = {
-                    "disponible":   True,
-                    "proba_1d":     proba_1d,
-                    "proba_1w":     proba_1w,
-                    "proba_2w":     proba_2w,
-                    "seuil":        seuil,
-                    "alerte_active": r.get("alerte_active", False),
+            rul_h = r["rul_heures"].get("global_grav2")
+            rul_prediction = {
+                "disponible":    True,
+                "rul_heures":    r["rul_heures"],
+                "alerte_globale": r["alerte_globale"],
+                "alerte_active": r["alerte_active"],
+                "alert_class":   r["alert_class"],
+            }
+            urgence_rul = _urgence_rul(rul_h)
+            if urgence_rul != "NORMALE":
+                rul_h_str = f"{rul_h:.0f}h" if rul_h else "—"
+                alerte_rul = {
+                    "id":            "rul_prediction",
+                    "type":          "RUL",
+                    "urgence":       urgence_rul,
+                    "capteur":       None,
+                    "capteur_label": "Prédiction IA — XGBoost RUL",
+                    "unite":         "h",
+                    "valeur_actuelle": round(rul_h or 0, 1),
+                    "seuil_alarme":  72,
+                    "message":       f"Panne probable dans {rul_h_str} ({r['alerte_globale']})",
+                    "interventions": [],
                 }
-
-                urgence_lstm = _urgence_lstm(proba_1d, proba_1w, seuil)
-                if urgence_lstm != "NORMALE":
-                    alerte_lstm = {
-                        "id":            "lstm_prediction",
-                        "type":          "LSTM",
-                        "urgence":       urgence_lstm,
-                        "capteur":       None,
-                        "capteur_label": "Prediction IA — Modele CNN-LSTM",
-                        "unite":         "%",
-                        "valeur_actuelle": round((proba_1d or 0) * 100, 1),
-                        "seuil_alarme":  round(seuil * 100, 1),
-                        "message":       _message_lstm(proba_1d, proba_1w, proba_2w, seuil),
-                        "interventions": [],
-                    }
-        except Exception:
-            pass
+    except Exception as e:
+        pass
 
     # ── 4. Fusionner et trier par urgence
     toutes_alertes = alertes_capteurs[:]
-    if alerte_lstm:
-        toutes_alertes.append(alerte_lstm)
+    if alerte_rul:
+        toutes_alertes.append(alerte_rul)
 
     toutes_alertes.sort(
         key=lambda a: (_URGENCE_RANK.get(a["urgence"], 0), a.get("criticite", 0)),
@@ -258,7 +262,7 @@ def get_alertes(request: Request):
         "nb_alertes":       len(toutes_alertes),
         "alertes":          toutes_alertes,
         "plan_maintenance": plan,
-        "prediction_lstm":  lstm_prediction,
+        "prediction_rul":   rul_prediction,
         "_timing":          {"load_ms": t_load, "predict_ms": t_pred},
         "_cached":          False,
     }
@@ -285,14 +289,7 @@ def _message_capteur(col: str, cfg: dict, valeur: float, urgence: str) -> str:
     return f"{label} approche de la zone de pre-alerte ({valeur:.1f} {unite})"
 
 
-def _message_lstm(p1d, p1w, p2w, seuil):
-    p1d_pct = round((p1d or 0) * 100, 1)
-    p1w_pct = round((p1w or 0) * 100, 1)
-    if p1d is not None and p1d >= seuil:
-        return f"Risque de panne eleve dans les prochaines 24h ({p1d_pct}% > seuil {round(seuil*100,1)}%)"
-    if p1w is not None and p1w >= seuil:
-        return f"Risque de panne dans la prochaine semaine ({p1w_pct}%)"
-    return f"Risque de panne modere detecte par le modele IA ({p1d_pct}%)"
+# Fonction _message_lstm supprimée — remplacée par le message inline dans alerte_rul
 
 
 def _build_plan(alertes: list) -> list:
@@ -330,6 +327,6 @@ def _empty_response(message: str) -> dict:
         "nb_alertes":       0,
         "alertes":          [],
         "plan_maintenance": [],
-        "prediction_lstm":  {"disponible": False},
+        "prediction_rul":   {"disponible": False},
         "message":          message,
     }

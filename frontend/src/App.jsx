@@ -948,7 +948,7 @@ const TABS = [
   { id:"ocp_upload", icon:"📁", label:"OCP Fichiers",         shortLabel:"OCP" },
   { id:"ocp_defaut", icon:"⚠️", label:"OCP Défauts",          shortLabel:"Défauts" },
   { id:"ocp_sante",  icon:"❤", label:"OCP Santé",             shortLabel:"Santé" },
-  { id:"prediction", icon:"🔮", label:"Prédiction LSTM",      shortLabel:"LSTM" },
+  { id:"prediction", icon:"📊", label:"Prédiction RUL",        shortLabel:"RUL" },
   { id:"alertes_ocp",icon:"🚨", label:"Alertes & Plan",      shortLabel:"Alertes" },
   { id:"executive_report",icon:"📄", label:"Rapport Exécutif",          shortLabel:"Rapport" },
 ]

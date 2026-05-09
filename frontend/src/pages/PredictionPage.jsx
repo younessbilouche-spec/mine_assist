@@ -256,7 +256,7 @@ function SensorDetail({ col, points, forecast, bounds, horizonVal, onClose }) {
           <Line type="monotone" dataKey="v" stroke="#3B82F6" dot={false}
                 strokeWidth={2} name="Reel" connectNulls />
           <Line type="monotone" dataKey="p" stroke="#C4760A" dot={false}
-                strokeWidth={2} strokeDasharray="5 3" name="Prevision LSTM" connectNulls />
+                strokeWidth={2} strokeDasharray="5 3" name="Prévision RUL" connectNulls />
         </LineChart>
       </ResponsiveContainer>
     </div>
@@ -264,7 +264,7 @@ function SensorDetail({ col, points, forecast, bounds, horizonVal, onClose }) {
 }
 
 // ── Loader avec progression et timer ────────────────────────────────────────
-function LSTMLoader({ elapsed, message }) {
+function RulLoader({ elapsed, message }) {
   const ESTIMATED_S = 20
   const pct = Math.min(98, (elapsed / ESTIMATED_S) * 100)
   const overTime = elapsed > ESTIMATED_S + 10
@@ -281,7 +281,7 @@ function LSTMLoader({ elapsed, message }) {
         fontFamily: '"Rajdhani", system-ui, sans-serif', fontSize: 22, fontWeight: 700,
         color: '#005C2B', marginBottom: 8, letterSpacing: 0.5,
       }}>
-        {message || 'Calcul LSTM en cours'}
+        {message || 'Calcul XGBoost RUL en cours'}
       </div>
       <div style={{ fontSize: 13, color: '#8A7D60', marginBottom: 18 }}>
         {elapsed.toFixed(0)}s ecoulees
@@ -301,7 +301,7 @@ function LSTMLoader({ elapsed, message }) {
         fontSize: 11.5, color: '#2A2A1E', lineHeight: 1.5,
       }}>
         <div style={{ fontWeight: 700, color: '#00843D', marginBottom: 3 }}>
-          🧠 Modele CNN-LSTM en inference
+          📊 Modèle XGBoost RUL en calcul
         </div>
         <div style={{ color: '#8A7D60' }}>
           Premier chargement : 15-25s pour 100k+ points.
@@ -316,7 +316,7 @@ function LSTMLoader({ elapsed, message }) {
           borderRadius: 8, fontSize: 11.5, color: '#C0392B', textAlign: 'left',
         }}>
           ⚠ Le calcul prend plus de temps que prevu. Verifie que le backend
-          tourne et que le modele LSTM est charge.
+          tourne et que les modèles XGBoost sont chargés.
         </div>
       )}
       <style>{`@keyframes spin { to { transform: rotate(360deg) } }`}</style>
@@ -407,7 +407,7 @@ export default function PredictionPage(props) {
   if (loading) return (
     <div>
       <DebugPanel data={data} error={error} loading={loading} />
-      <LSTMLoader elapsed={elapsed} />
+      <RulLoader elapsed={elapsed} />
     </div>
   )
 
@@ -493,7 +493,7 @@ export default function PredictionPage(props) {
             fontSize: 10, fontWeight: 700, letterSpacing: 2,
             color: '#00843D', textTransform: 'uppercase',
           }}>
-            Module 8 · Prediction CNN-LSTM
+            Module 8 · Prédiction XGBoost RUL
           </div>
           <h2 style={{
             fontSize: 22, fontWeight: 800, color: '#2A2A1E', margin: '2px 0 0',
@@ -514,7 +514,7 @@ export default function PredictionPage(props) {
                 fontSize: 9, padding: '2px 7px', borderRadius: 10,
                 background: '#F7F0DC', color: '#8C7012',
                 fontWeight: 700, letterSpacing: 0.5,
-              }}>🧠 LSTM CALCULE</span>
+              }}>📊 RUL CALCULÉ</span>
             )}
             {data._timing && (
               <span style={{ fontSize: 10, color: '#8A7D60' }}>
@@ -633,7 +633,7 @@ export default function PredictionPage(props) {
           </SidePanel>
 
           {/* Modele */}
-          <SidePanel title="Modele CNN-LSTM" style={{ marginTop: 12 }}>
+          <SidePanel title="XGBoost RUL" style={{ marginTop: 12 }}>
             <ModelRow label="AUC test"      value={fmtPct(info.auc)} />
             <ModelRow label="F2 validation" value={fmtNum(info.f2_score, 3)} />
             <ModelRow label="Window"        value={`${info.window_size || '—'} pts`} />
