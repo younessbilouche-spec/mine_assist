@@ -7,6 +7,9 @@ from fastapi import APIRouter
 from app.ocp.routers import upload, sensors, health, defaut, alertes, prediction
 from app.ocp.routers.rul_router import router as rul_router, load_rul_models
 
+# Re-export pour que api_gitlab.py puisse importer load_rul_models depuis ici
+__all__ = ["ocp_router", "load_rul_models"]
+
 ocp_router = APIRouter()
 
 ocp_router.include_router(upload.router,     tags=["OCP - Upload"])

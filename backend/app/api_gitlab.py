@@ -9,12 +9,11 @@ from app.routers.ml_router import router as ml_router
 from app.oil_analysis_router import router as oil_router
 from datetime import datetime, timedelta
 from app.sim_router import sim_router
-from app.ocp.router import ocp_router
-from app.ocp.utils.model_service import ModelService
+from app.ocp.router import ocp_router, load_rul_models
 
 
 from fastapi import FastAPI, Depends
-# ── Lifespan — charger le modèle LSTM au démarrage ──────────────────────────
+# ── Lifespan — charger les modèles XGBoost + RandomForest au démarrage ──────
 from contextlib import asynccontextmanager
 
 
@@ -32,13 +31,13 @@ from app.capteur_thresholds import (
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    # Charger le modèle LSTM OCP au démarrage
-    app.state.ocp_model_service = ModelService()
-    success = app.state.ocp_model_service.load()
-    if success:
-        print("✅ Modèle LSTM OCP chargé.")
-    else:
-        print("⚠️  Modèle LSTM OCP non disponible.")
+    # Charger les modèles XGBoost + RandomForest (PFE 2025)
+    # LSTM/CNN-LSTM supprimé — AUC=0.34 (pire qu'aléatoire)
+    try:
+        load_rul_models()
+        print("✅ Modèles XGBoost + RandomForest chargés (RUL prédictif).")
+    except Exception as e:
+        print(f"⚠️  Modèles RUL non disponibles : {e}")
     yield
 
 
@@ -149,7 +148,7 @@ app.include_router(sim_router)
 app.include_router(
     ocp_router,
     prefix="/pred",
-    tags=["Maintenance Prédictive LSTM"],
+    tags=["Maintenance Prédictive — XGBoost + RandomForest"],
 )
 app.add_middleware(
     CORSMiddleware,

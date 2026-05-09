@@ -9,6 +9,7 @@ from app.routers.ml_router import router as ml_router
 from app.oil_analysis_router import router as oil_router
 from datetime import datetime, timedelta
 from app.sim_router import sim_router
+from app.ocp.router import ocp_router, load_rul_models
 
 from fastapi import FastAPI, Depends
 
@@ -97,7 +98,7 @@ def load_gmao_capteurs() -> tuple[pd.DataFrame, list[dict]]:
 _GMAO_ANOMALIES = None
 _GMAO_CAPTEURS = None
 from dotenv import load_dotenv
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
 from openai import OpenAI
@@ -128,6 +129,7 @@ app.include_router(auth_router)
 app.include_router(notifications_router)
 app.include_router(oil_router)
 app.include_router(sim_router)
+app.include_router(ocp_router, prefix="/pred", tags=["Maintenance Prédictive — XGBoost + RF"])
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"] if ALLOW_ALL_ORIGINS else ALLOWED_ORIGINS,
@@ -147,6 +149,7 @@ GMAO_CAPTEURS_DIR = DATA_DIR / "gmao" / "capteurs"
 
 class AskRequest(BaseModel):
     question: str
+    include_images: bool = False  # Images PDF désactivées par défaut, activées sur demande
 
 
 class DiagnoseRequest(BaseModel):
@@ -162,6 +165,13 @@ class DiagnoseRequest(BaseModel):
 
 @app.on_event("startup")
 def startup_event():
+    # Charger les modèles XGBoost + RF au démarrage
+    try:
+        load_rul_models()
+        print("[OK] Modèles XGBoost + RandomForest chargés.")
+    except Exception as e:
+        print(f"[WARN] Modèles RUL non disponibles : {e}")
+
     deps = check_dependencies()
     print(
         f"[OK] MineAssist démarré | PyMuPDF={deps['pymupdf']} | "
@@ -1488,6 +1498,159 @@ def gmao_evolution(parametre: str):
         raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# /gmao/timeseries — série temporelle d'un paramètre capteur
+# Restauré depuis api29_04 pour MonitoringDashboard et EvolutionChart
+# ─────────────────────────────────────────────────────────────────────────────
+@app.get("/gmao/timeseries")
+def gmao_timeseries(
+    parametre: str = Query(..., description="Nom (ou fragment) du paramètre"),
+    machine: str = Query("all", description="Machine ('994F-1', '994F-2', 'all')"),
+    last_minutes: int = Query(0, description="Si > 0, ne renvoyer que les N dernières minutes"),
+    resample: str = Query("auto", description="Période pandas ('1min', '5min', '1h', 'auto')"),
+    max_points: int = Query(500, description="Nombre maximum de points renvoyés"),
+):
+    """Série temporelle (min/moy/max) pour un paramètre. Alimente le frontend MonitoringDashboard."""
+    try:
+        df, _ = load_gmao_capteurs()
+
+        mask = df["parametre"].str.contains(parametre, case=False, na=False, regex=False)
+        df_p = df[mask].copy()
+        if df_p.empty:
+            raise HTTPException(404, f"Paramètre '{parametre}' non trouvé")
+
+        if machine and machine != "all":
+            df_p = df_p[df_p["machine"].astype(str).str.strip() == machine.strip()]
+            if df_p.empty:
+                raise HTTPException(404, f"Aucune mesure pour '{parametre}' sur '{machine}'")
+
+        df_p = _sanitize_capteur_series(df_p)
+        if df_p.empty:
+            raise HTTPException(404, f"Aucune mesure exploitable pour '{parametre}'")
+
+        raw_count = len(df_p)
+
+        if last_minutes and last_minutes > 0:
+            cutoff = df_p["horodatage"].max() - pd.Timedelta(minutes=last_minutes)
+            df_p = df_p[df_p["horodatage"] >= cutoff]
+            if df_p.empty:
+                raise HTTPException(404, f"Aucune mesure dans les {last_minutes} dernières minutes")
+
+        # Resampling intelligent
+        if resample == "auto":
+            span_min = (df_p["horodatage"].max() - df_p["horodatage"].min()).total_seconds() / 60
+            target_min = max(1, span_min / max_points)
+            if target_min < 2:     resample = "1min"
+            elif target_min < 7:   resample = "5min"
+            elif target_min < 20:  resample = "15min"
+            elif target_min < 60:  resample = "30min"
+            elif target_min < 180: resample = "1h"
+            elif target_min < 720: resample = "6h"
+            else:                  resample = "1D"
+
+        df_p = df_p.set_index("horodatage")
+        agg = df_p.resample(resample).agg(
+            min=("val_min", "min"),
+            moy=("val_moy", "mean"),
+            max=("val_max", "max"),
+        ).dropna(how="all").reset_index()
+
+        if len(agg) > max_points:
+            step = max(1, len(agg) // max_points)
+            agg = agg.iloc[::step].reset_index(drop=True)
+
+        points = [
+            {
+                "t": row["horodatage"].strftime("%Y-%m-%dT%H:%M"),
+                "min": round(float(row["min"]), 2) if pd.notna(row["min"]) else None,
+                "moy": round(float(row["moy"]), 2) if pd.notna(row["moy"]) else None,
+                "max": round(float(row["max"]), 2) if pd.notna(row["max"]) else None,
+            }
+            for _, row in agg.iterrows()
+        ]
+        if not points:
+            raise HTTPException(404, "Pas assez de points après resampling")
+
+        mu = float(agg["moy"].mean())
+        sigma = float(agg["moy"].std()) if pd.notna(agg["moy"].std()) else 0.0
+        last_value = float(agg["moy"].dropna().iloc[-1]) if not agg["moy"].dropna().empty else None
+        first_value = float(agg["moy"].dropna().iloc[0]) if not agg["moy"].dropna().empty else None
+        trend_pct = (
+            round(((last_value - first_value) / first_value) * 100, 2)
+            if first_value and last_value else None
+        )
+
+        _, rule = find_capteur_rule(parametre)
+        seuils = {"max": None, "min": None, "type": "aucun"}
+        if rule:
+            seuils["max"] = float(rule["max"]) if "max" in rule else None
+            seuils["min"] = float(rule["min"]) if "min" in rule else None
+            seuils["type"] = "seuil_metier_ocp"
+        else:
+            seuils["max"] = round(mu + 2 * sigma, 2)
+            seuils["min"] = round(mu - 2 * sigma, 2)
+            seuils["type"] = "2sigma_statistique"
+
+        alerte_active = False
+        if last_value is not None:
+            if seuils["max"] is not None and last_value > seuils["max"]: alerte_active = True
+            if seuils["min"] is not None and last_value < seuils["min"]: alerte_active = True
+
+        unite = df_p["unite"].iloc[0] if "unite" in df_p.columns and not df_p["unite"].dropna().empty else ""
+
+        return {
+            "parametre": parametre,
+            "machine": machine,
+            "unite": unite,
+            "points": points,
+            "stats": {"mu": round(mu, 2), "sigma": round(sigma, 2), "n": len(points)},
+            "seuils": seuils,
+            "last_value": round(last_value, 2) if last_value is not None else None,
+            "trend_pct": trend_pct,
+            "alerte_active": alerte_active,
+            "resample_used": resample,
+            "raw_count": raw_count,
+            "first_seen": str(df_p.index.min())[:16] if not df_p.empty else None,
+            "last_seen": str(df_p.index.max())[:16] if not df_p.empty else None,
+        }
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(500, f"Erreur timeseries : {str(e)}")
+
+
+@app.get("/gmao/timeseries/multi")
+def gmao_timeseries_multi(
+    parametres: str = Query(..., description="Liste séparée par des virgules"),
+    machine: str = Query("all"),
+    last_minutes: int = Query(0),
+    resample: str = Query("auto"),
+    max_points: int = Query(200),
+):
+    """Plusieurs séries temporelles en une seule requête. Ex: ?parametres=Température,Pression"""
+    params_list = [p.strip() for p in parametres.split(",") if p.strip()]
+    if not params_list:
+        raise HTTPException(400, "Au moins un paramètre est requis")
+
+    series = {}
+    errors = {}
+    for p in params_list:
+        try:
+            series[p] = gmao_timeseries(
+                parametre=p, machine=machine,
+                last_minutes=last_minutes, resample=resample, max_points=max_points,
+            )
+        except HTTPException as e:
+            errors[p] = e.detail
+        except Exception as e:
+            errors[p] = str(e)
+
+    return {"series": series, "errors": errors, "machine": machine}
+
+
 @app.post("/cache/clear")
 def clear_cache():
     return {"status": "ok", "message": "Aucun cache serveur persistant à vider"}
@@ -1497,33 +1660,142 @@ def clear_cache():
 # PROMPTS SYSTÈME
 # ─────────────────────────────────────────────────────────────
 
-SYSTEM_ASK_WITH_CONTEXT = """Tu es MineAssist, un expert senior en maintenance de la chargeuse CAT 994F à OCP Benguérir.
-Tu réponds comme un technicien expérimenté qui parle à un collègue : naturellement, avec précision, sans jargon inutile.
+SYSTEM_ASK_WITH_CONTEXT = """Tu es **MineAssist**, expert senior en maintenance de la chargeuse minière CAT 994F au site OCP Benguerir (Maroc).
+Ton interlocuteur est un technicien ou ingénieur de maintenance — il a besoin d'informations EXACTES, exploitables sur le terrain, en langage technique direct.
 
-Règles de réponse :
-- Réponds de manière fluide et naturelle, comme dans une vraie conversation professionnelle.
-- N'impose jamais de structure rigide. Si la question est simple, réponds simplement.
-- Si la question est technique (code défaut, procédure, mesure), développe avec les détails utiles.
-- Utilise des listes à tirets ou des étapes numérotées SEULEMENT quand c'est naturellement utile (procédures, causes multiples).
-- N'invente jamais de valeurs, références ou procédures.
-- Si le contexte documentaire est suffisant, base-toi dessus. Sinon, dis-le clairement et réponds avec tes connaissances générales.
-- Pas de titres en majuscules, pas de sections forcées, pas de symboles inutiles.
-- Sois direct et concis. Va à l'essentiel.
+═══════════════════════════════════════════════════════════════════════
+CONTEXTE OPÉRATIONNEL OCP BENGUERIR
+═══════════════════════════════════════════════════════════════════════
+- Site phosphatier en plein air, conditions sévères : poussière, vibrations, T° jusqu'à 45 °C en été
+- Chargeuses CAT 994F : godet 36,4 m³, charge utile 36-40 t, moteur 3516B, transmission planétaire
+- Système VIMS embarqué (codes MID/CID/FMI)
+- Plan de maintenance préventive : PM250 / PM500 / PM1000 / PM2000 heures
+- Lubrifiants typiques : SAE 15W-40 (moteur), TO-4 (transmission), HYDO Advanced 10 (hydraulique)
+- Carburants/fluides homologués Caterpillar uniquement
+
+═══════════════════════════════════════════════════════════════════════
+RÈGLES DE RÉPONSE — STRICTES, NON NÉGOCIABLES
+═══════════════════════════════════════════════════════════════════════
+
+▶ R1. SOURCE DE VÉRITÉ
+Le contexte documentaire fourni ci-dessous est ta SEULE source autoritative.
+- Si l'info est dans le contexte → l'utiliser EXACTEMENT telle qu'écrite, citer entre parenthèses : (Manuel OMM, p. 145), (SIS, section 5479), (Procédure VIMS PM500).
+- Si l'info N'EST PAS dans le contexte → le dire clairement avant de compléter par tes connaissances générales.
+- JAMAIS inventer une valeur, une référence pièce, un couple de serrage ou un code défaut. Si incertain, dis-le.
+
+▶ R2. FORMAT DE RÉPONSE — adapter au type de question
+- **Question factuelle simple** ("Quelle est la pression nominale du circuit X ?") → 1-2 phrases, valeur exacte avec unité, source.
+- **Procédure** (remplacement / étalonnage / vérification) → format obligatoire :
+
+  **Objectif** : ...
+  **Préparation** :
+    - EPI : ...
+    - Outils : ...
+    - LOTO : ...
+  **Étapes** :
+    1. [Verbe à l'impératif] + [détail technique] + [valeur si applicable]
+    2. ...
+  **Validation post-intervention** : ...
+  **Fréquence recommandée** : PM250 / PM500 / etc.
+
+- **Diagnostic / dépannage** → liste des causes par probabilité décroissante :
+
+  **Cause probable n°1 (X %)** : ...
+    - Test : ...
+    - Si confirmé → action corrective
+  **Cause probable n°2** : ...
+  ...
+
+- **Question conceptuelle** ("Pourquoi le filtre se colmate ?") → réponse explicative structurée mais sans rigidité.
+
+▶ R3. VALEURS TECHNIQUES — toujours préciser
+- Couples de serrage : N·m avec tolérance ± (ex : "270 N·m ± 20 N·m")
+- Pressions : kPa, MPa ou bar (PRÉCISER l'unité)
+- Températures : °C
+- Tensions : V
+- Débits : L/min ou m³/h
+- Codes anomalies : MID/CID/FMI complets
+- Références pièces : numéros Caterpillar P/N quand présents
+
+▶ R4. SÉCURITÉ — obligatoire pour toute intervention physique
+- ⚠ Verrouillage/consignation (LOTO) avant tout travail sur :
+  - Circuits hydrauliques sous pression
+  - Circuits électriques
+  - Composants en hauteur
+- EPI minimum à mentionner : casque, gants nitrile, lunettes, chaussures de sécurité
+- Avertir explicitement de :
+  - Risque brûlure (fluides > 60 °C, échappement, turbo)
+  - Risque pression résiduelle (purger les circuits avant ouverture)
+  - Risque chute composants (godet, vérin de levage)
+
+▶ R5. HONNÊTETÉ — limites explicites
+Si la question dépasse le contexte ET tes connaissances fiables :
+> "Cette information n'est pas dans la documentation fournie. Contactez le service technique Caterpillar (CAT SIS) ou le bureau méthodes OCP Benguerir."
+
+▶ R6. STYLE
+- Français technique de maintenance industrielle
+- Phrases courtes, à l'IMPÉRATIF pour les procédures (ex : "Démonter le filtre", non "Vous devez démonter")
+- AUCUNE phrase d'introduction inutile : pas de "Bonjour", "Bien sûr", "Voici la réponse...", "J'espère que ça aide"
+- Aller directement au contenu utile
+- Markdown autorisé : **gras** pour les valeurs critiques et avertissements ; listes ; titres ## seulement pour les sections longues
+- AUCUN emoji sauf ⚠ (avertissement critique) et ✅ (validation post-intervention)
+
+▶ R7. SI LE CONTEXTE EST EN ANGLAIS (manuels CAT SIS)
+- Traduire intégralement en français technique correct
+- Conserver les codes (MID/CID/FMI/SMCS) et numéros de pièce tels quels
+- Conserver les abréviations techniques standard (ECM, VIMS, PTO, PM, etc.)
+
+═══════════════════════════════════════════════════════════════════════
+RAPPEL FINAL
+═══════════════════════════════════════════════════════════════════════
+Tu es un OUTIL DE TRAVAIL pour un mécano OCP en intervention. Une mauvaise valeur peut causer un accident grave ou un arrêt machine de plusieurs jours. EN CAS DE DOUTE → DIS-LE.
 """
 
-SYSTEM_ASK_NO_CONTEXT = """Tu es MineAssist, un expert senior en maintenance de la chargeuse CAT 994F à OCP Benguérir.
-Tu réponds comme un technicien expérimenté qui parle à un collègue : naturellement, avec précision.
 
-Aucun document pertinent n'a été trouvé pour cette question.
-Réponds avec tes connaissances générales sur la CAT 994F, en précisant brièvement que tu te bases sur des connaissances générales.
-Recommande de consulter la documentation officielle Caterpillar si une précision est nécessaire.
+SYSTEM_ASK_NO_CONTEXT = """Tu es **MineAssist**, expert senior en maintenance de la chargeuse minière CAT 994F au site OCP Benguerir (Maroc).
 
-Règles :
-- Réponds de manière fluide et naturelle.
-- Pas de structure rigide ni de sections forcées.
-- Sois direct, précis et utile.
-- Pas de titres en majuscules, pas de symboles inutiles.
+⚠ **AUCUN DOCUMENT PERTINENT** n'a été trouvé dans la base documentaire pour cette question.
+
+═══════════════════════════════════════════════════════════════════════
+RÈGLES STRICTES POUR RÉPONDRE SANS CONTEXTE DOCUMENTAIRE
+═══════════════════════════════════════════════════════════════════════
+
+▶ R1. AVERTISSEMENT EN PREMIÈRE LIGNE
+Commencer obligatoirement par cette phrase exacte (en italique) :
+*ℹ Réponse basée sur des connaissances générales — la documentation officielle OCP/Caterpillar n'a pas été consultée pour cette question.*
+
+▶ R2. PRUDENCE EXTRÊME SUR LES VALEURS NUMÉRIQUES
+- NE JAMAIS donner de valeur précise sans certitude absolue :
+  * Couples de serrage
+  * Pressions nominales
+  * Tolérances mécaniques
+  * Références pièces Caterpillar (P/N)
+  * Codes défauts MID/CID/FMI
+- Si tu donnes une plage typique pour une chargeuse de cette catégorie, le préciser explicitement :
+  > "Typiquement de l'ordre de X à Y bar — à confirmer dans le manuel OMM CAT 994F"
+
+▶ R3. FORMAT IDENTIQUE qu'avec contexte (procédures numérotées, diagnostic ordonné, sécurité, EPI, LOTO)
+
+▶ R4. CONCLURE OBLIGATOIREMENT par :
+> **Référence officielle** : Pour la procédure exacte et les valeurs nominales certifiées, consulter :
+> - Le manuel d'utilisation et de maintenance (OMM) de la CAT 994F
+> - Le système CAT SIS (Service Information System)
+> - Le bureau méthodes OCP Benguerir
+
+▶ R5. STYLE — identique à la version avec contexte
+- Français technique direct, à l'impératif
+- Pas d'introduction de politesse
+- Markdown autorisé pour structurer
+- Aucun emoji sauf ⚠ et ✅
+
+▶ R6. RAPPEL DE SÉCURITÉ
+Quelle que soit la qualité de la réponse, RAPPELER explicitement :
+- Les EPI requis
+- Le LOTO si intervention électrique ou hydraulique
+- Les risques mécaniques associés
 """
+
+
 
 SYSTEM_DIAGNOSE_WITH_CONTEXT = """Tu es MineAssist, système de diagnostic CAT 994F — OCP Benguérir.
 
@@ -1683,26 +1955,96 @@ def call_llm(system_prompt: str, user_prompt: str) -> str:
 # ENDPOINTS IA
 # ─────────────────────────────────────────────────────────────
 
+@app.get("/ask/status")
+def ask_status():
+    """Vérifie que la configuration LLM est opérationnelle."""
+    key_ok = bool(OPENROUTER_API_KEY)
+    return {
+        "llm_configured": key_ok,
+        "model": OPENROUTER_MODEL,
+        "status": "ok" if key_ok else "error",
+        "message": "OpenRouter prêt" if key_ok else "OPENROUTER_API_KEY manquante dans le fichier .env",
+    }
+
 @app.post("/ask")
 def ask(req: AskRequest):
+    import traceback as _tb
+    import logging as _log
+    _logger = _log.getLogger("uvicorn.error")
+
     try:
-        context, sources = rag.build_context(
-            query=req.question,
-            top_k=TOP_K,
-            max_chars=MAX_CHARS_CONTEXT,
-        )
+        # ── Étape 1 : vérification clé API ────────────────────────────────
+        if not OPENROUTER_API_KEY:
+            raise HTTPException(
+                status_code=503,
+                detail="OPENROUTER_API_KEY manquante — créez backend/.env avec OPENROUTER_API_KEY=sk-or-..."
+            )
+        _logger.info(f"[ASK] clé API OK | question: {req.question[:60]!r}")
+
+        # ── Étape 2 : RAG context ─────────────────────────────────────────
+        try:
+            context, sources = rag.build_context(
+                query=req.question,
+                top_k=TOP_K,
+                max_chars=MAX_CHARS_CONTEXT,
+            )
+            _logger.info(f"[ASK] RAG OK | ctx={len(context)}ch | sources={sources}")
+        except Exception as e_rag:
+            _logger.error(f"[ASK] ERREUR RAG: {e_rag}")
+            context, sources = "", []
+
         has_ctx = bool(context.strip())
         system = SYSTEM_ASK_WITH_CONTEXT if has_ctx else SYSTEM_ASK_NO_CONTEXT
+        ctx_block = f"\n\n---\n## 📂 CONTEXTE\n{context}" if has_ctx else ""
+        user_prompt = f"## Question\n{req.question}{ctx_block}"
 
-        ctx_block = f"\n\n---\n## 📂 CONTEXTE DOCUMENTAIRE\n{context}" if has_ctx else ""
-        sources_block = (
-            "\n\n---\n## 📚 Sources disponibles\n" +
-            "\n".join(f"- {s}" for s in sources)
-        ) if sources else ""
+        # ── Étape 3 : appel LLM ────────────────────────────────────────────
+        try:
+            answer = call_llm(system, user_prompt)
+            _logger.info(f"[ASK] LLM OK | réponse {len(answer or '')} chars")
+        except Exception as e_llm:
+            err_str = str(e_llm)
+            _logger.error(f"[ASK] ERREUR LLM: {err_str}")
+            # Détecter les erreurs courantes et donner un message clair
+            if "401" in err_str or "Unauthorized" in err_str or "Invalid API key" in err_str:
+                raise HTTPException(status_code=401,
+                    detail="Clé OPENROUTER_API_KEY invalide ou expirée. Vérifiez votre clé sur openrouter.ai")
+            if "402" in err_str or "insufficient" in err_str.lower() or "credits" in err_str.lower():
+                raise HTTPException(status_code=402,
+                    detail="Crédit OpenRouter insuffisant. Rechargez votre compte sur openrouter.ai")
+            if "429" in err_str or "rate" in err_str.lower():
+                raise HTTPException(status_code=429,
+                    detail="Limite de requêtes OpenRouter atteinte. Attendez quelques secondes.")
+            if "Connection" in err_str or "timeout" in err_str.lower() or "network" in err_str.lower():
+                raise HTTPException(status_code=503,
+                    detail="Impossible de contacter OpenRouter. Vérifiez votre connexion internet.")
+            raise HTTPException(status_code=500, detail=f"Erreur LLM : {err_str[:300]}")
 
-        user_prompt = f"## Question\n{req.question}{ctx_block}{sources_block}"
-        answer = call_llm(system, user_prompt)
-        pdf_images = extract_images_for_sources(sources, query=req.question, max_images=3)
+        if not answer or not answer.strip():
+            answer = "⚠ Le modèle LLM a retourné une réponse vide. Vérifiez votre quota sur openrouter.ai"
+
+        # ── Étape 4 : images PDF — opt-in uniquement ──────────────────────
+        # Images extraites SEULEMENT si :
+        #   - le client a explicitement coché include_images=True
+        #   - OU si la question contient un mot-clé visuel
+        IMAGE_KEYWORDS = (
+            "image", "photo", "schéma", "schema", "diagramme", "figure",
+            "illustration", "voir", "montre", "montrer", "afficher",
+            "page", "visuel", "dessin", "plan",
+        )
+        wants_images = req.include_images or any(
+            kw in req.question.lower() for kw in IMAGE_KEYWORDS
+        )
+
+        pdf_images = []
+        if wants_images:
+            try:
+                pdf_images = extract_images_for_sources(sources, query=req.question, max_images=3) or []
+                _logger.info(f"[ASK] {len(pdf_images)} images PDF extraites (demande explicite)")
+            except Exception as e_img:
+                _logger.warning(f"[ASK] images PDF ignorées: {e_img}")
+        else:
+            _logger.info("[ASK] images PDF non demandées — skip")
 
         return {
             "question": req.question,
@@ -1710,10 +2052,12 @@ def ask(req: AskRequest):
             "sources": sources,
             "pdf_images": pdf_images,
         }
+
     except HTTPException:
         raise
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        _logger.error(f"[ASK] ERREUR INATTENDUE:\n{_tb.format_exc()}")
+        raise HTTPException(status_code=500, detail=f"Erreur serveur : {str(e)[:400]}")
 
 
 @app.post("/diagnose")
@@ -1745,8 +2089,21 @@ Heures depuis maintenance : {heures}
 Contexte GMAO : {req.gmao_context or 'Aucun'}
 {ctx_block}"""
 
-        answer = call_llm(system, user_prompt)
-        pdf_images = extract_images_for_sources(sources, query=query, max_images=3)
+        try:
+            answer = call_llm(system, user_prompt)
+        except Exception as e_llm:
+            err = str(e_llm)
+            if "401" in err or "Invalid API key" in err:
+                raise HTTPException(status_code=401, detail="Clé OPENROUTER_API_KEY invalide.")
+            if "402" in err or "credits" in err.lower():
+                raise HTTPException(status_code=402, detail="Crédit OpenRouter insuffisant.")
+            raise HTTPException(status_code=500, detail=f"Erreur LLM : {err[:300]}")
+
+        pdf_images = []
+        try:
+            pdf_images = extract_images_for_sources(sources, query=query, max_images=3) or []
+        except Exception:
+            pass
 
         return {
             "input": req.model_dump(),
@@ -1757,7 +2114,7 @@ Contexte GMAO : {req.gmao_context or 'Aucun'}
     except HTTPException:
         raise
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail=f"Erreur diagnostic : {str(e)[:400]}")
 
 import joblib
 import json

@@ -1,832 +1,443 @@
-// ─────────────────────────────────────────────────────────────────────────────
-// src/pages/PredictionPage.jsx — REFONTE v3 ROBUSTE
-// - Couleurs hex solides (pas de template literals ${color}XX qui peuvent etre
-//   mal parses sur certains browsers)
-// - Layouts en flexbox simple (pas de grid avec 320px/1fr complexe)
-// - Fallbacks visibles si donnees manquantes
-// - Mode debug ?debug=1 : affiche le JSON brut recu du backend
-// - Tableau capteurs en <table> HTML standard
-// ─────────────────────────────────────────────────────────────────────────────
-import { useState, useEffect, useMemo } from 'react'
+/**
+ * PredictionPage.jsx — Refonte complète v4
+ * Maintenance Prédictive RUL · CAT 994F1 · OCP Benguerir
+ * Endpoints : /pred/rul/status + /pred/rul/predict/demo + /pred/rul/predict
+ */
+import { useState, useEffect, useCallback, useRef } from 'react'
 import {
-  LineChart, Line, XAxis, YAxis, CartesianGrid,
-  Tooltip, ReferenceLine, ResponsiveContainer, Area, AreaChart,
+  AreaChart, Area, XAxis, YAxis, CartesianGrid,
+  Tooltip, ResponsiveContainer, ReferenceLine,
 } from 'recharts'
 import { API } from '../config'
 
-// ── Constantes ──────────────────────────────────────────────────────────────
-const HORIZON_PROB_KEY = { 720: 'proba_1d', 5040: 'proba_1w', 10080: 'proba_2w' }
-const HORIZON_LABEL    = { 720: '1 jour',   5040: '1 semaine', 10080: '2 semaines' }
-const FORECAST_LABEL   = { 720: '1h36',     5040: '3h12',      10080: '4h48' }
+const C = {
+  green:'#00843D', greenDark:'#005C2B', greenPale:'#E8F5EE',
+  orange:'#F59E0B', orangePale:'#FEF3C7',
+  red:'#DC2626', redPale:'#FEE2E2',
+  bg:'#F5F0E8', card:'#FFFFFF',
+  border:'#D4C9B0', borderLight:'#E8E2D4',
+  text:'#1C1A14', textMid:'#4A4535', textMuted:'#8A7D60',
+}
 
-// ── Mode debug : ?debug=1 dans l'URL ────────────────────────────────────────
-const DEBUG = typeof window !== 'undefined'
-  && new URLSearchParams(window.location.search).get('debug') === '1'
+const SUBSYSTEMS = [
+  { key:'global_grav2', label:'RUL Global',    icon:'⚙️', desc:'Toutes anomalies grav. ≥ 2' },
+  { key:'moteur',       label:'Moteur',         icon:'🔧', desc:'Sous-système moteur' },
+  { key:'transmission', label:'Transmission',   icon:'⚡', desc:'Convertisseur + embrayages' },
+  { key:'hydraulique',  label:'Hydraulique',    icon:'💧', desc:'Circuit huile + direction' },
+]
 
-// ── Helpers ─────────────────────────────────────────────────────────────────
-const fmtPct = v => v == null || isNaN(v) ? '—' : `${(v * 100).toFixed(1)}%`
-const fmtNum = (v, d=1) => v == null || isNaN(v) ? '—' : Number(v).toFixed(d)
+const SENSORS = [
+  { key:'engine_rpm',        label:'Régime moteur',         unit:'tr/min', sous:'Moteur',       max:2100 },
+  { key:'converter_out_temp',label:'Temp. convertisseur',   unit:'°C',     sous:'Transmission', max:129  },
+  { key:'rear_axle_temp',    label:'Temp. essieux arrière', unit:'°C',     sous:'Essieux',      max:90   },
+  { key:'brake_oil_temp',    label:'Temp. huile freinage',  unit:'°C',     sous:'Freinage',     max:110  },
+  { key:'air_tank_pressure', label:'Pression air',          unit:'kPa',    sous:'Pneumatique',  min:400  },
+  { key:'steering_oil_temp', label:'Temp. huile direction', unit:'°C',     sous:'Direction',    max:95   },
+]
 
-// ── Tooltip personnalise ────────────────────────────────────────────────────
-const CustomTooltip = ({ active, payload, label }) => {
-  if (!active || !payload?.length) return null
+const MODEL_METRICS = [
+  { label:'MAE test',             value:'21h',     desc:'Erreur moyenne RUL' },
+  { label:'Rappel RED',           value:'93%',     desc:'Détection pannes imminentes' },
+  { label:'Dataset',              value:'6 490',   desc:'Échantillons horaires' },
+  { label:'Entraînement',         value:'11 mois', desc:'Janv → Nov 2025' },
+  { label:'Capteurs clés',        value:'6',       desc:'Score composite' },
+  { label:'Modèle',               value:'XGBoost', desc:'Gradient Boosting' },
+]
+
+const alertClass = rul => rul==null?'UNKNOWN':rul<24?'RED':rul<72?'ORANGE':'GREEN'
+
+const ALERT = {
+  RED:    { color:C.red,    bg:C.redPale,    border:'#FCA5A5', label:'ALERTE CRITIQUE', emoji:'🔴', short:'Critique', msg:'Panne probable < 24h — Intervention immédiate' },
+  ORANGE: { color:C.orange, bg:C.orangePale, border:'#FDE68A', label:'SURVEILLANCE',    emoji:'🟠', short:'Attention', msg:'Surveiller — Panne 24-72h — Planifier maintenance' },
+  GREEN:  { color:C.green,  bg:C.greenPale,  border:'#86EFAC', label:'NOMINAL',         emoji:'🟢', short:'Normal',   msg:'Aucune panne prévue dans les 72 prochaines heures' },
+  UNKNOWN:{ color:C.textMuted, bg:'#F3F4F6', border:'#D1D5DB', label:'N/A',            emoji:'⚪', short:'—',        msg:'Chargez un fichier Excel pour analyser' },
+}
+
+const fmtH = h => h==null?'—':h<24?`${Math.round(h)}h`:`${(h/24).toFixed(1)}j`
+
+function RulRing({ rul, size=150 }) {
+  const alert = alertClass(rul)
+  const cfg = ALERT[alert]
+  const pct = rul==null?0:Math.min(1,rul/168)
+  const r = size/2-13, circ = 2*Math.PI*r
+  const cx=size/2, cy=size/2
   return (
-    <div style={{
-      background: '#FFFFFF', border: '1px solid #D4C9B0',
-      borderRadius: 6, padding: '6px 10px', fontSize: 11,
-      boxShadow: '0 2px 8px rgba(0,0,0,0.08)',
-    }}>
-      <div style={{ color: '#8A7D60', marginBottom: 3, fontSize: 10 }}>{label}</div>
-      {payload.map((p, i) => (
-        <div key={i} style={{ color: p.color, fontWeight: 700 }}>
-          {p.name}: {typeof p.value === 'number' ? p.value.toFixed(3) : p.value}
-        </div>
-      ))}
-    </div>
+    <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`}>
+      <circle cx={cx} cy={cy} r={r} fill="none" stroke="#E5E7EB" strokeWidth={13}/>
+      <circle cx={cx} cy={cy} r={r} fill="none" stroke={cfg.color} strokeWidth={13}
+        strokeDasharray={`${(pct*circ).toFixed(2)} ${circ.toFixed(2)}`}
+        strokeLinecap="round" transform={`rotate(-90 ${cx} ${cy})`}
+        style={{transition:'stroke-dasharray 1s ease,stroke 0.4s'}}/>
+      <text x={cx} y={cy-8} textAnchor="middle"
+        fontSize={rul==null?16:rul<100?26:20} fontWeight={800} fill={cfg.color}
+        fontFamily="Rajdhani,system-ui">{rul==null?'—':fmtH(rul)}</text>
+      <text x={cx} y={cy+9} textAnchor="middle" fontSize={9} fill={C.textMuted} fontFamily="system-ui">avant panne</text>
+      <text x={cx} y={cy+24} textAnchor="middle" fontSize={10} fontWeight={700} fill={cfg.color}
+        fontFamily="system-ui" letterSpacing={1}>{cfg.short.toUpperCase()}</text>
+    </svg>
   )
 }
 
-// ── Hero : KPI geant + sparkline cote a cote en flex ────────────────────────
-function HeroBanner({ proba, seuil, alerte, horizonLabel, points, probKey }) {
-  const data = useMemo(
-    () => points.map(p => ({ d: String(p.date || '').slice(5, 16), v: p[probKey] ?? null })),
-    [points, probKey]
-  )
-  // Couleurs solides — pas de template literals avec alpha
-  const color    = alerte ? '#C0392B' : '#00843D'
-  const bgPale   = alerte ? '#FBEFEC' : '#EAF6EE'
-  const bgGrad1  = alerte ? '#FCE9E5' : '#DCF1E2'
-  const bgGrad2  = alerte ? '#F8DDD7' : '#C8E8D2'
-  const borderC  = alerte ? '#E8B5AD' : '#A8D9B6'
-  const title    = alerte ? 'PANNE PROBABLE' : 'SITUATION NORMALE'
-  const subtitle = alerte
-    ? 'Intervention recommandee — voir onglet Alertes'
-    : 'Aucune action immediate requise'
-
+function SubsysBar({ subsys, rul }) {
+  const cfg = ALERT[alertClass(rul)]
+  const pct = rul==null?0:Math.min(100,(rul/168)*100)
   return (
-    <div style={{
-      background: bgPale,
-      border: `1px solid ${borderC}`,
-      borderRadius: 14,
-      overflow: 'hidden',
-      display: 'flex',           // ← FLEX (pas grid)
-      flexWrap: 'wrap',           // pour mobile
-      minHeight: 180,
-    }}>
-      {/* Bloc gauche : KPI geant — flex-basis 320px */}
-      <div style={{
-        flex: '0 0 320px',
-        minWidth: 280,
-        background: `linear-gradient(135deg, ${bgGrad1} 0%, ${bgGrad2} 100%)`,
-        padding: '24px 28px',
-        display: 'flex',
-        flexDirection: 'column',
-        justifyContent: 'center',
-        borderRight: `1px solid ${borderC}`,
-        boxSizing: 'border-box',
-      }}>
-        <div style={{
-          fontSize: 11, fontWeight: 700, letterSpacing: 2, color,
-          textTransform: 'uppercase', marginBottom: 6,
-          fontFamily: 'system-ui, -apple-system, sans-serif',
-        }}>
-          Probabilite de panne
-        </div>
-        <div style={{
-          fontFamily: '"Rajdhani", system-ui, sans-serif',
-          fontSize: 64, fontWeight: 900,
-          color, lineHeight: 1, marginBottom: 4,
-        }}>
-          {fmtPct(proba)}
-        </div>
-        <div style={{
-          fontFamily: '"Rajdhani", system-ui, sans-serif',
-          fontSize: 18, fontWeight: 800, color, letterSpacing: 0.5,
-        }}>
-          {title}
-        </div>
-        <div style={{
-          fontSize: 11, color: '#8A7D60', marginTop: 4,
-          fontFamily: 'system-ui, sans-serif',
-        }}>
-          dans les {horizonLabel} suivants — seuil {fmtPct(seuil)}
-        </div>
-        <div style={{
-          fontSize: 11, color: '#5A5240', marginTop: 8, fontStyle: 'italic',
-          fontFamily: 'system-ui, sans-serif',
-        }}>
-          {subtitle}
-        </div>
-      </div>
-      {/* Bloc droit : sparkline — flex 1 */}
-      <div style={{
-        flex: '1 1 400px', minWidth: 300,
-        padding: '14px 18px 8px',
-        boxSizing: 'border-box',
-      }}>
-        <div style={{
-          display: 'flex', justifyContent: 'space-between',
-          fontSize: 10, color: '#8A7D60', letterSpacing: 1,
-          textTransform: 'uppercase', fontWeight: 700,
-          fontFamily: 'system-ui, sans-serif',
-        }}>
-          <span>Evolution probabilite</span>
-          <span>{points.length} points · forecast {FORECAST_LABEL[probKey === 'proba_1d' ? 720 : probKey === 'proba_1w' ? 5040 : 10080]}</span>
-        </div>
-        <ResponsiveContainer width="100%" height={130}>
-          <AreaChart data={data} margin={{ top: 8, right: 12, left: 0, bottom: 0 }}>
-            <defs>
-              <linearGradient id="probGrad" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="0%"  stopColor={color} stopOpacity={0.35}/>
-                <stop offset="100%" stopColor={color} stopOpacity={0.02}/>
-              </linearGradient>
-            </defs>
-            <XAxis dataKey="d" tick={{ fill: '#B0A080', fontSize: 9 }}
-                   axisLine={false} tickLine={false}
-                   interval={Math.max(0, Math.floor(data.length/6))} />
-            <YAxis domain={[0,1]} tick={{ fill: '#B0A080', fontSize: 9 }}
-                   tickFormatter={v => `${(v*100).toFixed(0)}%`}
-                   axisLine={false} tickLine={false} width={32} />
-            <Tooltip content={<CustomTooltip />} />
-            <ReferenceLine y={seuil} stroke="#C4760A" strokeDasharray="4 3"
-              label={{ value: `seuil ${(seuil*100).toFixed(0)}%`, position: 'right',
-                       fontSize: 9, fill: '#C4760A' }} />
-            <Area type="monotone" dataKey="v" stroke={color} strokeWidth={2}
-                  fill="url(#probGrad)" name="Probabilite" />
-          </AreaChart>
-        </ResponsiveContainer>
-      </div>
-    </div>
-  )
-}
-
-// ── Mini-sparkline pour ligne capteur ───────────────────────────────────────
-function Sparkline({ values, color }) {
-  if (!values || values.length === 0) return <div style={{ width: 100, height: 24 }} />
-  const data = values.map((v, i) => ({ i, v }))
-  return (
-    <ResponsiveContainer width={120} height={28}>
-      <LineChart data={data}>
-        <Line type="monotone" dataKey="v" stroke={color} strokeWidth={1.5} dot={false} isAnimationActive={false}/>
-      </LineChart>
-    </ResponsiveContainer>
-  )
-}
-
-// ── Drawer detail capteur (zoom courbe) ─────────────────────────────────────
-function SensorDetail({ col, points, forecast, bounds, horizonVal, onClose }) {
-  const cfg = bounds?.[col]
-  if (!col) return null
-
-  const histData = points.map(p => ({
-    d: String(p.date || '').slice(5, 16),
-    v: p[col] ?? null, p: null,
-  }))
-  const lastReal = histData.length > 0 ? histData[histData.length - 1].v : null
-  const junction = histData.length > 0
-    ? [{ d: histData[histData.length - 1].d, v: null, p: lastReal }]
-    : []
-  const forecastData = (forecast || []).map(p => ({
-    d: String(p.date || '').slice(5, 16),
-    v: null, p: p[col] ?? null,
-  }))
-  const data = [...histData, ...junction, ...forecastData]
-  const splitIdx = histData.length
-
-  return (
-    <div style={{
-      background: '#FFFFFF', border: '1px solid #D4C9B0',
-      borderRadius: 12, padding: '16px 20px', marginTop: 16,
-      boxShadow: '0 2px 8px rgba(0,0,0,0.04)',
-      boxSizing: 'border-box',
-    }}>
-      <div style={{
-        display: 'flex', justifyContent: 'space-between', alignItems: 'baseline',
-        marginBottom: 10,
-      }}>
-        <div>
-          <div style={{
-            fontSize: 10, color: '#00843D', fontWeight: 700,
-            letterSpacing: 1.5, textTransform: 'uppercase',
-            fontFamily: 'system-ui, sans-serif',
-          }}>
-            Detail capteur · prevision {HORIZON_LABEL[horizonVal]}
-          </div>
-          <div style={{
-            fontFamily: '"Rajdhani", system-ui, sans-serif', fontSize: 22,
-            fontWeight: 800, color: '#2A2A1E',
-          }}>
-            {cfg?.label || col} <span style={{ fontSize: 13, color: '#8A7D60' }}>({cfg?.unit || ''})</span>
+    <div style={{marginBottom:13}}>
+      <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:4}}>
+        <div style={{display:'flex',alignItems:'center',gap:7}}>
+          <span style={{fontSize:15}}>{subsys.icon}</span>
+          <div>
+            <div style={{fontSize:12,fontWeight:700,color:C.text,fontFamily:'Rajdhani,system-ui'}}>{subsys.label}</div>
+            <div style={{fontSize:10,color:C.textMuted}}>{subsys.desc}</div>
           </div>
         </div>
-        <button onClick={onClose} style={{
-          background: 'none', border: '1px solid #D4C9B0', borderRadius: 6,
-          padding: '4px 12px', cursor: 'pointer', color: '#5A5240', fontSize: 12,
-        }}>
-          ✕ Fermer
-        </button>
+        <div style={{textAlign:'right'}}>
+          <div style={{fontSize:17,fontWeight:800,color:cfg.color,fontFamily:'Rajdhani,system-ui',lineHeight:1}}>{fmtH(rul)}</div>
+          <div style={{fontSize:9,fontWeight:700,color:cfg.color,background:cfg.bg,padding:'1px 5px',borderRadius:3,marginTop:2,letterSpacing:1}}>{cfg.short.toUpperCase()}</div>
+        </div>
       </div>
-
-      <ResponsiveContainer width="100%" height={220}>
-        <LineChart data={data}>
-          <CartesianGrid strokeDasharray="3 3" stroke="#D4C9B0" />
-          <XAxis dataKey="d" tick={{ fill: '#B0A080', fontSize: 10 }}
-                 axisLine={false} tickLine={false}
-                 interval={Math.max(0, Math.floor(data.length/6))} />
-          <YAxis tick={{ fill: '#B0A080', fontSize: 10 }}
-                 axisLine={false} tickLine={false} />
-          <Tooltip content={<CustomTooltip />} />
-          {splitIdx < data.length && (
-            <ReferenceLine x={data[splitIdx]?.d}
-              stroke="#B0A080" strokeDasharray="4 3"
-              label={{ value: '→ Futur', position: 'top', fontSize: 10, fill: '#8A7D60' }} />
-          )}
-          {cfg?.threshold_max != null && (
-            <ReferenceLine y={cfg.threshold_max} stroke="#C0392B"
-              strokeDasharray="6 3" strokeWidth={1.4}
-              label={{ value: `MAX ${cfg.threshold_max} ${cfg.unit||''}`, position: 'insideTopRight',
-                       fontSize: 10, fill: '#C0392B' }} />
-          )}
-          {cfg?.threshold_min != null && (
-            <ReferenceLine y={cfg.threshold_min} stroke="#00843D"
-              strokeDasharray="6 3" strokeWidth={1.4}
-              label={{ value: `MIN ${cfg.threshold_min} ${cfg.unit||''}`, position: 'insideBottomRight',
-                       fontSize: 10, fill: '#00843D' }} />
-          )}
-          <Line type="monotone" dataKey="v" stroke="#3B82F6" dot={false}
-                strokeWidth={2} name="Reel" connectNulls />
-          <Line type="monotone" dataKey="p" stroke="#C4760A" dot={false}
-                strokeWidth={2} strokeDasharray="5 3" name="Prévision RUL" connectNulls />
-        </LineChart>
-      </ResponsiveContainer>
+      <div style={{height:6,background:'#E5E7EB',borderRadius:99,overflow:'hidden'}}>
+        <div style={{width:`${pct}%`,height:'100%',background:cfg.color,borderRadius:99,transition:'width 1s ease'}}/>
+      </div>
     </div>
   )
 }
 
-// ── Loader avec progression et timer ────────────────────────────────────────
-function RulLoader({ elapsed, message }) {
-  const ESTIMATED_S = 20
-  const pct = Math.min(98, (elapsed / ESTIMATED_S) * 100)
-  const overTime = elapsed > ESTIMATED_S + 10
-  const barColor = overTime ? '#C0392B' : '#00843D'
-
+function SensorRow({ sensor }) {
   return (
-    <div style={{ padding: '60px 24px', maxWidth: 540, margin: '0 auto', textAlign: 'center' }}>
-      <div style={{
-        width: 56, height: 56, margin: '0 auto 18px',
-        border: '4px solid #E8F5EE', borderTopColor: '#00843D',
-        borderRadius: '50%', animation: 'spin 1s linear infinite',
-      }} />
-      <div style={{
-        fontFamily: '"Rajdhani", system-ui, sans-serif', fontSize: 22, fontWeight: 700,
-        color: '#005C2B', marginBottom: 8, letterSpacing: 0.5,
-      }}>
-        {message || 'Calcul XGBoost RUL en cours'}
-      </div>
-      <div style={{ fontSize: 13, color: '#8A7D60', marginBottom: 18 }}>
-        {elapsed.toFixed(0)}s ecoulees
-        {!overTime && elapsed > 0 && ` / ~${ESTIMATED_S}s estimees`}
-      </div>
-      <div style={{ height: 6, background: '#D4C9B0', borderRadius: 3, overflow: 'hidden' }}>
-        <div style={{
-          height: '100%', width: `${pct}%`,
-          background: barColor,
-          transition: 'width 0.3s ease',
-        }} />
-      </div>
-      <div style={{
-        marginTop: 22, padding: '10px 14px',
-        background: '#E8F5EE', border: '1px solid #00843D55',
-        borderRadius: 8, textAlign: 'left',
-        fontSize: 11.5, color: '#2A2A1E', lineHeight: 1.5,
-      }}>
-        <div style={{ fontWeight: 700, color: '#00843D', marginBottom: 3 }}>
-          📊 Modèle XGBoost RUL en calcul
-        </div>
-        <div style={{ color: '#8A7D60' }}>
-          Premier chargement : 15-25s pour 100k+ points.
-          Les rafraichissements suivants seront <strong>quasi instantanes</strong>
-          {' '}grace au cache backend.
-        </div>
-      </div>
-      {overTime && (
-        <div style={{
-          marginTop: 14, padding: '10px 14px',
-          background: '#FDECEA', border: '1px solid #C0392B55',
-          borderRadius: 8, fontSize: 11.5, color: '#C0392B', textAlign: 'left',
-        }}>
-          ⚠ Le calcul prend plus de temps que prevu. Verifie que le backend
-          tourne et que les modèles XGBoost sont chargés.
-        </div>
-      )}
-      <style>{`@keyframes spin { to { transform: rotate(360deg) } }`}</style>
-    </div>
-  )
-}
-
-// ── Panneau de debug — affiche le JSON brut ─────────────────────────────────
-function DebugPanel({ data, error, loading }) {
-  if (!DEBUG) return null
-  return (
-    <div style={{
-      background: '#FFF8E1', border: '2px solid #C4760A',
-      borderRadius: 8, padding: 12, marginBottom: 16,
-      fontSize: 11, fontFamily: 'monospace', color: '#2A2A1E',
-    }}>
-      <div style={{ fontWeight: 700, marginBottom: 6, color: '#C4760A' }}>
-        🐞 DEBUG MODE — donnees recues du backend
-      </div>
-      <div>Loading: {String(loading)}</div>
-      <div>Error: {error || '(none)'}</div>
-      <div>Data keys: {data ? Object.keys(data).join(', ') : '(no data)'}</div>
-      {data && (
-        <details style={{ marginTop: 6 }}>
-          <summary style={{ cursor: 'pointer', color: '#005C2B' }}>Voir JSON complet</summary>
-          <pre style={{
-            maxHeight: 300, overflow: 'auto',
-            background: '#FFF', padding: 8, marginTop: 4, borderRadius: 4,
-            fontSize: 10,
-          }}>
-{JSON.stringify(data, null, 2).slice(0, 3000)}
-          </pre>
-        </details>
-      )}
-    </div>
-  )
-}
-
-// ── Page principale ─────────────────────────────────────────────────────────
-export default function PredictionPage(props) {
-  const apiFetch = props?.apiFetch || fetch
-
-  const [data,       setData]       = useState(null)
-  const [loading,    setLoading]    = useState(true)
-  const [error,      setError]      = useState(null)
-  const [elapsed,    setElapsed]    = useState(0)
-  const [horizonVal, setHorizonVal] = useState(720)
-  const [selected,   setSelected]   = useState(null)
-
-  // Timer pendant le loading
-  useEffect(() => {
-    if (!loading) { setElapsed(0); return }
-    const t0 = Date.now()
-    const id = setInterval(() => setElapsed((Date.now() - t0) / 1000), 200)
-    return () => clearInterval(id)
-  }, [loading])
-
-  useEffect(() => {
-    if (!apiFetch) {
-      setError("apiFetch n'est pas disponible (verifier useAuth ou prop)")
-      setLoading(false)
-      return
-    }
-    let aborted = false
-    setLoading(true); setError(null)
-    const ctrl = new AbortController()
-    const tmo = setTimeout(() => ctrl.abort(), 90000)
-
-    apiFetch(`${API}/pred/prediction`, { signal: ctrl.signal })
-      .then(r => {
-        if (!r.ok) throw new Error(`HTTP ${r.status}`)
-        return r.json()
-      })
-      .then(json => { if (!aborted) setData(json) })
-      .catch(err => {
-        if (aborted) return
-        if (err.name === 'AbortError') {
-          setError('Le calcul a depasse 90 secondes. Verifie le backend.')
-        } else {
-          setError(err.message)
-        }
-      })
-      .finally(() => { if (!aborted) { setLoading(false); clearTimeout(tmo) } })
-
-    return () => { aborted = true; ctrl.abort(); clearTimeout(tmo) }
-  }, [apiFetch])
-
-  if (loading) return (
-    <div>
-      <DebugPanel data={data} error={error} loading={loading} />
-      <RulLoader elapsed={elapsed} />
-    </div>
-  )
-
-  if (error) return (
-    <div style={{ maxWidth: 1440, margin: '0 auto', padding: '20px 28px' }}>
-      <DebugPanel data={data} error={error} loading={loading} />
-      <div style={{
-        background: '#FDECEA', border: '1px solid #C0392B55',
-        borderRadius: 12, padding: 20, color: '#C0392B', maxWidth: 600, margin: '60px auto',
-      }}>
-        <div style={{ fontWeight: 700, marginBottom: 6 }}>⚠ Erreur de prediction</div>
-        <div style={{ fontSize: 13 }}>{error}</div>
-        <div style={{ fontSize: 12, color: '#8A7D60', marginTop: 8 }}>
-          Chargez un fichier via “OCP Fichiers”, vérifiez que le backend `/pred` est démarré, puis revenez ici.
-        </div>
-      </div>
-    </div>
-  )
-
-  // Si pas de data malgre loading=false (defensive) : message visible
-  if (!data) return (
-    <div style={{ maxWidth: 1440, margin: '0 auto', padding: '20px 28px' }}>
-      <DebugPanel data={data} error={error} loading={loading} />
-      <div style={{
-        background: '#FFF8E1', border: '1px solid #C4760A',
-        borderRadius: 12, padding: 20, color: '#2A2A1E', maxWidth: 600, margin: '60px auto',
-      }}>
-        <div style={{ fontWeight: 700, marginBottom: 6, color: '#C4760A' }}>
-          ⚠ Aucune donnee recue du backend
-        </div>
-        <div style={{ fontSize: 13 }}>
-          Le serveur a repondu mais l'objet est vide. Verifie que <code>/pred/prediction</code>
-          renvoie bien un JSON.
-        </div>
-      </div>
-    </div>
-  )
-
-  const points  = data?.points       || []
-  const stats   = data?.statistiques || {}
-  const seuil   = data?.seuil_decision ?? 0.5
-  const info    = data?.model_info   || {}
-  const probKey = HORIZON_PROB_KEY[horizonVal] ?? 'proba_2w'
-  const proba   = points.length > 0 ? (points[points.length - 1][probKey] || 0) : 0
-  const alerte  = proba >= seuil
-  const horizon = HORIZON_LABEL[horizonVal] ?? '2 semaines'
-  // forecast peut etre soit un array soit un objet { '720': [...], '5040': [...], '10080': [...] }
-  const rawForecast = data?.forecast
-  const forecast = Array.isArray(rawForecast)
-    ? rawForecast
-    : (rawForecast?.[String(horizonVal)] ?? [])
-  const bounds = data?.bounds || data?.sensor_bounds || {}
-
-  const SENSOR_COLS = data?.sensor_cols || [
-    'Regime_moteur','Pression_huile','Temp_refroid',
-    'Regime_conv','Temp_conv','Temp_huile_dir'
-  ]
-
-  return (
-    <div style={{
-      padding: '20px 28px',
-      maxWidth: 1440,
-      margin: '0 auto',
-      color: '#2A2A1E',
-      fontFamily: 'system-ui, -apple-system, "Segoe UI", sans-serif',
-      fontSize: 12,
-      boxSizing: 'border-box',
-    }}>
-      {/* ── DEBUG PANEL ─────────────────────────────────────────────────── */}
-      <DebugPanel data={data} error={error} loading={loading} />
-
-      {/* ── TOP BAR : titre + horizon + badge cache ────────────────────── */}
-      <div style={{
-        display: 'flex',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-        marginBottom: 16,
-        gap: 16,
-        flexWrap: 'wrap',
-      }}>
-        <div>
-          <div style={{
-            fontSize: 10, fontWeight: 700, letterSpacing: 2,
-            color: '#00843D', textTransform: 'uppercase',
-          }}>
-            Module 8 · Prédiction XGBoost RUL
-          </div>
-          <h2 style={{
-            fontSize: 22, fontWeight: 800, color: '#2A2A1E', margin: '2px 0 0',
-            fontFamily: '"Rajdhani", system-ui, sans-serif', letterSpacing: 0.5,
-          }}>
-            Probabilite de panne · CAT 994F
-          </h2>
-          {/* Badge cache / timing */}
-          <div style={{ marginTop: 4, display: 'flex', gap: 6, alignItems: 'center', flexWrap: 'wrap' }}>
-            {data._cached ? (
-              <span style={{
-                fontSize: 9, padding: '2px 7px', borderRadius: 10,
-                background: '#E8F5EE', color: '#005C2B',
-                fontWeight: 700, letterSpacing: 0.5,
-              }}>⚡ CACHE</span>
-            ) : (
-              <span style={{
-                fontSize: 9, padding: '2px 7px', borderRadius: 10,
-                background: '#F7F0DC', color: '#8C7012',
-                fontWeight: 700, letterSpacing: 0.5,
-              }}>📊 RUL CALCULÉ</span>
-            )}
-            {data._timing && (
-              <span style={{ fontSize: 10, color: '#8A7D60' }}>
-                load {data._timing.load_ms}ms · predict {data._timing.predict_ms}ms
-              </span>
-            )}
-          </div>
-        </div>
-        {/* Horizon segmented control */}
-        <div style={{
-          display: 'flex', alignItems: 'center', gap: 8,
-          background: '#FFFFFF', border: '1px solid #D4C9B0',
-          borderRadius: 10, padding: 4,
-        }}>
-          <span style={{
-            fontSize: 10, fontWeight: 700, color: '#8A7D60',
-            letterSpacing: 1, padding: '0 6px',
-          }}>HORIZON</span>
-          {[
-            { label: '1 jour',     val: 720 },
-            { label: '1 semaine',  val: 5040 },
-            { label: '2 semaines', val: 10080 },
-          ].map(opt => (
-            <button key={opt.val} onClick={() => setHorizonVal(opt.val)}
-              style={{
-                background: horizonVal === opt.val ? '#00843D' : 'transparent',
-                color:      horizonVal === opt.val ? '#FFFFFF' : '#5A5240',
-                border: 'none', borderRadius: 6, padding: '6px 14px',
-                fontSize: 12, fontWeight: 700, cursor: 'pointer',
-                transition: 'all 0.15s',
-                fontFamily: 'inherit',
-              }}>
-              {opt.label}
-            </button>
-          ))}
-        </div>
-      </div>
-
-      {/* ── LAYOUT PRINCIPAL : flex 2 colonnes ──────────────────────────── */}
-      <div style={{
-        display: 'flex',
-        gap: 16,
-        alignItems: 'flex-start',
-        flexWrap: 'wrap',
-      }}>
-        {/* === COLONNE GAUCHE : flex 1, min 0 === */}
-        <div style={{ flex: '1 1 700px', minWidth: 0, boxSizing: 'border-box' }}>
-          {/* Hero banner */}
-          <HeroBanner
-            proba={proba} seuil={seuil} alerte={alerte}
-            horizonLabel={horizon} points={points} probKey={probKey}
-          />
-
-          {/* === Tableau capteurs en <table> === */}
-          <div style={{
-            marginTop: 16,
-            background: '#FFFFFF',
-            border: '1px solid #D4C9B0',
-            borderRadius: 12,
-            overflow: 'hidden',
-            boxSizing: 'border-box',
-          }}>
-            <table style={{
-              width: '100%',
-              borderCollapse: 'collapse',
-              fontSize: 12,
-              tableLayout: 'fixed',
-            }}>
-              <thead>
-                <tr style={{
-                  background: '#E8F5EE',
-                  borderBottom: '1px solid #D4C9B0',
-                }}>
-                  <th style={thStyle({ width: 8, padding: 0 })}></th>
-                  <th style={thStyle({ width: 'auto', textAlign: 'left' })}>Capteur</th>
-                  <th style={thStyle({ width: 90, textAlign: 'right' })}>Valeur</th>
-                  <th style={thStyle({ width: 60, textAlign: 'right' })}>Seuil</th>
-                  <th style={thStyle({ width: 130, textAlign: 'left' })}>Tendance</th>
-                  <th style={thStyle({ width: '30%', textAlign: 'left' })}>Niveau · usage</th>
-                </tr>
-              </thead>
-              <tbody>
-                {SENSOR_COLS.map(col => (
-                  <SensorRow key={col} col={col}
-                    points={points} forecast={forecast} bounds={bounds}
-                    onSelect={c => setSelected(c === selected ? null : c)}
-                    selected={selected === col} />
-                ))}
-              </tbody>
-            </table>
-          </div>
-
-          {/* Detail capteur (zoom) */}
-          {selected && (
-            <SensorDetail col={selected} points={points} forecast={forecast}
-              bounds={bounds} horizonVal={horizonVal}
-              onClose={() => setSelected(null)} />
-          )}
-        </div>
-
-        {/* === COLONNE DROITE : 320px fixe === */}
-        <div style={{
-          flex: '0 0 320px',
-          maxWidth: 320,
-          minWidth: 280,
-          boxSizing: 'border-box',
-        }}>
-          {/* Stats fenetre */}
-          <SidePanel title="Statistiques de la fenetre">
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
-              <Metric label="Probabilite max"  value={fmtPct(stats.prob_max)}  highlight />
-              <Metric label="Probabilite moy." value={fmtPct(stats.prob_mean)} />
-              <Metric label="Pts en alerte"    value={stats.n_alertes ?? 0}    highlight />
-              <Metric label="% temps alerte"   value={fmtPct(stats.pct_alertes)} />
-            </div>
-          </SidePanel>
-
-          {/* Modele */}
-          <SidePanel title="XGBoost RUL" style={{ marginTop: 12 }}>
-            <ModelRow label="AUC test"      value={fmtPct(info.auc)} />
-            <ModelRow label="F2 validation" value={fmtNum(info.f2_score, 3)} />
-            <ModelRow label="Window"        value={`${info.window_size || '—'} pts`} />
-            <ModelRow label="Features"      value={info.n_features || '—'} />
-            <ModelRow label="Niveau anomalie" value={info.anomaly_level || '—'} />
-          </SidePanel>
-
-          {/* Comment lire */}
-          <SidePanel title="Comment lire" style={{ marginTop: 12, background: '#E8F5EE' }}>
-            <div style={{ fontSize: 11, color: '#2A2A1E', lineHeight: 1.6 }}>
-              · <strong>Cliquez une ligne capteur</strong> pour zoomer sa courbe.<br/>
-              · La <strong>tendance</strong> = 60 derniers points + prevision.<br/>
-              · La <strong>barre</strong> = niveau d'usage par rapport au seuil OCP.
-            </div>
-          </SidePanel>
-        </div>
-      </div>
-    </div>
-  )
-}
-
-// ── Helpers de styling ─────────────────────────────────────────────────────
-function thStyle(opts) {
-  return {
-    fontSize: 10, fontWeight: 700, letterSpacing: 1.5,
-    color: '#005C2B', textTransform: 'uppercase',
-    padding: '10px 14px',
-    textAlign: opts.textAlign || 'center',
-    width: opts.width,
-    ...opts,
-  }
-}
-
-// ── Ligne tableau capteurs ──────────────────────────────────────────────────
-function SensorRow({ col, points, forecast, bounds, onSelect, selected }) {
-  const cfg = bounds?.[col]
-  const last = points.length > 0 ? points[points.length - 1][col] : null
-  const tMax = cfg?.threshold_max
-  const tMin = cfg?.threshold_min
-  const unit = cfg?.unit || ''
-  const label = cfg?.label || col.replace(/_/g, ' ')
-
-  let status = 'ok', pct = 0
-  if (tMax != null && last != null) {
-    pct = Math.min(100, (last / tMax) * 100)
-    if (last >= tMax) status = 'danger'
-    else if (last >= tMax * 0.9) status = 'warn'
-  } else if (tMin != null && last != null) {
-    pct = Math.min(100, ((tMin > 0 ? last/tMin : 1)) * 100)
-    if (last <= tMin) status = 'danger'
-    else if (last <= tMin * 1.1) status = 'warn'
-  }
-  const statusColor = status === 'danger' ? '#C0392B' : status === 'warn' ? '#C4760A' : '#00843D'
-
-  const sparkVals = useMemo(() => {
-    const hist = (Array.isArray(points) ? points : []).slice(-60).map(p => p[col]).filter(v => v != null)
-    const fcArr = Array.isArray(forecast) ? forecast : []
-    const fc = fcArr.slice(0, 30).map(p => p[col]).filter(v => v != null)
-    return [...hist, ...fc]
-  }, [points, forecast, col])
-
-  return (
-    <tr onClick={() => onSelect(col)} style={{
-      background: selected ? '#E8F5EE' : '#FFFFFF',
-      borderTop: '1px solid #D4C9B0',
-      cursor: 'pointer',
-      transition: 'background 0.15s',
-    }}
-    onMouseEnter={e => { if (!selected) e.currentTarget.style.background = '#FAF6EC' }}
-    onMouseLeave={e => { if (!selected) e.currentTarget.style.background = '#FFFFFF' }}>
-      {/* Status bar */}
-      <td style={{ padding: 0, width: 8 }}>
-        <div style={{ width: 4, height: 28, borderRadius: 2, background: statusColor, marginLeft: 4 }} />
+    <tr style={{borderBottom:`1px solid ${C.borderLight}`}}>
+      <td style={{padding:'10px 14px',width:6,paddingRight:0}}>
+        <div style={{width:3,height:28,borderRadius:2,background:C.green}}/>
       </td>
-      {/* Label */}
-      <td style={{ padding: '10px 14px' }}>
-        <div style={{
-          fontFamily: '"Rajdhani", system-ui, sans-serif', fontSize: 14,
-          fontWeight: 700, color: '#2A2A1E',
-        }}>
-          {label}
-        </div>
-        <div style={{ fontSize: 10, color: '#B0A080', fontWeight: 400, marginTop: 1 }}>
-          {col}
-        </div>
+      <td style={{padding:'10px 14px'}}>
+        <div style={{fontSize:13,fontWeight:700,color:C.text,fontFamily:'Rajdhani,system-ui'}}>{sensor.label}</div>
+        <div style={{fontSize:10,color:C.textMuted}}>{sensor.sous}</div>
       </td>
-      {/* Valeur */}
-      <td style={{ padding: '10px 14px', textAlign: 'right' }}>
-        <div style={{
-          fontFamily: '"Rajdhani", system-ui, sans-serif', fontSize: 18,
-          fontWeight: 800, color: statusColor, lineHeight: 1,
-        }}>
-          {fmtNum(last)}
-        </div>
-        <div style={{ fontSize: 9, color: '#B0A080', textTransform: 'uppercase', letterSpacing: 0.5 }}>
-          {unit || '—'}
-        </div>
+      <td style={{padding:'10px 14px',textAlign:'right'}}>
+        <span style={{fontSize:18,fontWeight:800,color:C.textMuted,fontFamily:'Rajdhani,system-ui'}}>—</span>
+        <span style={{fontSize:10,color:C.textMuted,marginLeft:3}}>{sensor.unit}</span>
       </td>
-      {/* Seuil */}
-      <td style={{ padding: '10px 14px', textAlign: 'right', fontSize: 11, color: '#8A7D60' }}>
-        {tMax != null ? (
-          <span style={{ color: '#C0392B', fontWeight: 700 }}>≤ {tMax}</span>
-        ) : tMin != null ? (
-          <span style={{ color: '#00843D', fontWeight: 700 }}>≥ {tMin}</span>
-        ) : (
-          <span style={{ color: '#B0A080' }}>—</span>
-        )}
+      <td style={{padding:'10px 14px',textAlign:'right',fontSize:11,color:C.textMuted}}>
+        {sensor.max?<span style={{color:C.red}}>≤ {sensor.max}</span>:
+         sensor.min?<span style={{color:C.green}}>≥ {sensor.min}</span>:'—'}
       </td>
-      {/* Sparkline */}
-      <td style={{ padding: '10px 14px' }}>
-        <Sparkline values={sparkVals} color={statusColor} />
-      </td>
-      {/* Barre progression */}
-      <td style={{ padding: '10px 14px' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-          <div style={{
-            flex: 1, height: 6, background: '#D4C9B088', borderRadius: 99, overflow: 'hidden',
-            minWidth: 60,
-          }}>
-            <div style={{
-              height: '100%', width: `${pct}%`,
-              background: statusColor,
-              borderRadius: 99, transition: 'width 0.5s',
-            }}/>
-          </div>
-          <span style={{ fontSize: 10, color: '#8A7D60', minWidth: 32, textAlign: 'right' }}>
-            {pct.toFixed(0)}%
-          </span>
+      <td style={{padding:'10px 20px 10px 14px',width:'28%'}}>
+        <div style={{display:'flex',alignItems:'center',gap:8}}>
+          <div style={{flex:1,height:5,background:'#E5E7EB',borderRadius:99}}/>
+          <span style={{fontSize:10,color:C.textMuted,minWidth:28,textAlign:'right'}}>—</span>
         </div>
       </td>
     </tr>
   )
 }
 
-// ── SidePanel reusable ──────────────────────────────────────────────────────
-function SidePanel({ title, children, style }) {
+function ChartTip({ active, payload, label }) {
+  if (!active||!payload?.length) return null
   return (
-    <div style={{
-      background: '#FFFFFF',
-      border: '1px solid #D4C9B0',
-      borderRadius: 10,
-      padding: '12px 14px',
-      boxSizing: 'border-box',
-      ...style,
-    }}>
-      <div style={{
-        fontSize: 10, fontWeight: 700, letterSpacing: 1.5,
-        color: '#005C2B', textTransform: 'uppercase',
-        marginBottom: 8,
-      }}>
-        {title}
-      </div>
-      {children}
+    <div style={{background:'#FFF',border:`1px solid ${C.border}`,borderRadius:8,padding:'8px 12px',fontSize:11,boxShadow:'0 4px 12px rgba(0,0,0,0.1)'}}>
+      <div style={{color:C.textMuted,marginBottom:4,fontSize:10}}>{label}</div>
+      {payload.map((p,i)=><div key={i} style={{color:p.color,fontWeight:700}}>{p.name}: {p.value?.toFixed(0)}h</div>)}
     </div>
   )
 }
 
-// ── Metric (KPI cell) ───────────────────────────────────────────────────────
-function Metric({ label, value, highlight }) {
+function HistoryChart({ data }) {
+  if (!data?.length) return null
+  const d = data.map(p=>({date:String(p.date).slice(5,10),rul:parseFloat(p.rul_h)||0}))
   return (
-    <div style={{
-      background: highlight ? '#FBEFEC' : '#F7F0DC',
-      borderRadius: 6,
-      padding: '8px 10px',
-      boxSizing: 'border-box',
-    }}>
-      <div style={{
-        fontFamily: '"Rajdhani", system-ui, sans-serif', fontSize: 18,
-        fontWeight: 800, color: highlight ? '#C0392B' : '#5A5240', lineHeight: 1,
-      }}>
-        {value}
-      </div>
-      <div style={{
-        fontSize: 9, color: '#8A7D60', marginTop: 4,
-        textTransform: 'uppercase', letterSpacing: 0.5, fontWeight: 600,
-      }}>
-        {label}
-      </div>
-    </div>
+    <ResponsiveContainer width="100%" height={175}>
+      <AreaChart data={d} margin={{top:8,right:20,left:0,bottom:0}}>
+        <defs>
+          <linearGradient id="G" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="5%" stopColor={C.green} stopOpacity={0.25}/>
+            <stop offset="95%" stopColor={C.green} stopOpacity={0.02}/>
+          </linearGradient>
+        </defs>
+        <CartesianGrid strokeDasharray="3 3" stroke={C.borderLight} vertical={false}/>
+        <XAxis dataKey="date" tick={{fontSize:9,fill:C.textMuted}} tickLine={false} axisLine={false} interval="preserveStartEnd"/>
+        <YAxis tick={{fontSize:9,fill:C.textMuted}} tickLine={false} axisLine={false} unit="h" width={30}/>
+        <Tooltip content={<ChartTip/>}/>
+        <ReferenceLine y={24} stroke={C.red} strokeDasharray="4 2" strokeWidth={1.2}
+          label={{value:'24h',position:'right',fontSize:9,fill:C.red}}/>
+        <ReferenceLine y={72} stroke={C.orange} strokeDasharray="4 2" strokeWidth={1.2}
+          label={{value:'72h',position:'right',fontSize:9,fill:C.orange}}/>
+        <Area type="monotone" dataKey="rul" name="RUL" stroke={C.green} strokeWidth={2} fill="url(#G)" dot={false}/>
+      </AreaChart>
+    </ResponsiveContainer>
   )
 }
 
-// ── ModelRow ─────────────────────────────────────────────────────────────────
-function ModelRow({ label, value }) {
+// ── Page principale ─────────────────────────────────────────────────────────
+export default function PredictionPage({ apiFetch }) {
+  const fetcher = apiFetch || ((...a)=>fetch(...a))
+  const [data,        setData]        = useState(null)
+  const [loading,     setLoading]     = useState(true)
+  const [uploading,   setUploading]   = useState(false)
+  const [error,       setError]       = useState(null)
+  const [modelStatus, setModelStatus] = useState(null)
+  const [uploadMsg,   setUploadMsg]   = useState(null)
+  const fileRef = useRef(null)
+
+  useEffect(() => {
+    setLoading(true)
+    fetcher(`${API}/pred/rul/status`).then(r=>r.ok?r.json():null).then(setModelStatus).catch(()=>{})
+    fetcher(`${API}/pred/rul/predict/demo`)
+      .then(r=>{if(!r.ok)throw new Error(`HTTP ${r.status}`);return r.json()})
+      .then(j=>{setData(j);setError(null)})
+      .catch(e=>setError(e.message))
+      .finally(()=>setLoading(false))
+  }, [])
+
+  const handleUpload = useCallback(async file => {
+    if (!file) return
+    setUploading(true); setUploadMsg(null); setError(null)
+    try {
+      const form = new FormData(); form.append('file', file)
+      const r = await fetcher(`${API}/pred/rul/predict`,{method:'POST',body:form})
+      if (!r.ok){const e=await r.json();throw new Error(e.detail||`HTTP ${r.status}`)}
+      const j = await r.json()
+      setData(j)
+      setUploadMsg(`✓ ${j.nb_points??'?'} points analysés`)
+    } catch(e){setError(e.message)}
+    finally{setUploading(false)}
+  }, [])
+
+  const rul = data?.rul_heures || {}
+  const alert = data?.alerte_globale || 'UNKNOWN'
+  const alertCfg = ALERT[alert] || ALERT.UNKNOWN
+  const history = data?.historique || []
+  const isoF = data?.isolation_forest
+  const period = data?.periode
+  const isDemo = data?._demo === true
+  const alertProba = data?.alert_proba || {}
+
   return (
-    <div style={{
-      display: 'flex', justifyContent: 'space-between',
-      padding: '6px 0',
-      borderBottom: '1px dashed #D4C9B0',
-      fontSize: 11,
-    }}>
-      <span style={{ color: '#5A5240' }}>{label}</span>
-      <span style={{ fontWeight: 700, color: '#2A2A1E' }}>{value}</span>
+    <div style={{padding:'22px 26px',fontFamily:'system-ui,-apple-system,sans-serif',color:C.text,fontSize:13,boxSizing:'border-box'}}>
+      <style>{`
+        @keyframes fadeUp{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+        .rc{animation:fadeUp .4s ease both}
+        @keyframes spin{to{transform:rotate(360deg)}}
+      `}</style>
+
+      {/* HEADER */}
+      <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-start',flexWrap:'wrap',gap:14,marginBottom:20}}>
+        <div>
+          <div style={{display:'flex',alignItems:'center',gap:10,marginBottom:5}}>
+            <div style={{background:C.green,color:'#fff',padding:'3px 12px',fontSize:10,fontWeight:800,
+              letterSpacing:3,textTransform:'uppercase',
+              clipPath:'polygon(6px 0%,100% 0%,calc(100% - 6px) 100%,0% 100%)'}}>
+              OCP · RUL PRÉDICTIF
+            </div>
+            {isDemo&&<span style={{fontSize:10,fontWeight:700,color:C.orange,background:C.orangePale,
+              padding:'2px 8px',borderRadius:4,border:`1px solid ${C.orange}40`}}>
+              MODE DÉMO — uploadez un fichier pour les vraies données
+            </span>}
+          </div>
+          <h1 style={{margin:0,fontSize:25,fontWeight:900,fontFamily:'Rajdhani,system-ui',letterSpacing:0.5,color:C.text}}>
+            Maintenance Prédictive · CAT 994F1
+          </h1>
+          {period&&<div style={{fontSize:11,color:C.textMuted,marginTop:3}}>
+            Période : {period.debut?.slice(0,10)} → {period.fin?.slice(0,10)}
+          </div>}
+        </div>
+        <div style={{display:'flex',alignItems:'center',gap:10,flexWrap:'wrap'}}>
+          {uploadMsg&&<span style={{fontSize:11,color:C.green,fontWeight:700}}>{uploadMsg}</span>}
+          {error&&<span style={{fontSize:11,color:C.red}}>⚠ {error}</span>}
+          <input ref={fileRef} type="file" accept=".xlsx,.xls" style={{display:'none'}}
+            onChange={e=>handleUpload(e.target.files?.[0])}/>
+          <button onClick={()=>fileRef.current?.click()} disabled={uploading} style={{
+            background:uploading?C.textMuted:C.green,color:'#fff',border:'none',
+            padding:'10px 22px',fontSize:12,fontWeight:700,letterSpacing:2,
+            cursor:uploading?'not-allowed':'pointer',fontFamily:'Rajdhani,system-ui',
+            textTransform:'uppercase',
+            clipPath:'polygon(8px 0%,100% 0%,calc(100% - 8px) 100%,0% 100%)',
+            transition:'background 0.2s',
+          }}>
+            {uploading?'⏳ Analyse…':'📁 Charger fichier Excel'}
+          </button>
+        </div>
+      </div>
+
+      {/* LOADING */}
+      {loading&&(
+        <div style={{display:'flex',alignItems:'center',gap:14,color:C.textMuted,padding:'50px 0'}}>
+          <div style={{width:28,height:28,border:`3px solid ${C.greenPale}`,borderTopColor:C.green,
+            borderRadius:'50%',animation:'spin 0.8s linear infinite'}}/>
+          <span style={{fontFamily:'Rajdhani,system-ui',fontSize:16,fontWeight:600}}>Chargement modèles XGBoost…</span>
+        </div>
+      )}
+
+      {!loading&&data&&(
+        <>
+          {/* LIGNE 1 : ALERTE + GAUGE + SOUS-SYSTÈMES + PROBAS */}
+          <div className="rc" style={{display:'flex',gap:14,flexWrap:'wrap',marginBottom:14}}>
+
+            {/* Bandeau alerte */}
+            <div style={{flex:'0 0 210px',minWidth:190,background:alertCfg.bg,
+              border:`2px solid ${alertCfg.border}`,borderRadius:14,padding:'18px 20px',
+              display:'flex',flexDirection:'column',justifyContent:'center',
+              boxShadow:alert==='RED'?`0 0 28px ${C.red}18`:'none'}}>
+              <div style={{fontSize:34,marginBottom:8}}>{alertCfg.emoji}</div>
+              <div style={{fontSize:13,fontWeight:800,letterSpacing:2,color:alertCfg.color,
+                textTransform:'uppercase',marginBottom:6}}>{alertCfg.label}</div>
+              <div style={{fontSize:11,color:C.textMid,lineHeight:1.6}}>{alertCfg.msg}</div>
+            </div>
+
+            {/* Gauge RUL global */}
+            <div style={{flex:'0 0 174px',minWidth:160,background:C.card,
+              border:`1px solid ${C.border}`,borderRadius:14,padding:'14px 10px',
+              display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center'}}>
+              <div style={{fontSize:10,fontWeight:700,color:C.textMuted,letterSpacing:1.5,
+                textTransform:'uppercase',marginBottom:8,textAlign:'center'}}>
+                Durée de vie restante
+              </div>
+              <RulRing rul={rul.global_grav2} size={136}/>
+            </div>
+
+            {/* RUL sous-systèmes */}
+            <div style={{flex:1,minWidth:250,background:C.card,border:`1px solid ${C.border}`,
+              borderRadius:14,padding:'16px 18px'}}>
+              <div style={{fontSize:10,fontWeight:700,color:C.textMuted,letterSpacing:1.5,
+                textTransform:'uppercase',marginBottom:14}}>RUL par sous-système</div>
+              {SUBSYSTEMS.map(s=><SubsysBar key={s.key} subsys={s} rul={rul[s.key]}/>)}
+            </div>
+
+            {/* Probas RF + Isolation Forest */}
+            <div style={{flex:'0 0 210px',minWidth:190,display:'flex',flexDirection:'column',gap:12}}>
+              <div style={{background:C.card,border:`1px solid ${C.border}`,borderRadius:14,
+                padding:'16px 16px',flex:1}}>
+                <div style={{fontSize:10,fontWeight:700,color:C.textMuted,letterSpacing:1.5,
+                  textTransform:'uppercase',marginBottom:12}}>Probabilité classe (RF)</div>
+                {['RED','ORANGE','GREEN'].map(cls=>{
+                  const p=alertProba[cls]??0; const cfg=ALERT[cls]
+                  return(
+                    <div key={cls} style={{marginBottom:10}}>
+                      <div style={{display:'flex',justifyContent:'space-between',marginBottom:3}}>
+                        <span style={{fontSize:11,fontWeight:600,color:cfg.color}}>{cfg.emoji} {cls}</span>
+                        <span style={{fontSize:13,fontWeight:800,color:cfg.color,fontFamily:'Rajdhani,system-ui'}}>
+                          {(p*100).toFixed(0)}%
+                        </span>
+                      </div>
+                      <div style={{height:5,background:'#E5E7EB',borderRadius:99}}>
+                        <div style={{width:`${p*100}%`,height:'100%',background:cfg.color,
+                          borderRadius:99,transition:'width 0.8s ease'}}/>
+                      </div>
+                    </div>
+                  )
+                })}
+              </div>
+              {isoF&&(
+                <div style={{background:isoF.is_anomaly?C.redPale:C.greenPale,
+                  border:`1px solid ${isoF.is_anomaly?'#FCA5A5':'#86EFAC'}`,
+                  borderRadius:10,padding:'10px 14px',
+                  display:'flex',justifyContent:'space-between',alignItems:'center'}}>
+                  <div>
+                    <div style={{fontSize:10,fontWeight:700,color:C.textMuted,letterSpacing:1,textTransform:'uppercase'}}>Isolation Forest</div>
+                    <div style={{fontSize:10,color:C.textMid,marginTop:2}}>Score : {isoF.score?.toFixed(3)??'—'}</div>
+                  </div>
+                  <div style={{fontSize:12,fontWeight:800,color:isoF.is_anomaly?C.red:C.green}}>
+                    {isoF.is_anomaly?'⚠ ANOMALIE':'✓ NORMAL'}
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* LIGNE 2 : GRAPHIQUE + MÉTRIQUES MODÈLE */}
+          <div className="rc" style={{display:'flex',gap:14,flexWrap:'wrap',marginBottom:14,animationDelay:'0.1s'}}>
+            <div style={{flex:2,minWidth:300,background:C.card,border:`1px solid ${C.border}`,borderRadius:14,padding:'16px 18px'}}>
+              <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:12}}>
+                <div style={{fontSize:10,fontWeight:700,color:C.textMuted,letterSpacing:1.5,textTransform:'uppercase'}}>
+                  Évolution du RUL global
+                </div>
+                <div style={{display:'flex',gap:14,fontSize:10}}>
+                  <span style={{color:C.red,fontWeight:700}}>━ Critique &lt;24h</span>
+                  <span style={{color:C.orange,fontWeight:700}}>━ Attention &lt;72h</span>
+                </div>
+              </div>
+              {history.length>0?<HistoryChart data={history}/>:(
+                <div style={{height:175,display:'flex',alignItems:'center',justifyContent:'center',
+                  color:C.textMuted,fontSize:12,flexDirection:'column',gap:8}}>
+                  <span style={{fontSize:28}}>📊</span>
+                  <span>Uploadez un fichier Excel pour afficher l'historique réel</span>
+                </div>
+              )}
+            </div>
+            <div style={{flex:'0 0 190px',minWidth:175,background:C.card,border:`1px solid ${C.border}`,
+              borderRadius:14,padding:'16px 16px'}}>
+              <div style={{fontSize:10,fontWeight:700,color:C.textMuted,letterSpacing:1.5,textTransform:'uppercase',marginBottom:12}}>
+                Performance modèle
+              </div>
+              {MODEL_METRICS.map(m=>(
+                <div key={m.label} style={{display:'flex',justifyContent:'space-between',alignItems:'center',
+                  padding:'7px 0',borderBottom:`1px solid ${C.borderLight}`}}>
+                  <div>
+                    <div style={{fontSize:11,color:C.textMid,fontWeight:600}}>{m.label}</div>
+                    <div style={{fontSize:9,color:C.textMuted}}>{m.desc}</div>
+                  </div>
+                  <div style={{fontSize:14,fontWeight:800,color:C.green,fontFamily:'Rajdhani,system-ui'}}>{m.value}</div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* LIGNE 3 : TABLEAU CAPTEURS */}
+          <div className="rc" style={{background:C.card,border:`1px solid ${C.border}`,
+            borderRadius:14,overflow:'hidden',animationDelay:'0.2s'}}>
+            <div style={{padding:'12px 18px',background:C.greenPale,borderBottom:`1px solid ${C.border}`,
+              display:'flex',justifyContent:'space-between',alignItems:'center'}}>
+              <div style={{fontSize:10,fontWeight:700,color:C.greenDark,letterSpacing:1.5,textTransform:'uppercase'}}>
+                6 Capteurs critiques — sélection multi-critères
+              </div>
+              <div style={{fontSize:10,color:C.textMuted}}>
+                Importance RF · Corrélation Spearman · Permutation Importance
+              </div>
+            </div>
+            <table style={{width:'100%',borderCollapse:'collapse',fontSize:12}}>
+              <thead>
+                <tr style={{borderBottom:`1px solid ${C.border}`,background:'#FAFAF8'}}>
+                  {['','Capteur · Sous-système','Valeur','Seuil OCP',"Niveau d'usage"].map((h,i)=>(
+                    <th key={i} style={{padding:'9px 14px',fontSize:10,fontWeight:700,letterSpacing:1.5,
+                      color:C.textMuted,textTransform:'uppercase',
+                      textAlign:i===0?'center':i===1?'left':'right',
+                      width:i===0?6:i===4?'28%':undefined,
+                      paddingRight:i===4?20:14}}>
+                      {h}
+                    </th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {SENSORS.map(s=><SensorRow key={s.key} sensor={s}/>)}
+              </tbody>
+            </table>
+            <div style={{padding:'9px 18px',background:'#FAFAF8',borderTop:`1px solid ${C.borderLight}`}}>
+              <div style={{fontSize:10,color:C.textMuted,fontStyle:'italic'}}>
+                💡 Les valeurs s'afficheront après upload d'un fichier Excel mensuel CAT 994F1.
+              </div>
+            </div>
+          </div>
+
+          {/* STATUT MODÈLES */}
+          {modelStatus&&(
+            <div className="rc" style={{marginTop:14,animationDelay:'0.3s',background:C.greenPale,
+              border:`1px solid ${C.border}`,borderRadius:10,padding:'10px 16px',
+              display:'flex',alignItems:'center',gap:14,flexWrap:'wrap'}}>
+              <div style={{display:'flex',alignItems:'center',gap:7}}>
+                <div style={{width:7,height:7,borderRadius:'50%',background:C.green,
+                  boxShadow:`0 0 5px ${C.green}`}}/>
+                <span style={{fontSize:11,fontWeight:700,color:C.greenDark}}>
+                  {modelStatus.nb_modeles} modèles chargés
+                </span>
+              </div>
+              <span style={{fontSize:10,color:C.textMuted}}>·</span>
+              <span style={{fontSize:10,color:C.textMuted}}>{modelStatus.capteurs_cles?.join(' · ')}</span>
+              <span style={{fontSize:10,color:C.textMuted}}>·</span>
+              <span style={{fontSize:10,color:C.textMuted}}>{modelStatus.description}</span>
+            </div>
+          )}
+        </>
+      )}
     </div>
   )
 }

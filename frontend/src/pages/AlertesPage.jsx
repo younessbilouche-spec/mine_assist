@@ -45,9 +45,10 @@ function UrgencePill({ urgence, mini=false }) {
   )
 }
 
-// ── Mini-jauge RUL ───────────────────────────────────────────────────────────
-function RulGauge({ label, value }) {
-  const v = value == null ? 0 : value
+// ── Mini-jauge probabilité (RUL XGBoost ou autre) ───────────────────────────
+// Accepte une valeur 0..1 (proba) et un seuil optionnel
+function RulGauge({ label, value, threshold = 0.5 }) {
+  const v = value == null ? 0 : Number(value)
   const pct = (v * 100).toFixed(1)
   const danger = threshold != null && v >= threshold
   const warn   = threshold != null && v >= threshold * 0.6
@@ -71,6 +72,9 @@ function RulGauge({ label, value }) {
     </div>
   )
 }
+
+// Alias pour compat — l'ancien code appelle <LstmGauge>
+const LstmGauge = RulGauge
 
 // ── Debug panel ─────────────────────────────────────────────────────────────
 function DebugPanel({ data, error, loading }) {
@@ -533,7 +537,7 @@ export default function AlertesPage(props) {
           </div>
         </div>
 
-        {/* Mini-LSTM */}
+        {/* Mini-RUL XGBoost */}
         {lstm?.disponible && (
           <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
             <LstmGauge label="1 jour"     value={lstm.proba_1d} threshold={seuilLstm} />

@@ -674,9 +674,19 @@ function ChangePasswordModal({ open, onClose, apiFetch, onSuccess }) {
 
 // ── Ask Page ──────────────────────────────────────────────────────────────
 function AskPage({ onSave, apiFetch }) {
-  const [question, setQuestion] = useState("")
-  const [loading, setLoading]   = useState(false)
-  const [result, setResult]     = useState(null)
+  const [question,      setQuestion]      = useState("")
+  const [loading,       setLoading]       = useState(false)
+  const [result,        setResult]        = useState(null)
+  const [llmStatus,     setLlmStatus]     = useState(null)
+  const [includeImages, setIncludeImages] = useState(false)
+
+  // Vérifier la config LLM au montage
+  useEffect(() => {
+    apiFetch(`${API}/ask/status`)
+      .then(r => r.json())
+      .then(s => setLlmStatus(s))
+      .catch(() => setLlmStatus({ llm_configured: false, message: "Backend inaccessible" }))
+  }, [apiFetch])
 
   const handleAsk = async () => {
     if (!question.trim()) return
@@ -684,21 +694,34 @@ function AskPage({ onSave, apiFetch }) {
     try {
       const r = await apiFetch(`${API}/ask`, {
         method:"POST",
-        body: JSON.stringify({ question }),
+        body: JSON.stringify({ question, include_images: includeImages }),
       })
       const data = await r.json()
-      setResult(data)
+      // Gérer les erreurs HTTP (ex: 503 clé API manquante, 422 validation)
+      if (!r.ok) {
+        const msg = data?.detail || `Erreur serveur HTTP ${r.status}`
+        setResult({ question, answer: `❌ ${msg}`, sources: [], pdf_images: [] })
+        setLoading(false)
+        return
+      }
+      // Vérifier que answer est bien présent
+      if (!data.answer && data.answer !== 0) {
+        setResult({ question, answer: "⚠ Le serveur a répondu mais sans texte. Vérifiez OPENROUTER_API_KEY dans le fichier .env du backend.", sources: [], pdf_images: [] })
+        setLoading(false)
+        return
+      }
+      setResult({ ...data, question: data.question || question })
       onSave({
         id: Date.now(),
         type: "ask",
         question,
         answer: data.answer,
-        sources: data.sources,
-        pdf_images: data.pdf_images,
+        sources: data.sources || [],
+        pdf_images: data.pdf_images || [],
         timestamp: new Date().toISOString(),
       })
     } catch(e) {
-      setResult({ answer:`❌ API inaccessible: ${e.message}`, sources:[], pdf_images:[] })
+      setResult({ question, answer:`❌ API inaccessible : ${e.message}`, sources:[], pdf_images:[] })
     }
     setLoading(false)
   }
@@ -710,6 +733,38 @@ function AskPage({ onSave, apiFetch }) {
     <div style={{padding:"28px 32px",maxWidth:960,margin:"0 auto",position:"relative",zIndex:1}}>
       <PageTitle>Question technique libre — CAT 994F</PageTitle>
 
+      {/* Bannière statut LLM */}
+      {llmStatus && !llmStatus.llm_configured && (
+        <div style={{background:"#FEE2E2",border:"1px solid #FCA5A5",borderLeft:"4px solid #DC2626",
+          padding:"12px 18px",marginBottom:18,borderRadius:6,
+          display:"flex",alignItems:"flex-start",gap:12}}>
+          <span style={{fontSize:20}}>⚠️</span>
+          <div>
+            <div style={{fontWeight:700,color:"#DC2626",fontSize:13,marginBottom:3}}>
+              Clé API LLM non configurée
+            </div>
+            <div style={{fontSize:12,color:"#7F1D1D",lineHeight:1.6}}>
+              {llmStatus.message}<br/>
+              Créez un fichier <code style={{background:"#FEE2E2",padding:"1px 4px"}}>.env</code> dans <code>backend/</code> avec :<br/>
+              <code style={{background:"#FEE2E2",padding:"2px 6px",display:"inline-block",marginTop:4}}>
+                OPENROUTER_API_KEY=sk-or-votre-cle-ici
+              </code>
+            </div>
+          </div>
+        </div>
+      )}
+      {llmStatus?.llm_configured && (
+        <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:14,
+          padding:"8px 14px",background:C.greenPale,border:`1px solid ${C.border}`,
+          borderRadius:6,width:"fit-content"}}>
+          <div style={{width:7,height:7,borderRadius:"50%",background:C.green,
+            boxShadow:`0 0 5px ${C.green}`}}/>
+          <span style={{fontSize:11,fontWeight:700,color:C.greenDark}}>
+            LLM opérationnel · {llmStatus.model}
+          </span>
+        </div>
+      )}
+
       <Card>
         <CardTitle>Nouvelle question</CardTitle>
         <label style={S.label}>Votre question</label>
@@ -719,12 +774,38 @@ function AskPage({ onSave, apiFetch }) {
           onKeyDown={e=>e.key==="Enter"&&e.ctrlKey&&handleAsk()}
           onFocus={foc} onBlur={blr}
         />
-        <div style={{marginTop:14,display:"flex",alignItems:"center",gap:14}}>
+        <div style={{marginTop:14,display:"flex",alignItems:"center",gap:14,flexWrap:"wrap"}}>
           <button style={loading||!question.trim() ? S.btnOff : S.btn}
             onClick={handleAsk} disabled={loading||!question.trim()}>
             {loading ? "⟳  Recherche..." : "▶  Poser la question"}
           </button>
           <span style={{fontSize:11,color:C.textLight}}>Ctrl+Entrée</span>
+
+          {/* Toggle images PDF — opt-in */}
+          <label style={{
+            display:"flex", alignItems:"center", gap:8, cursor:"pointer",
+            marginLeft:"auto", padding:"6px 12px",
+            background: includeImages ? C.greenPale : "transparent",
+            border: `1px solid ${includeImages ? C.green : C.border}`,
+            borderRadius:6, transition:"all 0.2s",
+          }}>
+            <input
+              type="checkbox"
+              checked={includeImages}
+              onChange={e => setIncludeImages(e.target.checked)}
+              style={{accentColor: C.green, cursor:"pointer"}}
+            />
+            <span style={{
+              fontSize:11, fontWeight:700, letterSpacing:1,
+              color: includeImages ? C.greenDark : C.textMuted,
+              textTransform:"uppercase",
+            }}>
+              📷 Inclure images PDF
+            </span>
+          </label>
+        </div>
+        <div style={{marginTop:6, fontSize:10, color:C.textLight, fontStyle:"italic"}}>
+          💡 Astuce : pour voir une image/schéma, cochez la case ci-dessus OU utilisez les mots "image", "schéma", "voir", "montre"…
         </div>
       </Card>
 
@@ -732,8 +813,20 @@ function AskPage({ onSave, apiFetch }) {
         <Card>
           <CardTitle>Réponse</CardTitle>
           <div style={{fontSize:11,color:C.textMuted,marginBottom:5,letterSpacing:1}}>QUESTION</div>
-          <div style={{color:C.greenDark,fontSize:15,fontWeight:700,marginBottom:14}}>{result.question || question}</div>
-          <div style={S.answerBox}>{result.answer}</div>
+          <div style={{color:C.greenDark,fontSize:15,fontWeight:700,marginBottom:14}}>
+            {result.question || question}
+          </div>
+          {/* Réponse — affichage robuste même si answer est vide */}
+          {result.answer ? (
+            <div style={{...S.answerBox, minHeight:60}}>
+              {result.answer}
+            </div>
+          ) : (
+            <div style={{background:"#FEF3C7",border:"1px solid #F59E0B",borderLeft:"4px solid #F59E0B",
+              padding:"14px 18px",borderRadius:4,color:"#92400E",fontSize:13}}>
+              ⚠ Aucune réponse reçue. Vérifiez que <code>OPENROUTER_API_KEY</code> est bien définie dans le fichier <code>.env</code> du backend.
+            </div>
+          )}
           <AnswerSources sources={result.sources}/>
           <PdfImages images={result.pdf_images}/>
         </Card>
