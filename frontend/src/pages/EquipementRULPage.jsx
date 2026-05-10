@@ -336,7 +336,7 @@ export default function EquipementRULPage({ equipement, onBack }) {
   const [rulHistory,  setRulHistory]  = useState([])
   const [sensorHist,  setSensorHist]  = useState([])
   const [anomalies,   setAnomalies]   = useState([])
-  const [loading,     setLoading]     = useState(true)
+  const [, setLoading] = useState(true)
   const [activeTab,   setActiveTab]   = useState('rul')   // 'rul' | 'capteurs' | 'anomalies' | 'predict'
   const [predResult,  setPredResult]  = useState(null)
   const [uploading,   setUploading]   = useState(false)
@@ -360,7 +360,9 @@ export default function EquipementRULPage({ equipement, onBack }) {
             }))
           }
         }
-      } catch (_) {}
+      } catch {
+        // Fallback silencieux : on retombe sur les générateurs mock ci-dessous.
+      }
 
       setRulHistory(generateRULHistory(eq.rul_A))
       setSensorHist(generateSensorHistory(eq.capteurs))

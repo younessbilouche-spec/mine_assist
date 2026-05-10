@@ -255,11 +255,10 @@ function inlineStyles(source, target) {
   }
 }
 
-function inlineImagesAsDataURL(node) {
-  // Best effort : on ne touche pas aux images cross-origin (CORS would block)
-  // Cette fonction est volontairement minimaliste — pour des besoins avancés,
-  // installer html-to-image qui gère ça proprement.
-}
+// Best effort : on ne touche pas aux images cross-origin (CORS would block).
+// Hook réservé pour évolution future (ex. inline base64). Ne fait rien aujourd'hui.
+// Pour un rendu fidèle, préférer html-to-image.
+function inlineImagesAsDataURL(/* node */) {}
 
 // ─── React hook practique ────────────────────────────────────────────────────
 /**

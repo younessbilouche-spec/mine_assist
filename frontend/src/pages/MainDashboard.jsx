@@ -22,7 +22,6 @@ import { useState, useEffect, useCallback } from 'react'
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip,
   ResponsiveContainer, PieChart, Pie, Cell, Legend,
-  LineChart, Line,
 } from 'recharts'
 import { API } from '../config'
 
@@ -372,13 +371,17 @@ export default function MainDashboard() {
             }
           }
         }
-      } catch (_) { /* API non dispo → mock complet */ }
+      } catch {
+        // API non dispo → on retombe sur les générateurs mock complets.
+      }
 
       // Statut des modèles
       try {
         const r = await fetch(`${API}/pred/rul/status`)
         if (r.ok) setModelStatus(await r.json())
-      } catch (_) {}
+      } catch {
+        // Statut modèle indisponible : on continue avec l'état par défaut.
+      }
 
       setFleet(fleetData)
       setAnomParJour(generateAnomaliesParJour())

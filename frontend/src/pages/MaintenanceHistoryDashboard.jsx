@@ -13,7 +13,7 @@
 import { useEffect, useMemo, useState } from "react"
 import {
   BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer,
-  CartesianGrid, LineChart, Line, AreaChart, Area,
+  CartesianGrid, AreaChart, Area,
 } from "recharts"
 import { API } from "../config"
 

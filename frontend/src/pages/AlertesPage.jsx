@@ -466,7 +466,11 @@ export default function AlertesPage(props) {
   const urgenceGlobale = data?.urgence_globale || 'NORMALE'
   const uG = URG[urgenceGlobale] || URG.NORMALE
   const rulPred = data?.prediction_rul
-  const rulH = rulPred?.rul_heures?.global_grav2
+
+  // RUL XGBoost (anciennement nommé LSTM dans la version précédente)
+  // Le backend peut renvoyer soit un objet `xgboost`/`rul`, soit l’ancien `lstm`.
+  const lstm = data?.lstm || data?.xgboost || data?.rul || rulPred
+  const seuilLstm = data?.seuil_lstm ?? data?.seuil_rul ?? 0.5
 
   return (
     <div style={{
@@ -537,8 +541,8 @@ export default function AlertesPage(props) {
           </div>
         </div>
 
-        {/* Mini-RUL XGBoost */}
-        {lstm?.disponible && (
+        {/* Mini-RUL XGBoost (compat ancien nommage LSTM) */}
+        {lstm?.disponible && (lstm.proba_1d != null || lstm.proba_1w != null || lstm.proba_2w != null) && (
           <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
             <LstmGauge label="1 jour"     value={lstm.proba_1d} threshold={seuilLstm} />
             <LstmGauge label="1 semaine"  value={lstm.proba_1w} threshold={seuilLstm} />

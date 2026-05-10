@@ -16,9 +16,8 @@ import OcpDefautPage from "./pages/OcpDefautPage"
 import OcpHealthPage from "./pages/OcpHealthPage"
 import OcpTroubleshootingPage from "./pages/OcpTroubleshootingPage"
 import DashboardShell from "./components/ui/DashboardShell"
-import MainDashboard from "./pages/MainDashboard"
-import EquipementRULPage from "./pages/EquipementRULPage"
 import MaintenanceHistoryDashboard from "./pages/MaintenanceHistoryDashboard"
+import ErrorBoundary from "./components/ErrorBoundary"
 
 
 import { API, C } from "./config"
@@ -1160,7 +1159,7 @@ export default function App() {
             {selectedItem && activeTab !== "gmao" && activeTab !== "geo" ? (
               <HistoryDetail item={selectedItem} onClose={() => setSelectedItem(null)}/>
             ) : (
-              <>
+              <ErrorBoundary key={activeTab}>
                 {activeTab === "maintenance_360" && <MaintenanceExecutiveDashboard apiFetch={apiFetch} onNavigate={handleTabChange} />}
                 {activeTab === "executive_report" && <ExecutiveReportPage apiFetch={apiFetch} />}
                 {activeTab==="ask"      && <AskPage      onSave={handleSave} apiFetch={apiFetch} />}
@@ -1186,7 +1185,7 @@ export default function App() {
                 {activeTab === "prediction" && <PredictionPage apiFetch={apiFetch} />}
                 {activeTab === "alertes_ocp" && <AlertesPage apiFetch={apiFetch} />}
                 {activeTab === "historique" && <MaintenanceHistoryDashboard apiFetch={apiFetch} />}
-              </>
+              </ErrorBoundary>
             )}
           </div>
 
