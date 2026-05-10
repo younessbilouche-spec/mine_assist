@@ -16,6 +16,10 @@ import OcpDefautPage from "./pages/OcpDefautPage"
 import OcpHealthPage from "./pages/OcpHealthPage"
 import OcpTroubleshootingPage from "./pages/OcpTroubleshootingPage"
 import DashboardShell from "./components/ui/DashboardShell"
+import MainDashboard from "./pages/MainDashboard"
+import EquipementRULPage from "./pages/EquipementRULPage"
+import MaintenanceHistoryDashboard from "./pages/MaintenanceHistoryDashboard"
+
 
 import { API, C } from "./config"
 
@@ -894,7 +898,7 @@ function DiagnosePage({ onSave, apiFetch }) {
       if (!r.ok) throw new Error(await r.text())
       const blob = await r.blob()
       const url  = URL.createObjectURL(blob)
-      const a    = document.createElement("a")
+      const a    = document.create("a")
       const cd   = r.headers.get("Content-Disposition") || ""
       const fn   = cd.match(/filename="(.+?)"/)?.[1] || "rapport_diagnostic.pdf"
       a.href = url; a.download = fn; a.click()
@@ -1044,6 +1048,7 @@ const TABS = [
   { id:"prediction", icon:"📊", label:"Prédiction RUL",        shortLabel:"RUL" },
   { id:"alertes_ocp",icon:"🚨", label:"Alertes & Plan",      shortLabel:"Alertes" },
   { id:"executive_report",icon:"📄", label:"Rapport Exécutif",          shortLabel:"Rapport" },
+  { id:"historique", icon:"📚", label:"Historique Maintenance", shortLabel:"Historique"  },
 ]
 
 export default function App() {
@@ -1180,6 +1185,7 @@ export default function App() {
                 )}
                 {activeTab === "prediction" && <PredictionPage apiFetch={apiFetch} />}
                 {activeTab === "alertes_ocp" && <AlertesPage apiFetch={apiFetch} />}
+                {activeTab === "historique" && <MaintenanceHistoryDashboard apiFetch={apiFetch} />}
               </>
             )}
           </div>

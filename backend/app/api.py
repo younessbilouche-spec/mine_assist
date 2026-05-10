@@ -10,6 +10,7 @@ from app.oil_analysis_router import router as oil_router
 from datetime import datetime, timedelta
 from app.sim_router import sim_router
 from app.ocp.router import ocp_router, load_rul_models
+from app.ocp_history_router import history_router
 
 from fastapi import FastAPI, Depends
 
@@ -130,6 +131,7 @@ app.include_router(notifications_router)
 app.include_router(oil_router)
 app.include_router(sim_router)
 app.include_router(ocp_router, prefix="/pred", tags=["Maintenance Prédictive — XGBoost + RF"])
+app.include_router(history_router)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"] if ALLOW_ALL_ORIGINS else ALLOWED_ORIGINS,
