@@ -178,15 +178,35 @@ export default function PredictionPage({ apiFetch }) {
   const [uploadMsg,   setUploadMsg]   = useState(null)
   const fileRef = useRef(null)
 
-  useEffect(() => {
+  // Charge en priorité les données du fichier capteurs courant (uploadé via OcpFilesPage).
+  // Si aucun fichier courant, fallback sur la prédiction démo synthétique.
+  // Cela résout le bug critique de "déconnexion" entre OCP files et Prediction.
+  const reloadCurrent = useCallback(() => {
     setLoading(true)
-    fetcher(`${API}/pred/rul/status`).then(r=>r.ok?r.json():null).then(setModelStatus).catch(()=>{})
-    fetcher(`${API}/pred/rul/predict/demo`)
-      .then(r=>{if(!r.ok)throw new Error(`HTTP ${r.status}`);return r.json()})
-      .then(j=>{setData(j);setError(null)})
-      .catch(e=>setError(e.message))
-      .finally(()=>setLoading(false))
+    setError(null)
+    fetcher(`${API}/pred/rul/predict/current`)
+      .then(r => {
+        if (r.status === 404) return { _noFile: true }
+        if (!r.ok) throw new Error(`HTTP ${r.status}`)
+        return r.json()
+      })
+      .then(j => {
+        if (j?._noFile) {
+          // Aucun fichier courant : fallback démo
+          return fetcher(`${API}/pred/rul/predict/demo`)
+            .then(r => r.json())
+            .then(d => { setData({ ...d, _demo: true }); setError(null) })
+        }
+        setData(j); setError(null)
+      })
+      .catch(e => setError(e.message))
+      .finally(() => setLoading(false))
   }, [])
+
+  useEffect(() => {
+    fetcher(`${API}/pred/rul/status`).then(r=>r.ok?r.json():null).then(setModelStatus).catch(()=>{})
+    reloadCurrent()
+  }, [reloadCurrent])
 
   const handleUpload = useCallback(async file => {
     if (!file) return
@@ -232,6 +252,10 @@ export default function PredictionPage({ apiFetch }) {
               padding:'2px 8px',borderRadius:4,border:`1px solid ${C.orange}40`}}>
               MODE DÉMO — uploadez un fichier pour les vraies données
             </span>}
+            {data?.source==='current_file'&&<span style={{fontSize:10,fontWeight:700,color:C.green,background:C.greenPale,
+              padding:'2px 8px',borderRadius:4,border:`1px solid ${C.green}40`}}>
+              ✓ FICHIER CAPTEURS COURANT · {data.nb_points} points
+            </span>}
           </div>
           <h1 style={{margin:0,fontSize:25,fontWeight:900,fontFamily:'Rajdhani,system-ui',letterSpacing:0.5,color:C.text}}>
             Maintenance Prédictive · CAT 994F1
@@ -243,6 +267,14 @@ export default function PredictionPage({ apiFetch }) {
         <div style={{display:'flex',alignItems:'center',gap:10,flexWrap:'wrap'}}>
           {uploadMsg&&<span style={{fontSize:11,color:C.green,fontWeight:700}}>{uploadMsg}</span>}
           {error&&<span style={{fontSize:11,color:C.red}}>⚠ {error}</span>}
+          <button onClick={reloadCurrent} disabled={loading} title="Recharger depuis le fichier capteurs courant" style={{
+            background:'transparent',color:C.green,border:`1px solid ${C.green}`,
+            padding:'8px 14px',fontSize:11,fontWeight:700,letterSpacing:1.5,
+            cursor:loading?'not-allowed':'pointer',fontFamily:'system-ui',
+            textTransform:'uppercase',borderRadius:4,
+          }}>
+            ↻ Fichier courant
+          </button>
           <input ref={fileRef} type="file" accept=".xlsx,.xls" style={{display:'none'}}
             onChange={e=>handleUpload(e.target.files?.[0])}/>
           <button onClick={()=>fileRef.current?.click()} disabled={uploading} style={{

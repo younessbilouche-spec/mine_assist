@@ -1,0 +1,112 @@
+--- /home/ubuntu/repos/mine_assist/backend/app/ocp/routers/rul_router.py	2026-05-10 12:45:51.672033316 +0000
++++ /home/ubuntu/work/patches/backend/app/ocp/routers/rul_router.py	2026-05-10 12:34:08.476040589 +0000
+@@ -384,6 +384,109 @@
+             os.remove(tmp_path)
+ 
+ 
++@router.get("/predict/current")
++def predict_current():
++    """
++    Prédiction RUL sur le fichier capteurs courant uploadé via /pred/upload.
++    
++    Cet endpoint résout le bug critique de "déconnexion" entre la page
++    'Fichiers Capteurs' et la page 'Prédiction' : l'utilisateur uploade UNE
++    seule fois, et toutes les pages prédiction lisent automatiquement le
++    fichier courant sans nouvel upload.
++    """
++    load_rul_models()
++
++    current_file = (
++        Path(__file__).resolve().parent.parent.parent.parent
++        / "data" / "ocp_uploads" / "current_data.xlsx"
++    )
++
++    if not current_file.exists():
++        raise HTTPException(
++            404,
++            detail=(
++                "Aucun fichier capteurs courant. Uploadez d'abord un fichier "
++                "sur la page 'Fichiers Capteurs' (POST /pred/upload), puis "
++                "rechargez cette page."
++            ),
++        )
++
++    try:
++        try:
++            df_raw = pd.read_excel(str(current_file), header=8)
++        except Exception:
++            df_raw = pd.read_excel(str(current_file))
++
++        df_wide = _pivot_excel_to_wide(df_raw)
++        X = _build_features_from_wide(df_wide)
++
++        if len(X) == 0:
++            raise HTTPException(
++                422,
++                detail="Aucune donnée exploitable dans le fichier courant.",
++            )
++
++        result = _predict_rul(X)
++        history = _predict_history(X, stride=max(1, len(X) // 100))
++        result["historique"] = history
++        result["periode"] = {
++            "debut": str(X.index.min()),
++            "fin":   str(X.index.max()),
++        }
++        result["source"] = "current_file"
++        result["filename"] = current_file.name
++        result["nb_points"] = int(len(X))
++        return JSONResponse(result)
++
++    except HTTPException:
++        raise
++    except Exception as e:
++        logger.exception("predict_current failed")
++        raise HTTPException(500, detail=f"Erreur prédiction fichier courant : {e}")
++
++
++@router.get("/alert-class")
++def alert_class_now():
++    """
++    Classe d'alerte RED/ORANGE/GREEN instantanée du fichier courant.
++    Endpoint léger pour les widgets et badges (pas d'historique, pas de chart).
++    """
++    load_rul_models()
++    current_file = (
++        Path(__file__).resolve().parent.parent.parent.parent
++        / "data" / "ocp_uploads" / "current_data.xlsx"
++    )
++
++    if not current_file.exists():
++        return {
++            "alerte_globale": "UNKNOWN",
++            "alerte_active":  False,
++            "rul_h":          None,
++            "source":         "no_file",
++        }
++
++    try:
++        try:
++            df_raw = pd.read_excel(str(current_file), header=8)
++        except Exception:
++            df_raw = pd.read_excel(str(current_file))
++        df_wide = _pivot_excel_to_wide(df_raw)
++        X = _build_features_from_wide(df_wide)
++        if len(X) == 0:
++            return {"alerte_globale": "UNKNOWN", "alerte_active": False, "rul_h": None, "source": "empty"}
++        result = _predict_rul(X)
++        return {
++            "alerte_globale": result.get("alerte_globale", "UNKNOWN"),
++            "alerte_active":  result.get("alerte_active", False),
++            "rul_h":          result.get("rul_heures", {}).get("global_grav2"),
++            "alert_proba":    result.get("alert_proba", {}),
++            "source":         "current_file",
++        }
++    except Exception as e:
++        logger.warning(f"alert-class fallback: {e}")
++        return {"alerte_globale": "UNKNOWN", "alerte_active": False, "rul_h": None, "source": "error"}
++
++
+ @router.get("/predict/demo")
+ def predict_demo():
+     """

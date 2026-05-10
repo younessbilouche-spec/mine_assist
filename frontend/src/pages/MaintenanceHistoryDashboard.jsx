@@ -318,35 +318,52 @@ export default function MaintenanceHistoryDashboard() {
   const [list, setList] = useState(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
+  const [loadedAt, setLoadedAt] = useState(null)
 
   useEffect(() => {
     let abort = false
     setLoading(true)
     setError(null)
 
-    Promise.all([
-      fetch(`${API_URL}/history/status`).then(r => r.json()).catch(() => null),
-      fetch(`${API_URL}/history/arrets/stats?engin=${engin}`).then(r => r.json()).catch(() => null),
-      fetch(`${API_URL}/history/arrets/types?engin=${engin}`).then(r => r.json()).catch(() => null),
-      fetch(`${API_URL}/history/arrets/timeline?engin=${engin}`).then(r => r.json()).catch(() => null),
-      fetch(`${API_URL}/history/arrets/list?engin=${engin}&limit=200`).then(r => r.json()).catch(() => null),
-    ]).then(([st, sta, ty, tl, ls]) => {
-      if (abort) return
-      setStatus(st)
-      setStats(sta)
-      setTypes(ty)
-      setTimeline(tl)
-      setList(ls)
-      setLoading(false)
-      if (!st || st.ok === false) {
-        setError("Module historique non chargé. Vérifier les fichiers Excel dans backend/data/ocp/")
-      }
-    }).catch(e => {
-      if (!abort) {
-        setError(e.message || "Erreur de chargement")
+    // v2 : 1 seul appel agrégé /history/dashboard (avec fallback sur l'ancien)
+    fetch(`${API_URL}/history/dashboard?engin=${engin}&limit=500`)
+      .then(r => {
+        if (!r.ok) throw new Error(`HTTP ${r.status}`)
+        return r.json()
+      })
+      .then(d => {
+        if (abort) return
+        setStats(d.stats)
+        setTypes(d.types)
+        setTimeline(d.timeline)
+        setList(d.list)
+        setLoadedAt(d.loaded_at_iso)
+        // status simulé depuis stats
+        setStatus({ ok: true, n_arrets: d.stats?.n_arrets, n_arrets_chf: d.stats?.n_arrets })
         setLoading(false)
-      }
-    })
+      })
+      .catch(() => {
+        // Fallback : ancien comportement (5 fetchs en parallèle)
+        Promise.all([
+          fetch(`${API_URL}/history/status`).then(r => r.json()).catch(() => null),
+          fetch(`${API_URL}/history/arrets/stats?engin=${engin}`).then(r => r.json()).catch(() => null),
+          fetch(`${API_URL}/history/arrets/types?engin=${engin}`).then(r => r.json()).catch(() => null),
+          fetch(`${API_URL}/history/arrets/timeline?engin=${engin}`).then(r => r.json()).catch(() => null),
+          fetch(`${API_URL}/history/arrets/list?engin=${engin}&limit=200`).then(r => r.json()).catch(() => null),
+        ]).then(([st, sta, ty, tl, ls]) => {
+          if (abort) return
+          setStatus(st); setStats(sta); setTypes(ty); setTimeline(tl); setList(ls)
+          setLoading(false)
+          if (!st || st.ok === false) {
+            setError("Module historique non chargé. Vérifier backend/data/ocp/")
+          }
+        }).catch(e => {
+          if (!abort) {
+            setError(e.message || "Erreur de chargement")
+            setLoading(false)
+          }
+        })
+      })
 
     return () => { abort = true }
   }, [engin])
@@ -398,8 +415,8 @@ export default function MaintenanceHistoryDashboard() {
           </div>
         </div>
 
-        {/* Sélecteur engin */}
-        <div style={{ display: "flex", gap: 6 }}>
+        {/* Sélecteur engin + export */}
+        <div style={{ display: "flex", gap: 6, alignItems: "center", flexWrap: "wrap" }}>
           {["994F1", "994F2", "all"].map(e => (
             <button key={e} onClick={() => setEngin(e)} style={{
               padding: "10px 18px", fontSize: 11, fontWeight: 800, letterSpacing: 1.5,
@@ -412,8 +429,22 @@ export default function MaintenanceHistoryDashboard() {
               {e === "all" ? "Tous" : `CAT ${e}`}
             </button>
           ))}
+          <a href={`${API_URL}/history/export.xlsx?engin=${engin}`} download
+             style={{
+               padding: "10px 16px", fontSize: 11, fontWeight: 800, letterSpacing: 1.5,
+               background: C.sand, color: "#FFF", border: `1px solid ${C.sand}`,
+               borderRadius: 6, cursor: "pointer", textDecoration: "none",
+               fontFamily: "Rajdhani, system-ui", textTransform: "uppercase",
+             }}>
+            ↓ Excel
+          </a>
         </div>
       </div>
+      {loadedAt && (
+        <div style={{ fontSize: 10, color: C.textMuted, marginBottom: 14 }}>
+          Données rechargées : {new Date(loadedAt).toLocaleString("fr-FR")} · {list?.length ?? "?"} arrêts
+        </div>
+      )}
 
       {/* Erreur */}
       {error && (

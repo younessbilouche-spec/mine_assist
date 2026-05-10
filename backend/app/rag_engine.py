@@ -613,6 +613,106 @@ class RAGEngine:
             "turbo": "turbo",
         }
 
+    # ── Sprint 3 : query expansion + lexical hybrid ───────────────────────
+    _EXPANSION_DICT = {
+        # FR -> [synonymes FR, EN, AR]
+        "filtre": ["filter", "élément filtrant", "cartouche", "filter element", "فلتر"],
+        "filtre hydraulique": ["hydraulic filter", "filter element hydraulic", "filtre huile hyd"],
+        "filtre à huile": ["oil filter", "engine oil filter", "filtre à huile moteur"],
+        "filtre à air": ["air filter", "air cleaner", "primaire", "secondaire"],
+        "vidange": ["oil change", "drain", "remplacement huile", "تغيير الزيت"],
+        "remplacement": ["replacement", "replace", "change", "swap", "استبدال"],
+        "procédure": ["procedure", "process", "step by step", "إجراء"],
+        "moteur": ["engine", "motor", "3516B", "محرك"],
+        "transmission": ["transmission", "gearbox", "torque converter", "علبة التروس"],
+        "hydraulique": ["hydraulic", "hyd", "هيدروليكي"],
+        "frein": ["brake", "braking", "فرامل"],
+        "courroie": ["belt", "drive belt", "alternator belt"],
+        "alternateur": ["alternator", "generator"],
+        "pneu": ["tire", "tyre", "wheel", "إطار"],
+        "pression": ["pressure", "psi", "kpa", "bar", "ضغط"],
+        "couple": ["torque", "tightening torque", "Nm", "lbf-ft"],
+        "epi": ["ppe", "personal protective equipment", "EPI"],
+        "consignation": ["lockout", "loto", "lockout tagout"],
+    }
+
+    def _expand_query(self, query: str) -> List[str]:
+        """
+        Génère 1-3 variantes enrichies de la requête pour booster le rappel
+        sémantique (ChromaDB).
+
+        Exemple : "comment changer le filtre hydraulique" →
+          ["comment changer le filtre hydraulique",
+           "comment changer le filtre hydraulique hydraulic filter element filter",
+           "filtre hydraulique procedure"]
+        """
+        q = query.strip()
+        q_lower = q.lower()
+        variants = [q]
+
+        # Concatène les synonymes des termes détectés
+        synonyms = []
+        for key, syns in self._EXPANSION_DICT.items():
+            if key in q_lower:
+                synonyms.extend(syns[:2])
+        if synonyms:
+            variants.append(q + " " + " ".join(synonyms[:6]))
+
+        # Variant axé "procedure" pour les questions « comment / procédure »
+        if any(w in q_lower for w in ["comment", "procédure", "procedure", "how to", "step", "étape", "كيف", "إجراء"]):
+            # Extraction des noms-clés (ce sur quoi on intervient)
+            for term in ["filtre hydraulique", "filtre à huile", "filtre à air",
+                          "vidange moteur", "vidange transmission", "vidange hydraulique",
+                          "courroie", "pneu", "frein", "joint"]:
+                if term in q_lower:
+                    variants.append(f"procedure {term} CAT 994F replacement steps")
+                    break
+
+        # Limite à 3 variantes pour ne pas exploser la latence
+        return variants[:3]
+
+    def _lexical_search(self, query: str, top_k: int = 10) -> List[Tuple[str, Dict[str, Any]]]:
+        """
+        Recherche lexicale BM25-like sur self.documents.
+        Renvoie les top_k meilleurs chunks par score word-overlap.
+        Sert de fallback hybride à la recherche sémantique.
+        """
+        if not self.documents:
+            return []
+
+        q_norm = self._normalize_text(query)
+        q_words = [w for w in q_norm.split() if len(w) > 2]
+        if not q_words:
+            return []
+
+        translations = self._technical_translations()
+        scored: List[Tuple[float, str, Dict[str, Any]]] = []
+
+        for i, doc in enumerate(self.documents):
+            meta = self.metadatas[i] if i < len(self.metadatas) else {}
+            doc_norm = self._normalize_text(doc)
+            score = 0.0
+            for w in q_words:
+                if w in doc_norm:
+                    score += 2.0
+                if len(w) > 4 and w.rstrip("e") in doc_norm:
+                    score += 0.5
+                en = translations.get(w)
+                if en and en in doc_norm:
+                    score += 1.5
+            # Bonus codes défaut
+            for code in re.findall(r"\b(?:MID|CID|FMI|ECM|VIMS|PM)\s*\d+\b", query.upper()):
+                if code.lower() in doc.lower():
+                    score += 4.0
+            if score > 0:
+                # Normalise par taille document (BM25-like)
+                doc_len = max(len(doc_norm.split()), 1)
+                score = score / (1 + doc_len / 200.0)
+                scored.append((score, doc, meta))
+
+        scored.sort(key=lambda t: t[0], reverse=True)
+        return [(d, m) for s, d, m in scored[:top_k]]
+
     # Mots-clés qui signalent une question sur des valeurs capteurs terrain
     _SENSOR_KEYWORDS = [
         "température", "temperature", "pression", "pressure", "régime", "regime",
@@ -672,7 +772,18 @@ class RAGEngine:
             print(f"⚠️ Erreur requête Excel ChromaDB : {e}")
             return []
 
-    def build_context(self, query: str, top_k: int = 5, max_chars: int = 6000) -> Tuple[str, List[str]]:
+    def build_context(self, query: str, top_k: int = 10, max_chars: int = 6000) -> Tuple[str, List[str]]:
+        """
+        Construit le contexte RAG pour le LLM.
+
+        Sprint 3 — améliorations de retrieval (mai 2026) :
+          - top_k passé de 5 à 10 par défaut (meilleur recall)
+          - Seuil distance assoupli (0.78 → 0.95) pour ne pas écarter trop tôt
+          - Query expansion : termes techniques + synonymes EN/AR ajoutés
+          - Hybrid search : si sémantique pauvre (<3 résultats), on AGRÈGE
+            avec lexical (au lieu de switcher) → meilleur rappel sur termes
+            spécifiques (ex: « filtre hydraulique », « bushing », « CID 522 »)
+        """
         if not query:
             return "", []
 
@@ -685,44 +796,76 @@ class RAGEngine:
             else:
                 print("⚠️ Aucun chunk Excel capteur trouvé dans ChromaDB — vérifier l'indexation")
 
+        # ── Query expansion : ajoute synonymes techniques pour booster le recall ──
+        expanded_queries = self._expand_query(query)
+
         # ── Recherche sémantique via ChromaDB (PDF + autres) ──────────────
+        semantic: List[Tuple[str, Dict]] = []
+        seen_ids: set = set()
+
         if self.collection is not None and self.collection.count() > 0:
-            try:
-                results = self.collection.query(
-                    query_texts=[query],
-                    n_results=min(top_k, self.collection.count()),
-                    include=["documents", "metadatas", "distances"],
-                )
+            for q in expanded_queries:
+                try:
+                    results = self.collection.query(
+                        query_texts=[q],
+                        n_results=min(top_k, self.collection.count()),
+                        include=["documents", "metadatas", "distances"],
+                    )
+                    docs      = results["documents"][0]
+                    metas     = results["metadatas"][0]
+                    distances = results["distances"][0]
 
-                docs      = results["documents"][0]
-                metas     = results["metadatas"][0]
-                distances = results["distances"][0]
+                    for doc, meta, dist in zip(docs, metas, distances):
+                        if dist >= 0.95 or meta.get("type") == "excel":
+                            continue
+                        # Identifier unique pour dédup
+                        cid = meta.get("chunk_id") or f"{meta.get('source','?')}#{meta.get('page','?')}"
+                        if cid in seen_ids:
+                            continue
+                        seen_ids.add(cid)
+                        semantic.append((doc, meta))
+                        if len(semantic) >= top_k * 2:
+                            break
 
-                # Exclure les chunks Excel déjà injectés ci-dessus
-                semantic = [
-                    (doc, meta)
-                    for doc, meta, dist in zip(docs, metas, distances)
-                    if dist < 0.78 and meta.get("type") != "excel"
-                ]
+                    if len(semantic) >= top_k * 2:
+                        break
 
-                # Excel en tête → contexte métier précis avant le contexte documentaire
-                combined = excel_chunks + semantic
+                except Exception as e:
+                    print(f"⚠️ Erreur ChromaDB query '{q}' : {e}")
 
-                if combined:
-                    context = "\n\n---\n\n".join(doc for doc, _ in combined)[:max_chars]
-                    sources: List[str] = []
-                    seen = set()
-                    for _, meta in combined:
-                        label = self._format_source_label(meta)
-                        if label not in seen:
-                            seen.add(label)
-                            sources.append(label)
-                    return context, sources
+            # Tri par pertinence approximative : on garde l'ordre de retour ChromaDB
+            semantic = semantic[:top_k]
 
-                print("ℹ️ Aucun chunk pertinent trouvé (distance > 0.78)")
+        # ── Hybrid : agrège lexical pour booster le rappel ────────────────
+        lexical = self._lexical_search(query, top_k=top_k)
+        # Ajoute les chunks lexicaux qui ne sont pas déjà dans semantic
+        for doc, meta in lexical:
+            cid = meta.get("chunk_id") or f"{meta.get('source','?')}#{meta.get('page','?')}"
+            if cid not in seen_ids:
+                seen_ids.add(cid)
+                semantic.append((doc, meta))
 
-            except Exception as e:
-                print(f"⚠️ Erreur ChromaDB query : {e} — fallback lexical")
+        # Excel en tête → contexte métier précis avant le contexte documentaire
+        combined = excel_chunks + semantic[:top_k]
+
+        if combined:
+            # Préfixe chaque chunk avec [chunk_id | source | p.page]
+            context_chunks = []
+            sources: List[str] = []
+            seen = set()
+            for i, (doc, meta) in enumerate(combined):
+                label = self._format_source_label(meta)
+                page = meta.get("page", "?")
+                chunk_id = meta.get("chunk_id") or f"c{i+1}"
+                header = f"[{chunk_id} | {label} | p.{page}]"
+                context_chunks.append(f"{header}\n{doc}")
+                if label not in seen:
+                    seen.add(label)
+                    sources.append(label)
+            context = "\n\n---\n\n".join(context_chunks)[:max_chars]
+            return context, sources
+
+        print("ℹ️ Aucun chunk pertinent trouvé (RAG vide → LLM utilisera la base CAT 994F embarquée)")
 
         # ── Fallback lexical ───────────────────────────────────────────────
         if not self.documents:

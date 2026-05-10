@@ -33,7 +33,7 @@ function SensorChart({ apiFetch, col, thresholdMax, thresholdMin }) {
   )
 }
 
-function Accordion({ apiFetch, sensor, color }) {
+function Accordion({ apiFetch, sensor, color, onDiagnose }) {
   const [open, setOpen] = useState(false)
   const pct = (sensor.over_max_pct || sensor.under_min_pct || 0).toFixed(2)
   return (
@@ -57,6 +57,23 @@ function Accordion({ apiFetch, sensor, color }) {
             thresholdMax={sensor.threshold_max}
             thresholdMin={sensor.threshold_min}
           />
+          {onDiagnose && (
+            <div style={{ marginTop:14, paddingTop:12, borderTop:'1px solid #D4C9B0' }}>
+              <button
+                onClick={(e) => { e.stopPropagation(); onDiagnose(sensor) }}
+                style={{
+                  background: color, color:'#fff', border:'none',
+                  padding:'8px 16px', fontSize:11, fontWeight:700, letterSpacing:1.5,
+                  borderRadius:4, cursor:'pointer', fontFamily:'Rajdhani, system-ui',
+                  textTransform:'uppercase',
+                }}>
+                ▶ Diagnostiquer ce défaut avec l'IA
+              </button>
+              <span style={{ fontSize:10, color:'#8A7D60', marginLeft:10 }}>
+                Pré-remplit la page Diagnose avec ce capteur et son contexte ML
+              </span>
+            </div>
+          )}
         </div>
       )}
     </div>
@@ -70,7 +87,7 @@ const SectionTitle = ({ label }) => (
   </div>
 )
 
-export default function OcpDefautPage({ apiFetch }) {
+export default function OcpDefautPage({ apiFetch, onNavigate }) {
   const [analysis, setAnalysis] = useState(null)
   const [loading,  setLoading]  = useState(true)
   const [error, setError] = useState(null)
@@ -86,6 +103,31 @@ export default function OcpDefautPage({ apiFetch }) {
       })
       .finally(() => setLoading(false))
   }, [apiFetch])
+
+  // Pré-remplit la requête /diagnose/v2 avec les infos du capteur défaillant
+  const handleDiagnose = (sensor) => {
+    const symptoms = []
+    if (sensor.over_max_pct) symptoms.push(`${sensor.label} dépasse le seuil max ${sensor.threshold_max} ${sensor.unit||''} (${sensor.over_max_pct.toFixed(1)}% du temps)`)
+    if (sensor.under_min_pct) symptoms.push(`${sensor.label} sous le seuil min ${sensor.threshold_min} ${sensor.unit||''} (${sensor.under_min_pct.toFixed(1)}% du temps)`)
+    if (sensor.criticality) symptoms.push(`Criticité: ${sensor.criticality}`)
+
+    // Stocke dans sessionStorage pour la page Ask/Diagnose
+    try {
+      sessionStorage.setItem('mineassist_diagnose_prefill', JSON.stringify({
+        symptoms,
+        capteur: sensor.sensor,
+        label: sensor.label,
+        timestamp: new Date().toISOString(),
+      }))
+    } catch (_) {}
+
+    if (typeof onNavigate === 'function') {
+      onNavigate('/ask')
+    } else {
+      // Fallback si onNavigate non passé : navigation hash
+      window.location.hash = '#/ask'
+    }
+  }
 
   return (
     <div style={{ display:'flex', minHeight:'calc(100vh - 66px)' }}>
@@ -160,18 +202,18 @@ export default function OcpDefautPage({ apiFetch }) {
         <SectionTitle label="Capteurs dépassant le seuil Maximum" />
         {!analysis?.exceeds_max?.length
           ? <div style={{ textAlign:'center', padding:'20px 0', color:'#B0A080', fontSize:13 }}>✓ Aucun dépassement de seuil maximum</div>
-          : analysis.exceeds_max.map(s => <Accordion key={s.sensor} apiFetch={apiFetch} sensor={s} color={CRIT_COLOR[s.criticality] || '#ef4444'} />)
+          : analysis.exceeds_max.map(s => <Accordion key={s.sensor} apiFetch={apiFetch} sensor={s} color={CRIT_COLOR[s.criticality] || '#ef4444'} onDiagnose={handleDiagnose} />)
         }
 
         <SectionTitle label="Capteurs dépassant le seuil Minimum" />
         {!analysis?.exceeds_min?.length
           ? <div style={{ textAlign:'center', padding:'20px 0', color:'#B0A080', fontSize:13 }}>✓ Aucun dépassement de seuil minimum</div>
-          : analysis.exceeds_min.map(s => <Accordion key={s.sensor} apiFetch={apiFetch} sensor={s} color={CRIT_COLOR[s.criticality] || '#f97316'} />)
+          : analysis.exceeds_min.map(s => <Accordion key={s.sensor} apiFetch={apiFetch} sensor={s} color={CRIT_COLOR[s.criticality] || '#f97316'} onDiagnose={handleDiagnose} />)
         }
 
         {analysis?.faulty_sensors?.length > 0 && <>
           <SectionTitle label="Capteurs présentant des défauts" />
-          {analysis.faulty_sensors.map(s => <Accordion key={s.sensor} apiFetch={apiFetch} sensor={s} color="#6b7280" />)}
+          {analysis.faulty_sensors.map(s => <Accordion key={s.sensor} apiFetch={apiFetch} sensor={s} color="#6b7280" onDiagnose={handleDiagnose} />)}
         </>}
       </div>
     </div>

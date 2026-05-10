@@ -1,0 +1,26 @@
+--- /home/ubuntu/repos/mine_assist/backend/app/api.py	2026-05-10 12:45:51.672033316 +0000
++++ /home/ubuntu/work/patches/backend/app/api.py	2026-05-10 12:37:41.740038383 +0000
+@@ -132,6 +132,23 @@
+ app.include_router(sim_router)
+ app.include_router(ocp_router, prefix="/pred", tags=["Maintenance Prédictive — XGBoost + RF"])
+ app.include_router(history_router)
++
++# ── Sprint 1 + 2 (mai 2026) — modules additifs ──────────────────────────────
++try:
++    from app.ocp_history_router_v2 import history_v2_router
++    app.include_router(history_v2_router)
++    print("[OK] history_v2_router (dashboard agrégé + export Excel) chargé.")
++except Exception as _e:
++    print(f"[WARN] history_v2_router non chargé : {_e}")
++
++try:
++    from app.improvements import register_improvements
++    register_improvements(app)
++    print("[OK] improvements.py (Ask v2 trilingue + streaming + healthz + feedback) chargé.")
++except Exception as _e:
++    print(f"[WARN] improvements.py non chargé : {_e}")
++# ────────────────────────────────────────────────────────────────────────────
++
+ app.add_middleware(
+     CORSMiddleware,
+     allow_origins=["*"] if ALLOW_ALL_ORIGINS else ALLOWED_ORIGINS,

@@ -1,0 +1,26 @@
+--- /home/ubuntu/repos/mine_assist/backend/app/rag_engine.py	2026-05-10 12:45:51.672033316 +0000
++++ /home/ubuntu/work/patches/backend/app/rag_engine.py	2026-05-10 12:36:44.324038977 +0000
+@@ -709,14 +709,21 @@
+                 combined = excel_chunks + semantic
+ 
+                 if combined:
+-                    context = "\n\n---\n\n".join(doc for doc, _ in combined)[:max_chars]
++                    # Préfixe chaque chunk avec [chunk_id | source | p.page]
++                    # pour permettre au LLM de citer précisément ses sources.
++                    context_chunks = []
+                     sources: List[str] = []
+                     seen = set()
+-                    for _, meta in combined:
++                    for i, (doc, meta) in enumerate(combined):
+                         label = self._format_source_label(meta)
++                        page = meta.get("page", "?")
++                        chunk_id = meta.get("chunk_id") or f"c{i+1}"
++                        header = f"[{chunk_id} | {label} | p.{page}]"
++                        context_chunks.append(f"{header}\n{doc}")
+                         if label not in seen:
+                             seen.add(label)
+                             sources.append(label)
++                    context = "\n\n---\n\n".join(context_chunks)[:max_chars]
+                     return context, sources
+ 
+                 print("ℹ️ Aucun chunk pertinent trouvé (distance > 0.78)")
