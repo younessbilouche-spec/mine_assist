@@ -45,37 +45,6 @@ function UrgencePill({ urgence, mini=false }) {
   )
 }
 
-// ── Mini-jauge probabilité (RUL XGBoost ou autre) ───────────────────────────
-// Accepte une valeur 0..1 (proba) et un seuil optionnel
-function RulGauge({ label, value, threshold = 0.5 }) {
-  const v = value == null ? 0 : Number(value)
-  const pct = (v * 100).toFixed(1)
-  const danger = threshold != null && v >= threshold
-  const warn   = threshold != null && v >= threshold * 0.6
-  const color  = danger ? '#E74C3C' : warn ? '#F39C12' : '#00A84F'
-  return (
-    <div style={{
-      background: '#FFFFFF', borderRadius: 8, padding: '6px 12px',
-      border: `1px solid ${color}`, minWidth: 80, textAlign: 'center',
-      boxSizing: 'border-box',
-    }}>
-      <div style={{
-        fontSize: 9, fontWeight: 700, letterSpacing: 1,
-        color: '#8A7D60', textTransform: 'uppercase',
-      }}>{label}</div>
-      <div style={{
-        fontFamily: '"Rajdhani", system-ui, sans-serif', fontSize: 20,
-        fontWeight: 800, color, lineHeight: 1.1, marginTop: 2,
-      }}>
-        {value == null ? '—' : `${pct}%`}
-      </div>
-    </div>
-  )
-}
-
-// Alias pour compat — l'ancien code appelle <LstmGauge>
-const LstmGauge = RulGauge
-
 // ── Debug panel ─────────────────────────────────────────────────────────────
 function DebugPanel({ data, error, loading }) {
   if (!DEBUG) return null
@@ -465,9 +434,6 @@ export default function AlertesPage(props) {
 
   const urgenceGlobale = data?.urgence_globale || 'NORMALE'
   const uG = URG[urgenceGlobale] || URG.NORMALE
-  const rulPred = data?.prediction_rul
-  const rulH = rulPred?.rul_heures?.global_grav2
-
   return (
     <div style={{
       padding: '20px 28px',
@@ -480,7 +446,7 @@ export default function AlertesPage(props) {
     }}>
       <DebugPanel data={data} error={error} loading={loading} />
 
-      {/* ── Top bar : etat global + LSTM + refresh ─────────────────────── */}
+      {/* ── Top bar : etat global + refresh ────────────────────────────── */}
       <div style={{
         background: uG.bg,
         border: `1px solid ${uG.accent}`,
@@ -536,15 +502,6 @@ export default function AlertesPage(props) {
             </div>
           </div>
         </div>
-
-        {/* Mini-RUL XGBoost */}
-        {lstm?.disponible && (
-          <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
-            <LstmGauge label="1 jour"     value={lstm.proba_1d} threshold={seuilLstm} />
-            <LstmGauge label="1 semaine"  value={lstm.proba_1w} threshold={seuilLstm} />
-            <LstmGauge label="2 semaines" value={lstm.proba_2w} threshold={seuilLstm} />
-          </div>
-        )}
 
         {/* Refresh */}
         <button onClick={() => fetchAlertes(true)} disabled={refreshing} style={{
