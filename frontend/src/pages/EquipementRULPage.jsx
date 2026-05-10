@@ -336,41 +336,38 @@ export default function EquipementRULPage({ equipement, onBack }) {
   const [rulHistory,  setRulHistory]  = useState([])
   const [sensorHist,  setSensorHist]  = useState([])
   const [anomalies,   setAnomalies]   = useState([])
-  const [loading,     setLoading]     = useState(true)
   const [activeTab,   setActiveTab]   = useState('rul')   // 'rul' | 'capteurs' | 'anomalies' | 'predict'
   const [predResult,  setPredResult]  = useState(null)
   const [uploading,   setUploading]   = useState(false)
 
   // ── Chargement données ──────────────────────
   const loadData = useCallback(async () => {
-    setLoading(true)
+    let nextEq = eq
     try {
-      // Essaie les données réelles d'abord
-      try {
-        const r = await fetch(`${API}/pred/rul/predict/demo`)
-        if (r.ok) {
-          const demo = await r.json()
-          if (demo?.rul_A || demo?.rul) {
-            setEq(prev => ({
-              ...prev,
-              rul_A: demo.rul_A ?? demo.rul ?? prev.rul_A,
-              proba_panne: demo.proba_panne ?? demo.probability ?? prev.proba_panne,
-              statut: demo.status ?? prev.statut,
-              ...(demo.capteurs || {}),
-            }))
+      const r = await fetch(`${API}/pred/rul/predict/demo`)
+      if (r.ok) {
+        const demo = await r.json()
+        if (demo?.rul_A || demo?.rul) {
+          nextEq = {
+            ...eq,
+            rul_A: demo.rul_A ?? demo.rul ?? eq.rul_A,
+            proba_panne: demo.proba_panne ?? demo.probability ?? eq.proba_panne,
+            statut: demo.status ?? eq.statut,
+            ...(demo.capteurs || {}),
           }
+          setEq(nextEq)
         }
-      } catch (_) {}
-
-      setRulHistory(generateRULHistory(eq.rul_A))
-      setSensorHist(generateSensorHistory(eq.capteurs))
-      setAnomalies(generateAnomалies())
+      }
+    } catch {
+      nextEq = eq
     } finally {
-      setLoading(false)
+      setRulHistory(generateRULHistory(nextEq.rul_A))
+      setSensorHist(generateSensorHistory(nextEq.capteurs))
+      setAnomalies(generateAnomалies())
     }
-  }, [eq.rul_A])
+  }, [eq])
 
-  useEffect(() => { loadData() }, [])
+  useEffect(() => { loadData() }, [loadData])
 
   // ── Upload fichier Excel pour prédiction ──
   async function handleFileUpload(e) {

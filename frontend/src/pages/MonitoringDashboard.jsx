@@ -157,7 +157,7 @@ export default function MonitoringDashboard({ onSelectParam } = {}) {
       .finally(() => setLoading(false))
   }, [refresh])
 
-  const thresholdSummary = data?.threshold_summary || []
+  const thresholdSummary = useMemo(() => data?.threshold_summary || [], [data])
   const chronicThresholds = thresholdSummary.filter(item => item.statut === "chronique")
   const rareCritical = thresholdSummary.filter(item => item.niveau === "critique" && item.statut === "rare")
   const coverageData = useMemo(() => (data?.parameter_coverage || []).slice(0, 10).map(item => ({
@@ -355,7 +355,7 @@ export default function MonitoringDashboard({ onSelectParam } = {}) {
                       return (
                       <tr
                         key={`${item.parametre}-${i}`}
-                        onClick={clickable ? () => onSelectParam(shortLabel(item.parametre)) : undefined}
+                        onClick={clickable ? () => onSelectParam(item.parametre) : undefined}
                         title={clickable ? "Cliquer pour voir l'évolution temporelle" : undefined}
                         style={{
                           borderBottom: `1px solid ${C.border}`,

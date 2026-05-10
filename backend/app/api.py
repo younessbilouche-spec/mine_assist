@@ -372,6 +372,15 @@ def _standardize_anomaly_dataframe(df: pd.DataFrame, source_file: str) -> pd.Dat
     return out
 
 
+def _filter_gmao_machine(df: pd.DataFrame, machine: str | None) -> tuple[pd.DataFrame, str | None]:
+    if not machine or str(machine).strip().lower() in {"all", "tous", "*"}:
+        return df, None
+
+    target = _normalize_machine_label(machine)
+    filtered = df[df["machine"].apply(_normalize_machine_label) == target].copy()
+    return filtered, target
+
+
 def _parse_anomaly_location(value):
     """
     Parse une valeur du type "[32.24516,-7.82953,0.0]" vers (lat, lon, alt)
@@ -426,7 +435,7 @@ def _location_candidates():
 
 
 @app.get("/gmao/geo-anomalies")
-def gmao_geo_anomalies():
+def gmao_geo_anomalies(machine: str = Query("994F-1", description="Engin cible, ex: 994F-1")):
     """
     Analyse spatiale des anomalies.
     Retourne les points GPS, zones fréquentes, défauts dominants par zone
@@ -474,6 +483,12 @@ def gmao_geo_anomalies():
             )
 
         df = pd.concat(frames, ignore_index=True)
+        df, target_machine = _filter_gmao_machine(df, machine)
+        if df.empty:
+            raise HTTPException(
+                status_code=404,
+                detail=f"Aucune anomalie géolocalisable trouvée pour {target_machine or machine}"
+            )
 
         if "Emplacement de l'anomalie" not in df.columns:
             raise HTTPException(
@@ -602,6 +617,7 @@ def gmao_geo_anomalies():
 
         return {
             "total_geo_anomalies": int(len(df)),
+            "target_machine": target_machine,
             "machines": sorted(df["machine"].dropna().astype(str).unique().tolist()),
             "center": center,
             "bounds": bounds,
@@ -618,7 +634,7 @@ def gmao_geo_anomalies():
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 @app.get("/gmao/stats")
-def gmao_stats():
+def gmao_stats(machine: str = Query("994F-1", description="Engin cible, ex: 994F-1")):
     """
     Dashboard 1 — GMAO / anomalies historiques
     Lit seulement data/gmao/anomalies/
@@ -697,10 +713,21 @@ def gmao_stats():
             )
 
         df = pd.concat(frames, ignore_index=True)
+        df, target_machine = _filter_gmao_machine(df, machine)
+        if df.empty:
+            raise HTTPException(
+                status_code=404,
+                detail=f"Aucune anomalie GMAO trouvée pour {target_machine or machine}"
+            )
         df["month"] = df["Date de l'anomalie"].dt.to_period("M").astype(str)
+        df["Occurrences"] = pd.to_numeric(df["Occurrences"], errors="coerce").fillna(1).clip(lower=1)
+        df["Gravité"] = pd.to_numeric(df["Gravité"], errors="coerce").fillna(0).astype(int)
+        severity_weights = {0: 0.5, 1: 1.0, 2: 4.0, 3: 9.0}
+        df["risk_score"] = df["Gravité"].map(severity_weights).fillna(1.0) * df["Occurrences"]
 
         total = int(len(df))
-        occurrences_total = int(pd.to_numeric(df["Occurrences"], errors="coerce").fillna(0).sum())
+        occurrences_total = int(df["Occurrences"].sum())
+        risk_total = round(float(df["risk_score"].sum()), 1)
 
         by_severity = {
             int(k): int(v)
@@ -777,6 +804,132 @@ def gmao_stats():
         else:
             critical_g3 = []
 
+        monthly_risk_df = (
+            df.groupby("month")
+            .agg(
+                events=("month", "size"),
+                occurrences=("Occurrences", "sum"),
+                risk_score=("risk_score", "sum"),
+                g1=("Gravité", lambda s: int((s == 1).sum())),
+                g2=("Gravité", lambda s: int((s == 2).sum())),
+                g3=("Gravité", lambda s: int((s == 3).sum())),
+            )
+            .reset_index()
+            .sort_values("month")
+        )
+        monthly_risk_df["risk_score"] = monthly_risk_df["risk_score"].round(1)
+        monthly_risk = monthly_risk_df.to_dict(orient="records")
+
+        source_risk_df = (
+            df.groupby("Source")
+            .agg(
+                events=("Source", "size"),
+                occurrences=("Occurrences", "sum"),
+                risk_score=("risk_score", "sum"),
+                g3=("Gravité", lambda s: int((s == 3).sum())),
+            )
+            .reset_index()
+            .sort_values("risk_score", ascending=False)
+        )
+        source_risk_df["risk_score"] = source_risk_df["risk_score"].round(1)
+        source_risk = source_risk_df.head(8).to_dict(orient="records")
+
+        priority_df = (
+            df.groupby(["Code d'anomalie", "Gravité", "Source", "Type"])
+            .agg(
+                events=("Code d'anomalie", "size"),
+                occurrences=("Occurrences", "sum"),
+                risk_score=("risk_score", "sum"),
+                first_date=("Date de l'anomalie", "min"),
+                last_date=("Date de l'anomalie", "max"),
+                max_hours=("Heures Valeur", "max"),
+            )
+            .reset_index()
+            .sort_values(["risk_score", "occurrences", "events"], ascending=False)
+        )
+        total_risk_for_pareto = float(priority_df["risk_score"].sum()) if not priority_df.empty else 0.0
+        priority_df["risk_score"] = priority_df["risk_score"].round(1)
+
+        def _priority_label(row) -> str:
+            if int(row["Gravité"]) >= 3 or float(row["risk_score"]) >= 900:
+                return "P1"
+            if int(row["Gravité"]) >= 2 or float(row["risk_score"]) >= 250:
+                return "P2"
+            return "P3"
+
+        def _recommendation(row) -> str:
+            source = str(row.get("Source", "")).lower()
+            code = str(row.get("Code d'anomalie", "")).lower()
+            gravite = int(row.get("Gravité", 0))
+            if gravite >= 3:
+                prefix = "Traiter avant remise en production longue"
+            elif gravite == 2:
+                prefix = "Planifier contrôle maintenance sous 24-48h"
+            else:
+                prefix = "Surveiller et regrouper avec la ronde préventive"
+
+            if "moteur" in source or "huile" in code:
+                return f"{prefix} : contrôler niveau huile, pression, faisceau capteur et historique moteur."
+            if "commande" in source or "équipement" in source or "equipement" in source:
+                return f"{prefix} : vérifier capteur/actionneur équipement, connectique et récurrence du code."
+            if "frein" in source:
+                return f"{prefix} : contrôler circuit freinage, pression et températures associées."
+            return f"{prefix} : confirmer le code, inspecter le sous-système et clôturer après essai terrain."
+
+        priority_items = []
+        cumulative = 0.0
+        for _, row in priority_df.head(15).iterrows():
+            risk_score = float(row["risk_score"])
+            cumulative += risk_score
+            priority_items.append({
+                "code": str(row["Code d'anomalie"]),
+                "gravite": int(row["Gravité"]),
+                "source": str(row["Source"]),
+                "type": str(row["Type"]),
+                "events": int(row["events"]),
+                "occurrences": int(row["occurrences"]),
+                "risk_score": round(risk_score, 1),
+                "risk_pct_cum": round((cumulative / total_risk_for_pareto) * 100, 1) if total_risk_for_pareto else 0.0,
+                "priority": _priority_label(row),
+                "recommendation": _recommendation(row),
+                "first_date": row["first_date"].strftime("%Y-%m-%d %H:%M") if pd.notna(row["first_date"]) else None,
+                "last_date": row["last_date"].strftime("%Y-%m-%d %H:%M") if pd.notna(row["last_date"]) else None,
+                "max_hours": round(float(row["max_hours"]), 1) if pd.notna(row["max_hours"]) else None,
+            })
+
+        recent_events = []
+        recent_cols = ["Date de l'anomalie", "Code d'anomalie", "Gravité", "Source", "Type", "Occurrences", "Heures Valeur"]
+        for _, row in df.sort_values("Date de l'anomalie", ascending=False).head(12)[recent_cols].iterrows():
+            recent_events.append({
+                "date": row["Date de l'anomalie"].strftime("%Y-%m-%d %H:%M") if pd.notna(row["Date de l'anomalie"]) else None,
+                "code": str(row["Code d'anomalie"]),
+                "gravite": int(row["Gravité"]),
+                "source": str(row["Source"]),
+                "type": str(row["Type"]),
+                "occurrences": int(row["Occurrences"]),
+                "hours": round(float(row["Heures Valeur"]), 1) if pd.notna(row["Heures Valeur"]) else None,
+            })
+
+        critical_events = int((df["Gravité"] >= 3).sum())
+        warning_events = int((df["Gravité"] == 2).sum())
+        if critical_events or risk_total >= 2500:
+            risk_level = "CRITIQUE"
+        elif warning_events or risk_total >= 900:
+            risk_level = "ÉLEVÉ"
+        else:
+            risk_level = "MAÎTRISÉ"
+
+        top_priority = priority_items[0] if priority_items else None
+        engineering_summary = {
+            "risk_total": risk_total,
+            "risk_level": risk_level,
+            "critical_events": critical_events,
+            "warning_events": warning_events,
+            "dominant_source": source_risk[0]["Source"] if source_risk else None,
+            "top_priority_code": top_priority["code"] if top_priority else None,
+            "top_priority_recommendation": top_priority["recommendation"] if top_priority else None,
+        }
+
         service_hours_by_machine = {
             str(machine): round(float(hours), 1)
             for machine, hours in df.groupby("machine")["Heures Valeur"].max().dropna().items()
@@ -846,6 +999,7 @@ def gmao_stats():
         coverage_mismatch = len(set(active_months_by_machine.values())) > 1 if active_months_by_machine else False
 
         return {
+            "target_machine": target_machine,
             "total": total,
             "occurrences_total": occurrences_total,
             "by_severity": by_severity,
@@ -857,6 +1011,11 @@ def gmao_stats():
             "comparison_by_machine": comparison_by_machine,
             "severity_mix_by_machine": severity_mix_by_machine,
             "monthly": monthly,
+            "monthly_risk": monthly_risk,
+            "source_risk": source_risk,
+            "priority_risks": priority_items,
+            "recent_events": recent_events,
+            "engineering_summary": engineering_summary,
             "top_codes": top_codes,
             "top_codes_occurrences": top_codes_occurrences,
             "by_source": by_source,

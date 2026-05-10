@@ -54,6 +54,77 @@ _COL_ALIASES = {
 }
 
 
+_PARAM_ALIASES = {
+    "régime moteur": "Regime_moteur",
+    "regime moteur": "Regime_moteur",
+    "pression huile moteur": "Pression_huile",
+    "température liquide refroidissement": "Temp_refroid",
+    "temperature liquide refroidissement": "Temp_refroid",
+    "régime sortie convertisseur": "Regime_conv",
+    "regime sortie convertisseur": "Regime_conv",
+    "température sortie convertisseur": "Temp_conv",
+    "temperature sortie convertisseur": "Temp_conv",
+    "température huile direction": "Temp_huile_dir",
+    "temperature huile direction": "Temp_huile_dir",
+}
+
+
+def _norm_text(value) -> str:
+    return str(value).lower().strip()
+
+
+def _find_header_row(filepath: str) -> int:
+    raw = pd.read_excel(filepath, nrows=20, header=None)
+    for i in range(len(raw)):
+        vals = " ".join(str(v).lower() for v in raw.iloc[i].fillna("").values)
+        if "paramètres diagnostic" in vals and "heure" in vals and "valeur moyenne" in vals:
+            return i
+        if ("date" in vals or "heure" in vals) and any(k in vals for k in ["regime", "régime", "temp", "pression"]):
+            return i
+    return 0
+
+
+def _is_diagnostic_export(df: pd.DataFrame) -> bool:
+    cols = {_norm_text(c) for c in df.columns}
+    return {"paramètres diagnostic", "heure", "valeur moyenne"}.issubset(cols)
+
+
+def _diagnostic_param_to_feature(param) -> str | None:
+    key = _norm_text(param)
+    for needle, feature in _PARAM_ALIASES.items():
+        if needle in key:
+            return feature
+    return None
+
+
+def _load_diagnostic_export(filepath: str, header_row: int) -> pd.DataFrame:
+    long_df = pd.read_excel(filepath, header=header_row)
+    long_df = long_df.dropna(how="all").reset_index(drop=True)
+
+    col_param = next(c for c in long_df.columns if _norm_text(c) == "paramètres diagnostic")
+    col_time = next(c for c in long_df.columns if _norm_text(c) == "heure")
+    col_value = next(c for c in long_df.columns if _norm_text(c) == "valeur moyenne")
+
+    long_df["Date"] = pd.to_datetime(long_df[col_time], errors="coerce")
+    long_df["feature"] = long_df[col_param].apply(_diagnostic_param_to_feature)
+    long_df["value"] = pd.to_numeric(long_df[col_value], errors="coerce")
+    long_df = long_df.dropna(subset=["Date", "feature"]).copy()
+
+    wide = (
+        long_df
+        .pivot_table(index="Date", columns="feature", values="value", aggfunc="mean")
+        .sort_index()
+        .reset_index()
+    )
+    wide.columns.name = None
+
+    for col in FEATURE_COLS:
+        if col not in wide.columns:
+            wide[col] = np.nan
+
+    return wide[["Date", *FEATURE_COLS]]
+
+
 def load_data(filepath: str) -> pd.DataFrame:
     """
     Charge le fichier Excel capteurs.
@@ -61,17 +132,16 @@ def load_data(filepath: str) -> pd.DataFrame:
     Si le mapping explicite echoue, renomme par position.
     Conserve la colonne Label/panne si presente.
     """
-    # Detecter la ligne d en-tete
-    raw = pd.read_excel(filepath, nrows=5, header=None)
-    header_row = 0
-    for i in range(len(raw)):
-        vals = [str(v).lower() for v in raw.iloc[i].fillna("").values]
-        if any(k in " ".join(vals) for k in ["date", "heure", "regime", "temp"]):
-            header_row = i
-            break
+    header_row = _find_header_row(filepath)
 
     df = pd.read_excel(filepath, header=header_row)
     df = df.dropna(how="all").reset_index(drop=True)
+
+    if _is_diagnostic_export(df):
+        df = _load_diagnostic_export(filepath, header_row)
+        df["Date"] = pd.to_datetime(df["Date"], errors="coerce")
+        df = df[df["Date"].notna()].sort_values("Date").reset_index(drop=True)
+        return df
 
     # Mapping explicite via _COL_ALIASES
     rename_map = {}

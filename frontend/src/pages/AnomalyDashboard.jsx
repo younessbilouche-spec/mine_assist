@@ -6,7 +6,6 @@ import {
   ReferenceLine
 } from "recharts"
 import { API } from "../config"
-const API_URL = API
 
 const C = {
   bg:        "#F5F0E8",
@@ -142,10 +141,16 @@ export default function AnomalyDashboard() {
   ]
 
   useEffect(() => {
-    fetch(`${API_URL}/gmao/anomaly-results`)
-      .then(res => res.json())
-      .then(json => {
+    setLoading(true)
+    setError("")
+    fetch(`${API}/gmao/anomaly-results`)
+      .then(async res => {
+        const json = await res.json().catch(() => ({}))
+        if (!res.ok) throw new Error(json.detail || `HTTP ${res.status}`)
         if (json.detail) throw new Error(json.detail)
+        return json
+      })
+      .then(json => {
         setData(json)
       })
       .catch(err => setError(err.message))
@@ -158,7 +163,7 @@ export default function AnomalyDashboard() {
     setPredictLoading(true)
     setPredictResult(null)
     try {
-      const r = await fetch(`${API_URL}/gmao/predict-anomaly`, {
+      const r = await fetch(`${API}/gmao/predict-anomaly`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ valeurs }),
@@ -198,6 +203,25 @@ export default function AnomalyDashboard() {
   )
 
   const { meta, timeline, nb_anomalies, pct_anomalies, nb_total, parametres, stats_2sigma } = data
+
+  if (!Array.isArray(timeline) || !Array.isArray(parametres)) {
+    return (
+      <div style={{ padding: "28px 32px", fontFamily: "'Rajdhani', sans-serif" }}>
+        <div style={{
+          padding: "18px 22px", background: C.sandPale,
+          border: `1px solid ${C.border}`, borderLeft: `4px solid ${C.orange}`,
+          color: C.textMid, fontSize: 13, fontWeight: 600
+        }}>
+          ⚠️ Aucune analyse d’anomalies disponible
+          <div style={{ fontSize: 11, color: C.textMid, marginTop: 6, fontWeight: 400 }}>
+            Réponse backend incomplète. Lance d’abord <code>python train_anomaly.py</code>,
+            puis charge un fichier capteurs.
+          </div>
+        </div>
+      </div>
+    )
+  }
+
   const timelineColored = timeline.map(p => ({
     ...p,
     score_normal: p.is_anomaly === 0 ? p.score : null,

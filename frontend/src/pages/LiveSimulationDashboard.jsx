@@ -20,7 +20,7 @@ import {
   CartesianGrid, AreaChart, Area,
 } from "recharts"
 import { API } from "../config"
-import { evalStatusOCP, getDisplayLimits, getSubsystem, findRegle, norm as normOCP } from "../utils/seuilsOCP"
+import { evalStatusOCP, getDisplayLimits, norm as normOCP } from "../utils/seuilsOCP"
 
 const API_URL = API
 const HISTORY_MAX = 300
@@ -724,7 +724,9 @@ export default function LiveSimulationDashboard() {
       setHistory([])
       lastTsRef.current = null
       tickRef.current = 0
-    } catch {}
+    } catch {
+      return
+    }
   }, [])
 
   const last = state?.recent?.[state.recent.length - 1]

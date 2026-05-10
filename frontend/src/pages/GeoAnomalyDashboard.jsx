@@ -24,6 +24,7 @@ import { API } from "../config"
 
 // ── À MIGRER : remplacer par `import { API, C } from "../config"` ────────────
 const API_URL = API
+const TARGET_MACHINE = "994F-1"
 
 const C = {
   bg: "#F5F0E8",
@@ -451,7 +452,7 @@ export default function GeoAnomalyDashboard() {
   const [graviteMin, setGraviteMin] = useState(1)
   const [codeFilter, setCodeFilter] = useState("")
   const [zoneFilter, setZoneFilter] = useState("all")
-  const [machineFilter, setMachineFilter] = useState("all")
+  const [machineFilter] = useState(TARGET_MACHINE)
 
   // Couches
   const [showMarkers, setShowMarkers] = useState(true)
@@ -467,7 +468,8 @@ export default function GeoAnomalyDashboard() {
   useEffect(() => {
     let cancelled = false
     setLoading(true); setError("")
-    fetch(`${API_URL}/gmao/geo-anomalies`)
+    const params = new URLSearchParams({ machine: TARGET_MACHINE })
+    fetch(`${API_URL}/gmao/geo-anomalies?${params}`)
       .then(async res => {
         const json = await res.json().catch(() => null)
         if (!res.ok) throw new Error(json?.detail || `Erreur API ${res.status}`)
@@ -557,7 +559,7 @@ export default function GeoAnomalyDashboard() {
     <div style={{ padding: "24px 28px", fontFamily: "'Rajdhani', sans-serif" }}>
       <PageTitle>Dashboard cartographique des anomalies</PageTitle>
       <div style={{ marginBottom: 20, fontSize: 13, color: C.textLight }}>
-        Localisation, densité et progression temporelle des défaillances terrain
+        Localisation, densité et progression temporelle des défaillances terrain · {TARGET_MACHINE}
       </div>
 
       {/* KPI strip */}
@@ -573,9 +575,9 @@ export default function GeoAnomalyDashboard() {
           color={C.green} icon="📍"
         />
         <KPI
-          title="Machines couvertes"
-          value={machines.length}
-          subtitle={machines.join(", ") || "—"}
+          title="Machine couverte"
+          value={TARGET_MACHINE}
+          subtitle={machines.join(", ") || TARGET_MACHINE}
           color={C.orange} icon="🚜"
         />
         <KPI
@@ -620,12 +622,7 @@ export default function GeoAnomalyDashboard() {
             <div style={{ fontSize: 10, color: C.textMuted, letterSpacing: 1.5, marginBottom: 6, textTransform: "uppercase" }}>
               Machine
             </div>
-            <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
-              <Chip active={machineFilter === "all"} onClick={() => setMachineFilter("all")}>Toutes</Chip>
-              {machines.map(m => (
-                <Chip key={m} active={machineFilter === m} onClick={() => setMachineFilter(m)}>{m}</Chip>
-              ))}
-            </div>
+            <Chip active>{TARGET_MACHINE}</Chip>
           </div>
 
           <div style={{ flex: 1, minWidth: 200 }}>

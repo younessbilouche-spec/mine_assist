@@ -16,8 +16,6 @@ import OcpDefautPage from "./pages/OcpDefautPage"
 import OcpHealthPage from "./pages/OcpHealthPage"
 import OcpTroubleshootingPage from "./pages/OcpTroubleshootingPage"
 import DashboardShell from "./components/ui/DashboardShell"
-import MainDashboard from "./pages/MainDashboard"
-import EquipementRULPage from "./pages/EquipementRULPage"
 import MaintenanceHistoryDashboard from "./pages/MaintenanceHistoryDashboard"
 
 
