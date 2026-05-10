@@ -143,11 +143,13 @@ export default function AnomalyDashboard() {
 
   useEffect(() => {
     fetch(`${API_URL}/gmao/anomaly-results`)
-      .then(res => res.json())
-      .then(json => {
+      .then(async res => {
+        const json = await res.json().catch(() => ({}))
+        if (!res.ok) throw new Error(json.detail || `HTTP ${res.status}`)
         if (json.detail) throw new Error(json.detail)
-        setData(json)
+        return json
       })
+      .then(json => setData(json))
       .catch(err => setError(err.message))
       .finally(() => setLoading(false))
   }, [])
@@ -198,6 +200,26 @@ export default function AnomalyDashboard() {
   )
 
   const { meta, timeline, nb_anomalies, pct_anomalies, nb_total, parametres, stats_2sigma } = data
+
+  // Guard contre une réponse backend incomplète (ex: aucun fichier indexé côté serveur).
+  if (!Array.isArray(timeline) || !Array.isArray(parametres)) {
+    return (
+      <div style={{ padding: "28px 32px", fontFamily: "'Rajdhani', sans-serif" }}>
+        <div style={{
+          padding: "18px 22px", background: C.sandPale,
+          border: `1px solid ${C.border}`, borderLeft: `4px solid ${C.orange}`,
+          color: C.textMid, fontSize: 13, fontWeight: 600
+        }}>
+          ⚠️ Aucune analyse d’anomalies disponible
+          <div style={{ fontSize: 11, color: C.textMid, marginTop: 6, fontWeight: 400 }}>
+            Réponse backend incomplète (ni <code>timeline</code> ni <code>parametres</code>).
+            Lance d’abord <code>python train_anomaly.py</code>, puis charge un fichier capteurs.
+          </div>
+        </div>
+      </div>
+    )
+  }
+
   const timelineColored = timeline.map(p => ({
     ...p,
     score_normal: p.is_anomaly === 0 ? p.score : null,

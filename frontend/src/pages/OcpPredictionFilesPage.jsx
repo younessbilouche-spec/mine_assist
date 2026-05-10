@@ -1,4 +1,4 @@
-export default function OcpPredictionFilesPage({ apiFetch, onNavigate }) {
+export default function OcpPredictionFilesPage({ onNavigate }) {
   return (
     <div style={{ maxWidth:900, margin:'0 auto', padding:'60px 28px', color:'#2A2A1E', textAlign:'center' }}>
       <div style={{ fontSize:44, marginBottom:14 }}>📊</div>

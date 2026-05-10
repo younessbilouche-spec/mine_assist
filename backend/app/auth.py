@@ -16,7 +16,17 @@ from jose import JWTError, jwt
 from pydantic import BaseModel
 
 # ── Configuration ─────────────────────────────────────────────────────────
-SECRET_KEY = os.getenv("JWT_SECRET_KEY", "mineassist-994f-secret-key-change-in-production-2024")
+# IMPORTANT : en production, JWT_SECRET_KEY DOIT être défini dans l'environnement
+# (ex. fichier `.env`) avec une valeur aléatoire de 32+ octets.  La valeur par
+# défaut ci-dessous n'est conservée que pour faciliter le développement local.
+_DEV_DEFAULT_SECRET = "mineassist-994f-secret-key-change-in-production-2024"
+SECRET_KEY = os.getenv("JWT_SECRET_KEY", _DEV_DEFAULT_SECRET)
+if SECRET_KEY == _DEV_DEFAULT_SECRET and os.getenv("ENV", "dev").lower() in {"prod", "production"}:
+    raise RuntimeError(
+        "JWT_SECRET_KEY est manquant en production. "
+        "Définissez la variable d'environnement avant de démarrer le backend."
+    )
+
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = int(os.getenv("ACCESS_TOKEN_EXPIRE_MINUTES", "480"))
 
