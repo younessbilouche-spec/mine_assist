@@ -17,6 +17,8 @@ import OcpHealthPage from "./pages/OcpHealthPage"
 import OcpTroubleshootingPage from "./pages/OcpTroubleshootingPage"
 import DashboardShell from "./components/ui/DashboardShell"
 import MaintenanceHistoryDashboard from "./pages/MaintenanceHistoryDashboard"
+import DiagnosePageV2 from "./pages/DiagnosePage"
+import AskPageV2 from "./pages/AskPageV2"
 
 
 import { API, C } from "./config"
@@ -838,7 +840,7 @@ function AskPage({ onSave, apiFetch }) {
 }
 
 // ── Diagnose Page ─────────────────────────────────────────────
-function DiagnosePage({ onSave, apiFetch }) {
+function DiagnosePageOLD({ onSave, apiFetch }) {
   const [faultCode, setFaultCode] = useState("")
   const [symptoms, setSymptoms]   = useState("")
   const [gmaoCtx, setGmaoCtx]     = useState("")
@@ -1161,8 +1163,8 @@ export default function App() {
               <>
                 {activeTab === "maintenance_360" && <MaintenanceExecutiveDashboard apiFetch={apiFetch} onNavigate={handleTabChange} />}
                 {activeTab === "executive_report" && <ExecutiveReportPage apiFetch={apiFetch} />}
-                {activeTab==="ask"      && <AskPage      onSave={handleSave} apiFetch={apiFetch} />}
-                {activeTab==="diagnose" && <DiagnosePage onSave={handleSave} apiFetch={apiFetch} />}
+                {activeTab==="ask"      && <AskPageV2    onSave={handleSave} apiFetch={apiFetch} />}
+                {activeTab==="diagnose" && <DiagnosePageV2 onSave={handleSave} apiFetch={apiFetch} />}
                 {activeTab==="gmao" && <GmaoDashboard/>}
                 {activeTab === "geo" && <GeoAnomalyDashboard />}
                 {activeTab === "capteurs" && <CapteursPage />}

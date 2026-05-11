@@ -298,7 +298,7 @@ function SubsystemHeatmap({ valuesByParam, ctx = {} }) {
         color: C.textMuted, textTransform: "uppercase", marginBottom: 12 }}>
         Vue d'ensemble · sous-systèmes
       </div>
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 8 }}>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(6, 1fr)", gap: 8 }}>
         {SUBSYSTEMS.map(sub => {
           const s = subsysStatus[sub.key]
           const total = s.ok + s.attention + s.alerte
@@ -906,7 +906,7 @@ export default function LiveSimulationDashboard() {
 
       <div className="fade-up" style={{
         display: "grid", gap: 12, marginBottom: 14,
-        gridTemplateColumns: "1.3fr 1.2fr 0.7fr",
+        gridTemplateColumns: "minmax(420px, 1.3fr) minmax(360px, 1.2fr) minmax(220px, 0.7fr)",
       }}>
         <CycleVisualizer phase={cyclePhase}/>
         <SubsystemHeatmap valuesByParam={valuesByParam} ctx={ctx}/>
