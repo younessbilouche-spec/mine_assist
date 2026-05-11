@@ -289,6 +289,9 @@ function SubsystemHeatmap({ valuesByParam, ctx = {} }) {
       out[s.sub][st]++
     }
     return out
+    // ctx est volontairement remplacé par ses 2 propriétés scalaires utiles :
+    // un objet entier serait recréé à chaque render et casserait la stabilité du memo.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [valuesByParam, ctx.rpm, ctx.hyd_load])
 
   return (
@@ -731,7 +734,9 @@ export default function LiveSimulationDashboard() {
   }, [])
 
   const last = state?.recent?.[state.recent.length - 1]
-  const alertes = state?.alertes_recentes || []
+  // useMemo pour stabiliser la référence : sans ça le `||` recrée un tableau à
+  // chaque render et invalide les useMemo en aval.
+  const alertes = useMemo(() => state?.alertes_recentes || [], [state?.alertes_recentes])
   const cyclePhase = last?.cycle_phase
   const buf = state?.buffer_size ?? 0
   const engin = last?.engin || state?.engin || "994F1"

@@ -186,6 +186,8 @@ export default function PredictionPage({ apiFetch }) {
       .then(j=>{setData(j);setError(null)})
       .catch(e=>setError(e.message))
       .finally(()=>setLoading(false))
+    // fetcher est volontairement exclu : il dépend de apiFetch (ref stable via useAuth).
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
   const handleUpload = useCallback(async file => {
@@ -200,6 +202,8 @@ export default function PredictionPage({ apiFetch }) {
       setUploadMsg(`✓ ${j.nb_points??'?'} points analysés`)
     } catch(e){setError(e.message)}
     finally{setUploading(false)}
+    // fetcher est volontairement exclu : il dépend de apiFetch (ref stable via useAuth).
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
   const rul = data?.rul_heures || {}

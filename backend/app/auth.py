@@ -33,7 +33,19 @@ ACCESS_TOKEN_EXPIRE_MINUTES = int(os.getenv("ACCESS_TOKEN_EXPIRE_MINUTES", "480"
 USERS_FILE = Path(__file__).parent.parent / "data" / "users.json"
 
 # ── Crypto ─────────────────────────────────────────────────────────────────
-pwd_context = CryptContext(schemes=["sha256_crypt"], deprecated="auto")
+# `bcrypt` est l'algorithme préféré pour les nouveaux mots de passe ;
+# `sha256_crypt` reste accepté en lecture pour ne pas invalider les comptes
+# créés avec l'ancien schéma. passlib re-hashe automatiquement au prochain login
+# si on appelle `pwd_context.verify_and_update`.
+try:
+    pwd_context = CryptContext(
+        schemes=["bcrypt", "sha256_crypt"],
+        deprecated=["sha256_crypt"],
+    )
+except Exception:  # pragma: no cover - bcrypt manquant en environnement minimal
+    # Fallback : la lib bcrypt n'est pas installée (ex: api_minimal), on garde
+    # sha256_crypt pour ne pas bloquer le démarrage.
+    pwd_context = CryptContext(schemes=["sha256_crypt"], deprecated="auto")
 security = HTTPBearer()
 
 # ── Modèles ────────────────────────────────────────────────────────────────
@@ -122,6 +134,15 @@ def _load_users() -> dict:
     if not USERS_FILE.exists():
         users = _default_users()
         _save_users(users)
+        if os.getenv("ENV", "dev").lower() in {"prod", "production"}:
+            # En production on ne doit JAMAIS s'appuyer sur ces comptes :
+            # les mots de passe (admin123 / chef123 / tech123) sont publics.
+            import logging
+            logging.getLogger(__name__).warning(
+                "[auth] users.json créé avec les comptes par défaut alors que "
+                "ENV=production. Crée immédiatement un admin via "
+                "POST /auth/users puis désactive admin/chef/tech1."
+            )
         return users
 
     try:
@@ -162,8 +183,20 @@ def authenticate_user(username: str, password: str) -> Optional[dict]:
         return None
     if not user.get("actif", True):
         return None
-    if not verify_password(password, user["hashed_password"]):
+    # `verify_and_update` re-hashe automatiquement les mots de passe encore
+    # stockés dans un schéma déprécié (ici sha256_crypt -> bcrypt).
+    try:
+        ok, new_hash = pwd_context.verify_and_update(password, user["hashed_password"])
+    except Exception:
+        ok, new_hash = pwd_context.verify(password, user["hashed_password"]), None
+    if not ok:
         return None
+    if new_hash:
+        users = _load_users()
+        if username in users:
+            users[username]["hashed_password"] = new_hash
+            _save_users(users)
+            user["hashed_password"] = new_hash
     return user
 
 

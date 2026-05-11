@@ -134,6 +134,9 @@ export default function ExecutiveReportPage({ apiFetch = null }) {
       }
     }
     setLoading(false)
+    // apiFetch (et fetcher dérivé) est stable via useAuth, on l'exclut volontairement
+    // pour éviter une boucle de rechargement à chaque render.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
   const downloadJson = () => {

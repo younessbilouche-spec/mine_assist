@@ -376,6 +376,9 @@ export default function AlertesPage(props) {
     }
   }
 
+  // fetchAlertes est défini dans la même fonction de rendu : on l'exclut volontairement
+  // pour éviter une boucle de fetch (la fonction est recréée à chaque render).
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => { fetchAlertes() }, [])
 
   const toggleCard = id => setOpenCards(prev => ({ ...prev, [id]: !prev[id] }))

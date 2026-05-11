@@ -157,7 +157,9 @@ export default function MonitoringDashboard({ onSelectParam } = {}) {
       .finally(() => setLoading(false))
   }, [refresh])
 
-  const thresholdSummary = data?.threshold_summary || []
+  // useMemo : sans ça, le `||` recrée un tableau à chaque render et instabilise
+  // les useMemo en aval (breachData, etc.).
+  const thresholdSummary = useMemo(() => data?.threshold_summary || [], [data])
   const chronicThresholds = thresholdSummary.filter(item => item.statut === "chronique")
   const rareCritical = thresholdSummary.filter(item => item.niveau === "critique" && item.statut === "rare")
   const coverageData = useMemo(() => (data?.parameter_coverage || []).slice(0, 10).map(item => ({

@@ -154,8 +154,16 @@ export default function MaintenanceExecutiveDashboard({ apiFetch: ocpFetch, onNa
   }, [data.oilList])
 
   const oilAvg = oilLatest.length ? Math.round(oilLatest.reduce((s, a) => s + oilScore(a), 0) / oilLatest.length) : null
-  const activeAlerts = data.alertes?.alertes_actives || data.alertes?.alertes || []
-  const interventions = data.alertes?.plan_interventions || data.alertes?.interventions || []
+  // useMemo() pour stabiliser ces tableaux : sans ça, l'expression `||` recrée
+  // un nouveau tableau à chaque render et casse les deps des useMemo en aval.
+  const activeAlerts = useMemo(
+    () => data.alertes?.alertes_actives || data.alertes?.alertes || [],
+    [data.alertes],
+  )
+  const interventions = useMemo(
+    () => data.alertes?.plan_interventions || data.alertes?.interventions || [],
+    [data.alertes],
+  )
   const rulProb = data.prediction?.prediction_rul?.rul_heures?.global_grav2 != null
     ? Math.max(0, 1 - data.prediction.prediction_rul.rul_heures.global_grav2 / 168)
     : getProb(data.prediction)

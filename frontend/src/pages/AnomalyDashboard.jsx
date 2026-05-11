@@ -5,8 +5,7 @@ import {
   CartesianGrid, Tooltip, Legend, ResponsiveContainer,
   ReferenceLine
 } from "recharts"
-import { API } from "../config"
-const API_URL = API
+import { apiGet, apiPost } from "../utils/api"
 
 const C = {
   bg:        "#F5F0E8",
@@ -142,14 +141,8 @@ export default function AnomalyDashboard() {
   ]
 
   useEffect(() => {
-    fetch(`${API_URL}/gmao/anomaly-results`)
-      .then(async res => {
-        const json = await res.json().catch(() => ({}))
-        if (!res.ok) throw new Error(json.detail || `HTTP ${res.status}`)
-        if (json.detail) throw new Error(json.detail)
-        return json
-      })
-      .then(json => setData(json))
+    apiGet("/gmao/anomaly-results")
+      .then(setData)
       .catch(err => setError(err.message))
       .finally(() => setLoading(false))
   }, [])
@@ -160,13 +153,7 @@ export default function AnomalyDashboard() {
     setPredictLoading(true)
     setPredictResult(null)
     try {
-      const r = await fetch(`${API_URL}/gmao/predict-anomaly`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ valeurs }),
-      })
-      const json = await r.json()
-      if (!r.ok) throw new Error(json.detail || "Erreur de prédiction")
+      const json = await apiPost("/gmao/predict-anomaly", { valeurs })
       setPredictResult(json)
     } catch (e) {
       setPredictResult({ error: e.message })

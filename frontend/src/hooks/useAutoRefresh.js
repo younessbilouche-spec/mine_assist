@@ -67,6 +67,7 @@ export function useAutoRefresh(path, {
     } finally {
       setLoading(false)
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [url, enabled, transform]) // fetchOpts intentionnellement exclu (objet instable)
 
   useEffect(() => {

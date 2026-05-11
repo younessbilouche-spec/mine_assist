@@ -370,8 +370,13 @@ export default function EquipementRULPage({ equipement, onBack }) {
     } finally {
       setLoading(false)
     }
+    // eq.capteurs et eq.rul_A sont des constantes du module : exclus volontairement
+    // pour éviter une boucle de fetch (la fonction est recréée à chaque render).
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [eq.rul_A])
 
+  // loadData est défini dans la même fonction de rendu : on l'exclut volontairement.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => { loadData() }, [])
 
   // ── Upload fichier Excel pour prédiction ──

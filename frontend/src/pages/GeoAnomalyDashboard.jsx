@@ -479,8 +479,8 @@ export default function GeoAnomalyDashboard() {
     return () => { cancelled = true }
   }, [])
 
-  const allPoints = data?.map_points || []
-  const zones = data?.top_zones || []
+  const allPoints = useMemo(() => data?.map_points || [], [data])
+  const zones = useMemo(() => data?.top_zones || [], [data])
 
   // Filtrage : gravité + code + zone + machine + timeline
   const filteredPoints = useMemo(() => {
@@ -539,13 +539,65 @@ export default function GeoAnomalyDashboard() {
       </div>
     )
   }
-  if (error || !data) {
+  if (error || !data || !Array.isArray(data?.map_points)) {
+    const isNetworkLike = !error || /not found|404|500|fetch|netw|abort/i.test(error)
     return (
-      <div style={{ padding: 28 }}>
-        <Card accent={C.red}>
-          <CardTitle>Erreur</CardTitle>
-          <div style={{ color: C.red, fontSize: 13 }}>{error || "Données indisponibles"}</div>
-        </Card>
+      <div style={{ padding: "32px 28px", maxWidth: 880, margin: "0 auto", fontFamily: "'Rajdhani', sans-serif" }}>
+        <PageTitle>Dashboard cartographique des anomalies</PageTitle>
+        <div style={{
+          marginTop: 18,
+          background: "#FFFDF8",
+          border: "1px solid #E3D8C4",
+          borderLeft: `4px solid ${C.orange || "#C4760A"}`,
+          borderRadius: 14,
+          padding: "22px 24px",
+          color: C.textMid,
+          boxShadow: "0 8px 24px rgba(0,0,0,0.04)",
+        }}>
+          <div style={{
+            fontSize: 11,
+            fontWeight: 800,
+            letterSpacing: 2,
+            color: C.orange || "#C4760A",
+            textTransform: "uppercase",
+            marginBottom: 6,
+          }}>
+            Carte indisponible
+          </div>
+          <div style={{ fontSize: 17, fontWeight: 800, color: C.text || "#2A2A1E", marginBottom: 8 }}>
+            Aucun point géolocalisé à afficher
+          </div>
+          <div style={{ fontSize: 13, lineHeight: 1.55 }}>
+            {isNetworkLike ? (
+              <>
+                Le backend n'a pas encore d'anomalies géolocalisées exploitables.
+                Importez d'abord un fichier Excel via <strong>OCP Fichiers</strong>,
+                puis lancez <code>python train_anomaly.py</code> côté backend pour
+                générer les coordonnées <code>map_points</code>.
+              </>
+            ) : (
+              <>Détail technique : <code>{error}</code></>
+            )}
+          </div>
+          <div style={{ marginTop: 16, display: "flex", gap: 10, flexWrap: "wrap" }}>
+            <button
+              type="button"
+              onClick={() => window.location.reload()}
+              style={{
+                background: C.green || "#00843D",
+                color: "#fff",
+                border: "none",
+                borderRadius: 8,
+                padding: "9px 16px",
+                fontWeight: 800,
+                letterSpacing: 1,
+                cursor: "pointer",
+              }}
+            >
+              Réessayer
+            </button>
+          </div>
+        </div>
       </div>
     )
   }
