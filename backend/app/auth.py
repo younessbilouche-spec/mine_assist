@@ -27,6 +27,8 @@ pwd_context = CryptContext(schemes=["sha256_crypt"], deprecated="auto")
 security = HTTPBearer()
 
 # ── Modèles ────────────────────────────────────────────────────────────────
+
+
 class Token(BaseModel):
     access_token: str
     token_type: str
@@ -257,7 +259,8 @@ async def change_password(
         raise HTTPException(status_code=400, detail="Ancien mot de passe incorrect")
 
     if len(new_password) < 6:
-        raise HTTPException(status_code=400, detail="Le nouveau mot de passe doit faire au moins 6 caractères")
+        raise HTTPException(
+            status_code=400, detail="Le nouveau mot de passe doit faire au moins 6 caractères")
 
     users = _load_users()
     users[current_user["username"]]["hashed_password"] = pwd_context.hash(new_password)

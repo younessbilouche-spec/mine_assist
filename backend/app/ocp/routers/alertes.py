@@ -155,14 +155,14 @@ def get_alertes(request: Request):
         if len(vals) == 0:
             continue
         val_median = float(np.median(vals))
-        val_max    = float(np.max(vals))
-        val_min    = float(np.min(vals))
-        urgence    = _urgence_capteur(val_median, cfg)
+        val_max = float(np.max(vals))
+        val_min = float(np.min(vals))
+        urgence = _urgence_capteur(val_median, cfg)
 
         if urgence == "NORMALE":
             continue
 
-        fault_key    = _SENSOR_FAULT_MAP.get(col)
+        fault_key = _SENSOR_FAULT_MAP.get(col)
         interventions = []
         if fault_key and fault_key in TROUBLESHOOTING_DB:
             db_entry = TROUBLESHOOTING_DB[fault_key]

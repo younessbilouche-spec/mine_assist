@@ -7,15 +7,15 @@ import numpy as np
 import pandas as pd
 from typing import Tuple, Dict, List
 from app.ocp.utils.thresholds import (SENSORS_CONFIG, FEATURE_COLS, LABEL_COL,
-                               FAULT_CODES, FAULT_THRESHOLD)
+                                      FAULT_CODES, FAULT_THRESHOLD)
 
 # Frequence 2 min
-FREQ_MIN   = 2
-STEPS_PH   = 60 // FREQ_MIN   # 30 pas/heure
+FREQ_MIN = 2
+STEPS_PH = 60 // FREQ_MIN   # 30 pas/heure
 
 # Parametres de detection d episodes de panne
 MIN_EPISODE_STEPS = 5          # duree minimale panne = 10 min
-MERGE_GAP_STEPS   = 15         # fusion si ecart < 30 min
+MERGE_GAP_STEPS = 15         # fusion si ecart < 30 min
 
 
 # ─────────────────────────────────────────────────────────────
@@ -190,8 +190,8 @@ def clean_data(df: pd.DataFrame) -> pd.DataFrame:
 
         # Valeurs physiquement impossibles
         cfg = SENSORS_CONFIG[col]
-        lo  = cfg.get("min_abs", -9999)
-        hi  = cfg.get("alarm", 99999) * 3
+        lo = cfg.get("min_abs", -9999)
+        hi = cfg.get("alarm", 99999) * 3
         df.loc[(df[col] < lo) | (df[col] > hi), col] = np.nan
 
     # Interpolation lineaire puis forward/backward fill
@@ -212,16 +212,16 @@ def label_points(df: pd.DataFrame) -> np.ndarray:
     Labellise chaque point selon les seuils officiels.
     Retour : array int (N,) avec valeurs 0/1/2/3
     """
-    N      = len(df)
+    N = len(df)
     labels = np.zeros(N, dtype=np.int32)
 
     for col, cfg in SENSORS_CONFIG.items():
         if col not in df.columns:
             continue
         vals = df[col].values
-        al   = cfg["alarm"]
-        mn   = cfg["min_normal"]
-        mx   = cfg["max_normal"]
+        al = cfg["alarm"]
+        mn = cfg["min_normal"]
+        mx = cfg["max_normal"]
 
         if cfg["alarm_dir"] == "max":
             # Critique si >= alarme
@@ -260,23 +260,23 @@ def clean_episodes(labels: np.ndarray,
     binary = (labels >= anomaly_level).astype(np.int32)
 
     # Etape 1 : fusion des gaps
-    in_event  = False
+    in_event = False
     gap_count = 0
-    fused     = binary.copy()
+    fused = binary.copy()
     for i in range(len(fused)):
         if fused[i] == 1:
-            in_event  = True
+            in_event = True
             gap_count = 0
         elif in_event:
             gap_count += 1
             if gap_count <= merge_gap:
                 fused[i] = 1   # combler le gap
             else:
-                in_event  = False
+                in_event = False
                 gap_count = 0
 
     # Etape 2 : supprimer les episodes trop courts
-    cleaned   = fused.copy()
+    cleaned = fused.copy()
     i = 0
     while i < len(cleaned):
         if cleaned[i] == 1:
@@ -331,15 +331,15 @@ def build_sequences(feats_norm: np.ndarray,
     """
     # On s'assure d'avoir au moins window + 1 points pour pouvoir predire le point suivant
     starts = np.arange(0, len(feats_norm) - window, stride)
-    
-    X = np.stack([feats_norm[i : i + window] for i in starts]).astype(np.float32)
-    
+
+    X = np.stack([feats_norm[i: i + window] for i in starts]).astype(np.float32)
+
     # La cible probabilite est associee a la fin de la fenetre
     y_probs = targets[starts + window - 1].astype(np.int32)
-    
+
     # La cible capteurs est les 6 premieres features (les capteurs bruts normalises) au pas suivant (window)
     y_sensors = feats_norm[starts + window, :6].astype(np.float32)
-    
+
     return X, {"probs": y_probs, "sensors": y_sensors}
 
 

@@ -20,7 +20,7 @@ from pathlib import Path
 from app.ocp.utils.ocp_cache import labels_cached, load_clean_cached
 from app.ocp.utils.data_processing import df_to_records
 from app.ocp.utils.thresholds import (SENSORS_CONFIG, FEATURE_COLS, LABEL_NAMES,
-                               LABEL_COLORS, TROUBLESHOOTING_DB)
+                                      LABEL_COLORS, TROUBLESHOOTING_DB)
 
 router = APIRouter()
 UPLOAD_DIR = Path(__file__).parent.parent.parent.parent / "data" / "ocp_uploads"
@@ -85,11 +85,11 @@ def sensors_data(
     Retourne les donnees nettoyees de tous les capteurs
     avec le label de statut par point.
     """
-    df     = _load_current()
+    df = _load_current()
     labels = labels_cached(CURRENT_FILE)
-    df     = df.copy()
-    df["label"]       = labels
-    df["label_name"]  = [LABEL_NAMES.get(int(l), "?") for l in labels]
+    df = df.copy()
+    df["label"] = labels
+    df["label_name"] = [LABEL_NAMES.get(int(l), "?") for l in labels]
     df["label_color"] = [LABEL_COLORS.get(int(l), "#888") for l in labels]
 
     # Formater la date
@@ -97,7 +97,7 @@ def sensors_data(
 
     # Subsampling si trop de points
     step = max(1, len(df) // max_points)
-    df   = df.iloc[::step].reset_index(drop=True)
+    df = df.iloc[::step].reset_index(drop=True)
 
     cols_out = ["Date"] + FEATURE_COLS + ["label", "label_name", "label_color"]
     df = df[[c for c in cols_out if c in df.columns]]
@@ -124,9 +124,9 @@ def sensor_data_single(
         raise HTTPException(status_code=404,
                             detail=f"Capteur inconnu : {col}")
 
-    df     = _load_current()
+    df = _load_current()
     labels = labels_cached(CURRENT_FILE)
-    cfg    = SENSORS_CONFIG[col]
+    cfg = SENSORS_CONFIG[col]
 
     out_df = pd.DataFrame({
         "date":       df["Date"].dt.strftime("%Y-%m-%dT%H:%M:%S"),
@@ -135,7 +135,7 @@ def sensor_data_single(
         "label_name": [LABEL_NAMES.get(int(l), "?") for l in labels],
     })
 
-    step   = max(1, len(out_df) // max_points)
+    step = max(1, len(out_df) // max_points)
     out_df = out_df.iloc[::step].reset_index(drop=True)
 
     return {

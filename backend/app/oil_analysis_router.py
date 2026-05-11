@@ -36,11 +36,11 @@ except ImportError:
 router = APIRouter(prefix="/oil", tags=["Analyses Huile"])
 
 # ── Chemins de stockage ──────────────────────────────────────────────────────
-BASE_DIR  = Path(__file__).resolve().parent.parent
-DATA_DIR  = BASE_DIR / "data" / "oil_analyses"
+BASE_DIR = Path(__file__).resolve().parent.parent
+DATA_DIR = BASE_DIR / "data" / "oil_analyses"
 DATA_DIR.mkdir(parents=True, exist_ok=True)
-DB_FILE   = DATA_DIR / "oil_analyses_db.json"
-PDF_DIR   = DATA_DIR / "pdf"
+DB_FILE = DATA_DIR / "oil_analyses_db.json"
+PDF_DIR = DATA_DIR / "pdf"
 PDF_DIR.mkdir(parents=True, exist_ok=True)
 
 
@@ -92,41 +92,41 @@ class PhysicoChimique(BaseModel):
 
 
 class Particules(BaseModel):
-    n_sup_4um:          Optional[int]   = None
-    n_sup_6um:          Optional[int]   = None
-    n_sup_14um:         Optional[int]   = None
-    code_iso_4406:      Optional[str]   = None
+    n_sup_4um:          Optional[int] = None
+    n_sup_6um:          Optional[int] = None
+    n_sup_14um:         Optional[int] = None
+    code_iso_4406:      Optional[str] = None
 
 
 class OilAnalysis(BaseModel):
-    id:                 Optional[str]   = None
+    id:                 Optional[str] = None
     rapport_numero:     str
-    machine:            str             = "CAT 994F2"
-    numero_serie:       Optional[str]   = "53492"
+    machine:            str = "CAT 994F2"
+    numero_serie:       Optional[str] = "53492"
     composant:          str             # PONT AR, PONT AV, PTO, MOTEUR, TRANSMISSION...
-    grade_huile:        Optional[str]   = None
-    date_prelevement:   Optional[str]   = None
-    date_reception:     Optional[str]   = None
-    date_fin_analyse:   Optional[str]   = None
-    heures_engin:       Optional[int]   = None
-    laboratoire:        Optional[str]   = "OKSA Rabat"
-    etat_machine:       Optional[str]   = None  # CRITIQUE / MARGINALE / NORMALE
-    etat_lubrifiant:    Optional[str]   = None  # CRITIQUE / MARGINALE / NORMALE
-    physico_chimique:   Optional[PhysicoChimique]   = None
-    metaux_usure:       Optional[MetauxUsure]        = None
-    metaux_additifs:    Optional[MetauxAdditifs]     = None
-    metaux_contaminants:Optional[MetauxContaminants] = None
-    particules:         Optional[Particules]         = None
-    recommandations:    Optional[List[str]]          = Field(default_factory=list)
-    alertes:            Optional[List[str]]          = Field(default_factory=list)
-    created_at:         Optional[str]                = None
+    grade_huile:        Optional[str] = None
+    date_prelevement:   Optional[str] = None
+    date_reception:     Optional[str] = None
+    date_fin_analyse:   Optional[str] = None
+    heures_engin:       Optional[int] = None
+    laboratoire:        Optional[str] = "OKSA Rabat"
+    etat_machine:       Optional[str] = None  # CRITIQUE / MARGINALE / NORMALE
+    etat_lubrifiant:    Optional[str] = None  # CRITIQUE / MARGINALE / NORMALE
+    physico_chimique:   Optional[PhysicoChimique] = None
+    metaux_usure:       Optional[MetauxUsure] = None
+    metaux_additifs:    Optional[MetauxAdditifs] = None
+    metaux_contaminants: Optional[MetauxContaminants] = None
+    particules:         Optional[Particules] = None
+    recommandations:    Optional[List[str]] = Field(default_factory=list)
+    alertes:            Optional[List[str]] = Field(default_factory=list)
+    created_at:         Optional[str] = None
 
 
 class OksaRawInput(BaseModel):
     """Permet de poster des données brutes extraites d'un rapport OKSA."""
     rapport_numero:     str
     composant:          str
-    date_prelevement:   Optional[str]  = None
+    date_prelevement:   Optional[str] = None
     raw_values:         Dict[str, Any] = Field(default_factory=dict)
 
 
@@ -164,7 +164,8 @@ def _date_key(analyse: dict) -> str:
     )
 
 
-VALID_COMPOSANTS = {"PONT AR", "PONT AV", "PTO", "MOTEUR", "TRANSMISSION", "HYDRAULIQUE", "DIFFÉRENTIEL", "DIFFERENTIEL"}
+VALID_COMPOSANTS = {"PONT AR", "PONT AV", "PTO", "MOTEUR",
+                    "TRANSMISSION", "HYDRAULIQUE", "DIFFÉRENTIEL", "DIFFERENTIEL"}
 
 
 def _normalize_composant(value: Any) -> str:
@@ -335,22 +336,25 @@ SEUILS_METAUX: Dict[str, Dict] = {
     },
 }
 
+
 def _evaluer_alertes(analyse: dict) -> List[str]:
     alertes = []
     grade = analyse.get("grade_huile", "SAE 50")
     seuils = SEUILS_METAUX.get(grade, SEUILS_METAUX["SAE 50"])
 
     pc = analyse.get("physico_chimique") or {}
-    mu = analyse.get("metaux_usure")     or {}
+    mu = analyse.get("metaux_usure") or {}
 
     # Viscosité ±20% de la référence
     visc = pc.get("viscosite_40")
     visc_ref = 200.0 if "SAE 50" in grade else 169.0
     if visc is not None:
         if visc < visc_ref * 0.80:
-            alertes.append(f"Viscosité 40°C trop basse : {visc} mm²/s (réf {visc_ref}, seuil bas {visc_ref*0.8:.1f})")
+            alertes.append(
+                f"Viscosité 40°C trop basse : {visc} mm²/s (réf {visc_ref}, seuil bas {visc_ref*0.8:.1f})")
         elif visc > visc_ref * 1.20:
-            alertes.append(f"Viscosité 40°C trop haute : {visc} mm²/s (réf {visc_ref}, seuil haut {visc_ref*1.2:.1f})")
+            alertes.append(
+                f"Viscosité 40°C trop haute : {visc} mm²/s (réf {visc_ref}, seuil haut {visc_ref*1.2:.1f})")
 
     # TAN
     tan = pc.get("tan")
@@ -372,23 +376,25 @@ def _evaluer_alertes(analyse: dict) -> List[str]:
 
 @router.get("/analyses", summary="Liste des analyses d'huile")
 def list_analyses(
-    composant:  Optional[str] = Query(None, description="Filtrer par composant (PONT AV, PONT AR, PTO...)"),
-    etat:       Optional[str] = Query(None, description="Filtrer par état (CRITIQUE, MARGINALE, NORMALE)"),
+    composant:  Optional[str] = Query(
+        None, description="Filtrer par composant (PONT AV, PONT AR, PTO...)"),
+    etat:       Optional[str] = Query(
+        None, description="Filtrer par état (CRITIQUE, MARGINALE, NORMALE)"),
     machine:    Optional[str] = Query("CAT 994F2"),
-    limit:      int           = Query(50, ge=1, le=200),
+    limit:      int = Query(50, ge=1, le=200),
 ):
     db = _valid_db()
 
     if machine:
-        db = [a for a in db if machine.upper() in (a.get("machine","")).upper()]
+        db = [a for a in db if machine.upper() in (a.get("machine", "")).upper()]
     if composant:
-        db = [a for a in db if composant.upper() in (a.get("composant","")).upper()]
+        db = [a for a in db if composant.upper() in (a.get("composant", "")).upper()]
     if etat:
         db = [
             a for a in db
             if etat.upper() in [
-                (a.get("etat_machine","")).upper(),
-                (a.get("etat_lubrifiant","")).upper()
+                (a.get("etat_machine", "")).upper(),
+                (a.get("etat_lubrifiant", "")).upper()
             ]
         ]
 
@@ -404,15 +410,15 @@ def summary():
         return {"total": 0, "critiques": 0, "marginales": 0, "normales": 0, "composants": []}
 
     statuts = [_worst_status(a.get("etat_machine"), a.get("etat_lubrifiant")) for a in db]
-    critiques  = sum(1 for s in statuts if "CRITIQUE"  in s)
+    critiques = sum(1 for s in statuts if "CRITIQUE" in s)
     marginales = sum(1 for s in statuts if "MARGINALE" in s)
-    normales   = sum(1 for s in statuts if "NORMALE"   in s and "CRITIQUE" not in s)
+    normales = sum(1 for s in statuts if "NORMALE" in s and "CRITIQUE" not in s)
 
     # Composants uniques avec leur dernier état
     composants_map: Dict[str, dict] = {}
     db_sorted = sorted(db, key=_date_key, reverse=True)
     for a in db_sorted:
-        comp = a.get("composant","")
+        comp = a.get("composant", "")
         if comp not in composants_map:
             composants_map[comp] = {
                 "composant": comp,
@@ -435,7 +441,8 @@ def summary():
 @router.get("/analyses/{rapport_id}", summary="Détail d'une analyse")
 def get_analyse(rapport_id: str):
     db = _valid_db()
-    found = next((a for a in db if a.get("id") == rapport_id or a.get("rapport_numero") == rapport_id), None)
+    found = next((a for a in db if a.get("id") == rapport_id or a.get(
+        "rapport_numero") == rapport_id), None)
     if not found:
         raise HTTPException(status_code=404, detail=f"Analyse '{rapport_id}' introuvable")
     return found
@@ -445,16 +452,18 @@ def get_analyse(rapport_id: str):
 def create_analyse(analyse: OilAnalysis):
     db = _valid_db()
     if not _is_valid_analyse(analyse.model_dump()):
-        raise HTTPException(status_code=422, detail="Analyse huile invalide : composant ou rapport non reconnu.")
+        raise HTTPException(
+            status_code=422, detail="Analyse huile invalide : composant ou rapport non reconnu.")
 
     # Vérifier doublon
     if any(a.get("rapport_numero") == analyse.rapport_numero for a in db):
-        raise HTTPException(status_code=409, detail=f"Rapport {analyse.rapport_numero} déjà présent")
+        raise HTTPException(
+            status_code=409, detail=f"Rapport {analyse.rapport_numero} déjà présent")
 
     new = analyse.model_dump()
-    new["id"]         = analyse.rapport_numero
+    new["id"] = analyse.rapport_numero
     new["created_at"] = datetime.now().isoformat()
-    new["alertes"]    = _evaluer_alertes(new)
+    new["alertes"] = _evaluer_alertes(new)
 
     db.append(new)
     _save_db(db)
@@ -463,20 +472,21 @@ def create_analyse(analyse: OilAnalysis):
 
 @router.get("/composants", summary="Liste des composants surveillés")
 def list_composants():
-    db     = _valid_db()
-    comps  = list({a.get("composant") for a in db if a.get("composant")})
+    db = _valid_db()
+    comps = list({a.get("composant") for a in db if a.get("composant")})
     return {"composants": sorted(comps)}
 
 
 @router.get("/tendances", summary="Évolution d'un paramètre dans le temps")
 def tendances(
-    composant: str  = Query(..., description="Ex: PONT AV"),
-    parametre: str  = Query("viscosite_40", description="physico_chimique.viscosite_40 ou metaux_usure.fe"),
+    composant: str = Query(..., description="Ex: PONT AV"),
+    parametre: str = Query(
+        "viscosite_40", description="physico_chimique.viscosite_40 ou metaux_usure.fe"),
 ):
     db = _valid_db()
     filtered = [
         a for a in db
-        if composant.upper() in (a.get("composant","")).upper()
+        if composant.upper() in (a.get("composant", "")).upper()
     ]
     filtered.sort(key=_date_key)
 
@@ -493,7 +503,7 @@ def tendances(
                 "date":    a.get("date_prelevement"),
                 "rapport": a.get("rapport_numero"),
                 "valeur":  val,
-                "etat":    a.get("etat_lubrifiant","NORMALE"),
+                "etat":    a.get("etat_lubrifiant", "NORMALE"),
             })
 
     return {
@@ -608,7 +618,8 @@ async def upload_pdf(file: UploadFile = File(...)):
     parsed["id"] = rapport_numero
     parsed["rapport_numero"] = rapport_numero
     if not _is_valid_analyse(parsed):
-        raise HTTPException(status_code=422, detail="PDF OKSA parsé mais composant ou rapport non reconnu.")
+        raise HTTPException(
+            status_code=422, detail="PDF OKSA parsé mais composant ou rapport non reconnu.")
     parsed["created_at"] = datetime.now().isoformat()
     parsed["alertes"] = _evaluer_alertes(parsed)
     db.append(parsed)
@@ -627,7 +638,8 @@ async def upload_pdf(file: UploadFile = File(...)):
 @router.delete("/analyses/{rapport_id}", summary="Supprimer une analyse")
 def delete_analyse(rapport_id: str):
     db = _valid_db()
-    filtered = [a for a in db if a.get("id") != rapport_id and a.get("rapport_numero") != rapport_id]
+    filtered = [a for a in db if a.get("id") != rapport_id and a.get(
+        "rapport_numero") != rapport_id]
     if len(filtered) == len(db):
         raise HTTPException(status_code=404, detail=f"Analyse '{rapport_id}' introuvable")
     _save_db(filtered)

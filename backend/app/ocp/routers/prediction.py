@@ -18,7 +18,7 @@ UPLOAD_DIR = Path(__file__).parent.parent.parent.parent / "data" / "ocp_uploads"
 UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
 CURRENT_FILE = str(UPLOAD_DIR / "current_data.xlsx")
 
-_DF_CACHE   = {"key": None, "df": None}
+_DF_CACHE = {"key": None, "df": None}
 _RESULT_CACHE = {"key": None, "result": None}
 _CACHE_LOCK = threading.Lock()
 
@@ -45,9 +45,9 @@ def _get_clean_df(path: str):
 
 def _invalidate_caches(model_service=None):
     with _CACHE_LOCK:
-        _DF_CACHE["key"]      = None
-        _DF_CACHE["df"]       = None
-        _RESULT_CACHE["key"]  = None
+        _DF_CACHE["key"] = None
+        _DF_CACHE["df"] = None
+        _RESULT_CACHE["key"] = None
         _RESULT_CACHE["result"] = None
 
 
@@ -109,9 +109,9 @@ def _format_result_for_frontend(df, xgb_result, horizon=None):
 
     rul_h = xgb_result["rul_heures"].get("global_grav2") or 168
     alert = xgb_result["alerte_globale"]
-    proba_red    = xgb_result["alert_proba"].get("RED", 0)
+    proba_red = xgb_result["alert_proba"].get("RED", 0)
     proba_orange = xgb_result["alert_proba"].get("ORANGE", 0)
-    proba_green  = xgb_result["alert_proba"].get("GREEN", 0)
+    proba_green = xgb_result["alert_proba"].get("GREEN", 0)
 
     # Construire des points simplifiés pour le graphique historique
     points = []
@@ -144,7 +144,8 @@ def _format_result_for_frontend(df, xgb_result, horizon=None):
                 rul_i = max(0, min(rul_i, 168))
                 # Convertir RUL → proba (1 - RUL/168)
                 proba_i = 1 - (rul_i / 168)
-                ts = X.index[i].strftime("%Y-%m-%dT%H:%M:%S") if hasattr(X.index[i], "strftime") else str(X.index[i])
+                ts = X.index[i].strftime(
+                    "%Y-%m-%dT%H:%M:%S") if hasattr(X.index[i], "strftime") else str(X.index[i])
                 points.append({
                     "date":      ts,
                     "proba_1d":  round(proba_i, 4),
@@ -209,11 +210,11 @@ def predict_current(request: Request, horizon: Optional[int] = Query(None)):
     t_pred = round((time.time() - t1) * 1000)
 
     result = _format_result_for_frontend(df, xgb_result, horizon)
-    result["_cached"]  = False
-    result["_timing"]  = {"load_ms": t_load, "predict_ms": t_pred}
+    result["_cached"] = False
+    result["_timing"] = {"load_ms": t_load, "predict_ms": t_pred}
 
     with _CACHE_LOCK:
-        _RESULT_CACHE["key"]    = cache_key
+        _RESULT_CACHE["key"] = cache_key
         _RESULT_CACHE["result"] = result
 
     return JSONResponse(result)

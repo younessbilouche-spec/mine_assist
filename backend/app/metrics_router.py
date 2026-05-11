@@ -126,8 +126,10 @@ def metrics_endpoint():
                     try:
                         d = json.loads(line)
                         total += 1
-                        if d.get("rating") == "up": up += 1
-                        elif d.get("rating") == "down": down += 1
+                        if d.get("rating") == "up":
+                            up += 1
+                        elif d.get("rating") == "down":
+                            down += 1
                     except Exception:
                         pass
         lines.append("# HELP mineassist_feedback_total User feedback votes")

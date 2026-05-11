@@ -87,7 +87,8 @@ def test_history_export_xlsx_format(client):
     r = client.get("/history/export.xlsx?engin=994F1&limit=5")
     assert r.status_code in (200, 404)
     if r.status_code == 200:
-        assert "spreadsheet" in r.headers.get("content-type", "") or "xlsx" in r.headers.get("content-disposition", "")
+        assert "spreadsheet" in r.headers.get(
+            "content-type", "") or "xlsx" in r.headers.get("content-disposition", "")
 
 
 # ─── Feedback ────────────────────────────────────────────────────────────────

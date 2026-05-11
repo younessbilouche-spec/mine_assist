@@ -22,7 +22,7 @@ logger = logging.getLogger(__name__)
 
 class NiveauAlerte(str, Enum):
     ATTENTION = "Attention"
-    ALERTE    = "ALERTE"
+    ALERTE = "ALERTE"
 
 
 @dataclass
@@ -95,7 +95,7 @@ def _build_email_html(alertes: list[Alerte]) -> str:
           <td style="padding:8px;border:1px solid #ddd;font-size:12px">{a.motif}</td>
         </tr>"""
 
-    n_alertes   = sum(1 for a in alertes if a.niveau == NiveauAlerte.ALERTE)
+    n_alertes = sum(1 for a in alertes if a.niveau == NiveauAlerte.ALERTE)
     n_attentions = sum(1 for a in alertes if a.niveau == NiveauAlerte.ATTENTION)
 
     return f"""
@@ -173,8 +173,8 @@ def envoyer_email(alertes: list[Alerte], config: EmailConfig) -> bool:
 
     msg = MIMEMultipart("alternative")
     msg["Subject"] = sujet
-    msg["From"]    = f"MineAssist OCP <{config.sender_email}>"
-    msg["To"]      = config.recipient_email
+    msg["From"] = f"MineAssist OCP <{config.sender_email}>"
+    msg["To"] = config.recipient_email
 
     # Fallback texte
     texte = f"MineAssist — {len(alertes)} anomalie(s) détectée(s) sur 994F1.\n"
@@ -203,8 +203,8 @@ def envoyer_email(alertes: list[Alerte], config: EmailConfig) -> bool:
 def _build_whatsapp_message(alertes: list[Alerte]) -> str:
     """Construit un message WhatsApp concis."""
     n_crit = sum(1 for a in alertes if a.niveau == NiveauAlerte.ALERTE)
-    n_att  = sum(1 for a in alertes if a.niveau == NiveauAlerte.ATTENTION)
-    now    = datetime.now().strftime("%d/%m/%Y %H:%M")
+    n_att = sum(1 for a in alertes if a.niveau == NiveauAlerte.ATTENTION)
+    now = datetime.now().strftime("%d/%m/%Y %H:%M")
 
     lines = [
         f"*🔧 MineAssist — OCP Benguérir*",
@@ -233,7 +233,7 @@ def envoyer_whatsapp(alertes: list[Alerte], config: WhatsAppConfig) -> bool:
         return True
     try:
         from twilio.rest import Client
-        client  = Client(config.account_sid, config.auth_token)
+        client = Client(config.account_sid, config.auth_token)
         message = _build_whatsapp_message(alertes)
         msg = client.messages.create(
             body=message,
@@ -256,7 +256,7 @@ def envoyer_whatsapp(alertes: list[Alerte], config: WhatsAppConfig) -> bool:
 
 def notifier(
     alertes:        list[Alerte],
-    email_config:   Optional[EmailConfig]     = None,
+    email_config:   Optional[EmailConfig] = None,
     whatsapp_config: Optional[WhatsAppConfig] = None,
 ) -> dict:
     """

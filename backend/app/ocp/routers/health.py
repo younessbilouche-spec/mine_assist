@@ -59,27 +59,27 @@ def _score_capteur(vals: np.ndarray, cfg: dict) -> float:
       - points en anomalie   : -1.5 point chacun
       - points critiques     : -3.0 points chacun
     """
-    n   = len(vals)
+    n = len(vals)
     if n == 0:
         return 100.0
 
-    al  = cfg["alarm"]
-    mn  = cfg["min_normal"]
-    mx  = cfg["max_normal"]
+    al = cfg["alarm"]
+    mn = cfg["min_normal"]
+    mx = cfg["max_normal"]
 
     if cfg["alarm_dir"] == "max":
-        n_crit   = int((vals >= al).sum())
-        n_anom   = int(((vals >= mx) & (vals < al)).sum())
+        n_crit = int((vals >= al).sum())
+        n_anom = int(((vals >= mx) & (vals < al)).sum())
         thresh_pa = mn + (mx - mn) * 0.90
-        n_pa     = int(((vals >= thresh_pa) & (vals < mx)).sum())
+        n_pa = int(((vals >= thresh_pa) & (vals < mx)).sum())
     else:
-        n_crit   = int((vals <= al).sum())
-        n_anom   = int(((vals <= mn) & (vals > al)).sum())
+        n_crit = int((vals <= al).sum())
+        n_anom = int(((vals <= mn) & (vals > al)).sum())
         thresh_pa = mx - (mx - mn) * 0.90
-        n_pa     = int(((vals <= thresh_pa) & (vals > mn)).sum())
+        n_pa = int(((vals <= thresh_pa) & (vals > mn)).sum())
 
     penalty = (n_pa * 0.5 + n_anom * 1.5 + n_crit * 3.0) / n * 100
-    score   = max(0.0, 100.0 - penalty)
+    score = max(0.0, 100.0 - penalty)
     return round(score, 1)
 
 
@@ -129,16 +129,16 @@ def health_global(include_capteurs: bool = Query(False, description="Inclure le 
         if col not in df_rec.columns:
             continue
         s = _score_capteur(df_rec[col].values, cfg)
-        scores[col]  = s
+        scores[col] = s
         weights[col] = cfg.get("criticality", 1)
 
     # Score global pondere
-    total_w  = sum(weights.values())
-    score_g  = sum(scores[c] * weights[c] for c in scores) / total_w if total_w else 0
+    total_w = sum(weights.values())
+    score_g = sum(scores[c] * weights[c] for c in scores) / total_w if total_w else 0
 
-    labels   = labels_cached(CURRENT_FILE)[-window:]
-    n_crit   = int((labels == 3).sum())
-    n_anom   = int((labels == 2).sum())
+    labels = labels_cached(CURRENT_FILE)[-window:]
+    n_crit = int((labels == 3).sum())
+    n_anom = int((labels == 2).sum())
 
     response = {
         "score":         round(score_g, 1),
@@ -160,7 +160,7 @@ def _capteurs_from_df(df_rec: pd.DataFrame):
     for col, cfg in SENSORS_CONFIG.items():
         if col not in df_rec.columns:
             continue
-        vals  = df_rec[col].values
+        vals = df_rec[col].values
         score = _score_capteur(vals, cfg)
         result.append({
             "col":         col,
@@ -171,8 +171,8 @@ def _capteurs_from_df(df_rec: pd.DataFrame):
             "color":       _health_color(score),
             "criticality": cfg.get("criticality", 1),
             "derniere_valeur": _safe(float(vals[-1])) if len(vals) > 0 else None,
-            "valeur_min":  _safe(float(vals.min()))  if len(vals) > 0 else None,
-            "valeur_max":  _safe(float(vals.max()))  if len(vals) > 0 else None,
+            "valeur_min":  _safe(float(vals.min())) if len(vals) > 0 else None,
+            "valeur_max":  _safe(float(vals.max())) if len(vals) > 0 else None,
             "valeur_moy":  _safe(float(vals.mean())) if len(vals) > 0 else None,
         })
     result.sort(key=lambda x: x["score"])
@@ -186,7 +186,7 @@ def _capteurs_from_df(df_rec: pd.DataFrame):
 @router.get("/health/capteurs")
 def health_capteurs():
     """Score de sante detaille pour chaque capteur."""
-    df     = _load()
+    df = _load()
     window = min(RECENT_WINDOW, len(df))
     df_rec = df.iloc[-window:]
 
@@ -208,22 +208,22 @@ def health_historique(
     Evolution du score de sante global dans le temps.
     Calcule le score sur une fenetre glissante.
     """
-    df     = _load()
+    df = _load()
     steps_fenetre = max(1, fenetre_h * 30)   # 30 pas/heure a 2 min
 
     # Subsampler d abord
     step_sub = max(1, len(df) // max_points)
-    indices  = list(range(steps_fenetre, len(df), step_sub))
+    indices = list(range(steps_fenetre, len(df), step_sub))
 
     records = []
     for i in indices:
-        start  = max(0, i - steps_fenetre)
+        start = max(0, i - steps_fenetre)
         df_win = df.iloc[start:i]
         if len(df_win) == 0:
             continue
 
         w_scores = []
-        w_poids  = []
+        w_poids = []
         for col, cfg in SENSORS_CONFIG.items():
             if col not in df_win.columns:
                 continue
@@ -232,7 +232,7 @@ def health_historique(
             w_poids.append(cfg.get("criticality", 1))
 
         score_g = sum(w_scores) / sum(w_poids) if w_poids else 0
-        date    = df["Date"].iloc[i - 1]
+        date = df["Date"].iloc[i - 1]
 
         records.append({
             "date":  date.strftime("%Y-%m-%dT%H:%M:%S"),

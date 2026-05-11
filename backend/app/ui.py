@@ -504,12 +504,14 @@ with k4:
 st.markdown("")
 
 tab_chat, tab_diag, tab_dashboard, tab_params, tab_surv, tab_system = st.tabs(
-    ["💬 Question libre", "🔧 Diagnostic", "📊 GMAO analytics", "📡 Monitoring capteurs", "🚨 Surveillance", "⚙️ Système"]
+    ["💬 Question libre", "🔧 Diagnostic", "📊 GMAO analytics",
+        "📡 Monitoring capteurs", "🚨 Surveillance", "⚙️ Système"]
 )
 
 with tab_chat:
     st.markdown('<div class="panel-title">Question technique libre</div>', unsafe_allow_html=True)
-    question = st.text_area("", placeholder="Pose ta question technique sur la CAT 994F...", height=120, label_visibility="collapsed")
+    question = st.text_area("", placeholder="Pose ta question technique sur la CAT 994F...",
+                            height=120, label_visibility="collapsed")
     ask_btn = st.button("Poser la question", type="primary", key="ask_btn")
 
     if ask_btn:
@@ -523,9 +525,11 @@ with tab_chat:
             else:
                 st.markdown('<div class="panel">', unsafe_allow_html=True)
                 st.markdown('<div class="panel-title">Résultat</div>', unsafe_allow_html=True)
-                st.markdown(f'<div class="answer-box">{result.get("answer", "Aucune réponse")}</div>', unsafe_allow_html=True)
+                st.markdown(
+                    f'<div class="answer-box">{result.get("answer", "Aucune réponse")}</div>', unsafe_allow_html=True)
                 st.markdown('<div style="height:8px"></div>', unsafe_allow_html=True)
-                st.markdown('<div class="small-cap">Sources documentaires</div>', unsafe_allow_html=True)
+                st.markdown('<div class="small-cap">Sources documentaires</div>',
+                            unsafe_allow_html=True)
                 render_sources(result.get("sources", []))
                 st.markdown('</div>', unsafe_allow_html=True)
 
@@ -533,13 +537,15 @@ with tab_chat:
                 if images:
                     st.markdown('<div style="height:10px"></div>', unsafe_allow_html=True)
                     st.markdown('<div class="panel">', unsafe_allow_html=True)
-                    st.markdown('<div class="panel-title">Pages du manuel · illustrations extraites</div>', unsafe_allow_html=True)
+                    st.markdown(
+                        '<div class="panel-title">Pages du manuel · illustrations extraites</div>', unsafe_allow_html=True)
                     cols = st.columns(min(3, len(images)))
                     for i, item in enumerate(images[:3]):
                         img_b64 = item.get("image_b64")
                         caption = f"{item.get('pdf', '')} · page {item.get('page', '')}"
                         if img_b64:
-                            cols[i].image(f"data:image/png;base64,{img_b64}", caption=caption, use_container_width=True)
+                            cols[i].image(
+                                f"data:image/png;base64,{img_b64}", caption=caption, use_container_width=True)
                     st.markdown('</div>', unsafe_allow_html=True)
 
 with tab_diag:
@@ -551,9 +557,11 @@ with tab_diag:
         fault_code = st.text_input("Code défaut", placeholder="Ex: MID 036 CID 096 FMI 03")
         hours = st.number_input("Heures depuis maintenance", min_value=0, value=0, step=10)
     with b:
-        symptoms_raw = st.text_area("Symptômes observés", placeholder="Perte de puissance moteur\nSystème hydraulique lent", height=120)
+        symptoms_raw = st.text_area(
+            "Symptômes observés", placeholder="Perte de puissance moteur\nSystème hydraulique lent", height=120)
 
-    gmao_ctx = st.text_area("Contexte GMAO / historique", placeholder="Interventions récentes, observations terrain...", height=100)
+    gmao_ctx = st.text_area("Contexte GMAO / historique",
+                            placeholder="Interventions récentes, observations terrain...", height=100)
     diag_btn = st.button("Lancer le diagnostic", type="primary", key="diag_btn")
 
     if diag_btn:
@@ -571,10 +579,13 @@ with tab_diag:
             st.error("Échec du diagnostic.")
         else:
             st.markdown('<div class="panel">', unsafe_allow_html=True)
-            st.markdown('<div class="panel-title">Résultat du diagnostic</div>', unsafe_allow_html=True)
-            st.markdown(f'<div class="answer-box">{result.get("diagnostic", "Aucune réponse")}</div>', unsafe_allow_html=True)
+            st.markdown('<div class="panel-title">Résultat du diagnostic</div>',
+                        unsafe_allow_html=True)
+            st.markdown(
+                f'<div class="answer-box">{result.get("diagnostic", "Aucune réponse")}</div>', unsafe_allow_html=True)
             st.markdown('<div style="height:8px"></div>', unsafe_allow_html=True)
-            st.markdown('<div class="small-cap">Sources documentaires</div>', unsafe_allow_html=True)
+            st.markdown('<div class="small-cap">Sources documentaires</div>',
+                        unsafe_allow_html=True)
             render_sources(result.get("sources", []))
             st.markdown('</div>', unsafe_allow_html=True)
 
@@ -582,13 +593,15 @@ with tab_diag:
             if images:
                 st.markdown('<div style="height:10px"></div>', unsafe_allow_html=True)
                 st.markdown('<div class="panel">', unsafe_allow_html=True)
-                st.markdown('<div class="panel-title">Pages du manuel · illustrations extraites</div>', unsafe_allow_html=True)
+                st.markdown(
+                    '<div class="panel-title">Pages du manuel · illustrations extraites</div>', unsafe_allow_html=True)
                 cols = st.columns(min(3, len(images)))
                 for i, item in enumerate(images[:3]):
                     img_b64 = item.get("image_b64")
                     caption = f"{item.get('pdf', '')} · page {item.get('page', '')}"
                     if img_b64:
-                        cols[i].image(f"data:image/png;base64,{img_b64}", caption=caption, use_container_width=True)
+                        cols[i].image(
+                            f"data:image/png;base64,{img_b64}", caption=caption, use_container_width=True)
                 st.markdown('</div>', unsafe_allow_html=True)
 
 with tab_dashboard:
@@ -609,7 +622,8 @@ with tab_dashboard:
         r1c1, r1c2 = st.columns([1.1, 0.9])
         with r1c1:
             st.markdown('<div class="panel">', unsafe_allow_html=True)
-            st.markdown('<div class="panel-title">Évolution mensuelle des anomalies</div>', unsafe_allow_html=True)
+            st.markdown('<div class="panel-title">Évolution mensuelle des anomalies</div>',
+                        unsafe_allow_html=True)
             if not monthly.empty and {"machine", "month", "count"}.issubset(monthly.columns):
                 pivot = monthly.pivot(index="month", columns="machine", values="count").fillna(0)
                 st.line_chart(pivot, height=280)
@@ -619,7 +633,8 @@ with tab_dashboard:
 
         with r1c2:
             st.markdown('<div class="panel">', unsafe_allow_html=True)
-            st.markdown('<div class="panel-title">Répartition par machine</div>', unsafe_allow_html=True)
+            st.markdown('<div class="panel-title">Répartition par machine</div>',
+                        unsafe_allow_html=True)
             if not by_machine_df.empty:
                 st.bar_chart(by_machine_df.set_index("Machine"), height=280)
             else:
@@ -630,7 +645,8 @@ with tab_dashboard:
         r2c1, r2c2 = st.columns([1, 1])
         with r2c1:
             st.markdown('<div class="panel">', unsafe_allow_html=True)
-            st.markdown('<div class="panel-title">Top codes d’anomalie</div>', unsafe_allow_html=True)
+            st.markdown('<div class="panel-title">Top codes d’anomalie</div>',
+                        unsafe_allow_html=True)
             if not top_codes.empty:
                 st.dataframe(top_codes, use_container_width=True, height=310)
             else:
@@ -639,7 +655,8 @@ with tab_dashboard:
 
         with r2c2:
             st.markdown('<div class="panel">', unsafe_allow_html=True)
-            st.markdown('<div class="panel-title">Event vs diagnostic par machine</div>', unsafe_allow_html=True)
+            st.markdown('<div class="panel-title">Event vs diagnostic par machine</div>',
+                        unsafe_allow_html=True)
             if not by_source.empty and {"machine", "count"}.issubset(by_source.columns):
                 chart_df = by_source.groupby("machine", as_index=False)["count"].sum()
                 st.bar_chart(chart_df.set_index("machine"), height=310)
@@ -660,9 +677,11 @@ with tab_dashboard:
 
         with r3c2:
             st.markdown('<div class="panel">', unsafe_allow_html=True)
-            st.markdown('<div class="panel-title">Analyse comparative</div>', unsafe_allow_html=True)
+            st.markdown('<div class="panel-title">Analyse comparative</div>',
+                        unsafe_allow_html=True)
             top1 = critical_g3.iloc[0]["code"] if not critical_g3.empty and "code" in critical_g3.columns else "code dominant indisponible"
-            top1_occ = int(critical_g3.iloc[0]["occurrences"]) if not critical_g3.empty and "occurrences" in critical_g3.columns else 0
+            top1_occ = int(
+                critical_g3.iloc[0]["occurrences"]) if not critical_g3.empty and "occurrences" in critical_g3.columns else 0
             st.markdown(
                 f"""
                 <div class="compare-card-green">
@@ -701,7 +720,8 @@ with tab_params:
         r1c1, r1c2 = st.columns(2)
         with r1c1:
             st.markdown('<div class="panel">', unsafe_allow_html=True)
-            st.markdown('<div class="panel-title">Top paramètres (val max)</div>', unsafe_allow_html=True)
+            st.markdown('<div class="panel-title">Top paramètres (val max)</div>',
+                        unsafe_allow_html=True)
             df_max = df_from_records(params_stats.get("top_param_max", []))
             if not df_max.empty:
                 st.dataframe(df_max, use_container_width=True, height=320)
@@ -711,7 +731,8 @@ with tab_params:
 
         with r1c2:
             st.markdown('<div class="panel">', unsafe_allow_html=True)
-            st.markdown('<div class="panel-title">Top paramètres (moyenne)</div>', unsafe_allow_html=True)
+            st.markdown('<div class="panel-title">Top paramètres (moyenne)</div>',
+                        unsafe_allow_html=True)
             df_avg = df_from_records(params_stats.get("top_param_avg", []))
             if not df_avg.empty:
                 st.dataframe(df_avg, use_container_width=True, height=320)
@@ -724,7 +745,8 @@ with tab_params:
         r2c1, r2c2 = st.columns([1, 1])
         with r2c1:
             st.markdown('<div class="panel">', unsafe_allow_html=True)
-            st.markdown('<div class="panel-title">Dernière mesure par paramètre</div>', unsafe_allow_html=True)
+            st.markdown('<div class="panel-title">Dernière mesure par paramètre</div>',
+                        unsafe_allow_html=True)
             df_latest_param = df_from_records(params_stats.get("latest_by_param", []))
             if not df_latest_param.empty:
                 st.dataframe(df_latest_param, use_container_width=True, height=350)
@@ -734,7 +756,8 @@ with tab_params:
 
         with r2c2:
             st.markdown('<div class="panel">', unsafe_allow_html=True)
-            st.markdown('<div class="panel-title">Répartition par machine</div>', unsafe_allow_html=True)
+            st.markdown('<div class="panel-title">Répartition par machine</div>',
+                        unsafe_allow_html=True)
             if by_machine_params:
                 df_machine_params = pd.DataFrame({
                     "Machine": list(by_machine_params.keys()),
@@ -763,14 +786,16 @@ with tab_surv:
     with s1:
         st.markdown('<div class="panel">', unsafe_allow_html=True)
         st.markdown('<div class="panel-title">Test manuel</div>', unsafe_allow_html=True)
-        st.markdown('<div class="mini-note">Tester l’envoi email / WhatsApp depuis le backend.</div>', unsafe_allow_html=True)
+        st.markdown(
+            '<div class="mini-note">Tester l’envoi email / WhatsApp depuis le backend.</div>', unsafe_allow_html=True)
         if st.button("Envoyer une notification de test", key="notif_btn"):
             with st.spinner("Test en cours..."):
                 result = notif_test()
             if result.get("_error"):
                 st.error("Module notifications indisponible.")
             else:
-                st.success(f"Test effectué · email_ok={result.get('email_ok')} · whatsapp_ok={result.get('whatsapp_ok')}")
+                st.success(
+                    f"Test effectué · email_ok={result.get('email_ok')} · whatsapp_ok={result.get('whatsapp_ok')}")
         st.markdown('</div>', unsafe_allow_html=True)
 
     with s2:

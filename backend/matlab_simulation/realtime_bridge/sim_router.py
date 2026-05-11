@@ -133,10 +133,13 @@ _notif_stats: dict = {
 #  Schemas Pydantic
 # --------------------------------------------------------------------- #
 class MesureLive(BaseModel):
-    parametre: str = Field(..., description='Nom complet du capteur (ex. "CH994.P1.Pression pompe hydraulique principale")')
+    parametre: str = Field(
+        ..., description='Nom complet du capteur (ex. "CH994.P1.Pression pompe hydraulique principale")')
     valeur: float = Field(..., description="Valeur instantanee")
-    val_min: Optional[float] = Field(None, description="Valeur min sur l'intervalle (sinon = valeur)")
-    val_max: Optional[float] = Field(None, description="Valeur max sur l'intervalle (sinon = valeur)")
+    val_min: Optional[float] = Field(
+        None, description="Valeur min sur l'intervalle (sinon = valeur)")
+    val_max: Optional[float] = Field(
+        None, description="Valeur max sur l'intervalle (sinon = valeur)")
     unite: Optional[str] = None
 
 
@@ -144,8 +147,10 @@ class IngestRequest(BaseModel):
     engin: str = Field("994F1", description='Identifiant engin ("994F1" / "994F-1" / "994F2")')
     horodatage: Optional[datetime] = None
     mesures: List[MesureLive] = Field(..., min_length=1)
-    cycle_phase: Optional[str] = Field(None, description="Phase du cycle (approche/levage/maintien/vidage/retour)")
-    defaut_actif: Optional[str] = Field(None, description="Nom du defaut injecte (ex. fuite_hydraulique, ventilo_HS)")
+    cycle_phase: Optional[str] = Field(
+        None, description="Phase du cycle (approche/levage/maintien/vidage/retour)")
+    defaut_actif: Optional[str] = Field(
+        None, description="Nom du defaut injecte (ex. fuite_hydraulique, ventilo_HS)")
 
 
 class IngestResponse(BaseModel):
@@ -275,8 +280,8 @@ def _envoyer_email_smtp(alertes: list[Alerte],
 
     msg = MIMEMultipart("alternative")
     msg["Subject"] = _build_email_subject(alertes)
-    msg["From"]    = f"MineAssist OCP <{cfg.sender_email}>"
-    msg["To"]      = cfg.recipient_email
+    msg["From"] = f"MineAssist OCP <{cfg.sender_email}>"
+    msg["To"] = cfg.recipient_email
     msg.attach(MIMEText(_build_email_text(alertes), "plain", "utf-8"))
     msg.attach(MIMEText(_safe_html(alertes), "html", "utf-8"))
 
@@ -491,14 +496,14 @@ def _detect_alerts_async(payload: list[dict], engin: str, ts: datetime,
         email_ok, err, transport_used = _envoyer_email_smart(a_envoyer, email_cfg)
         with _notif_lock:
             if email_ok:
-                _notif_stats["envoyees"]            += len(a_envoyer)
-                _notif_stats["last_email_ok_at"]    = datetime.now().isoformat()
-                _notif_stats["last_email_error"]    = None
-                _notif_stats["last_transport"]      = transport_used
+                _notif_stats["envoyees"] += len(a_envoyer)
+                _notif_stats["last_email_ok_at"] = datetime.now().isoformat()
+                _notif_stats["last_email_error"] = None
+                _notif_stats["last_transport"] = transport_used
             else:
-                _notif_stats["echecs"]              += 1
-                _notif_stats["last_email_error"]    = err
-                _notif_stats["last_transport"]      = transport_used
+                _notif_stats["echecs"] += 1
+                _notif_stats["last_email_error"] = err
+                _notif_stats["last_transport"] = transport_used
 
     # --- envoi whatsapp -----------------------------------------------
     whatsapp_ok: Optional[bool] = None
@@ -690,14 +695,14 @@ async def sim_notif_debug():
 
     with _notif_lock:
         if ok:
-            _notif_stats["envoyees"]            += 1
-            _notif_stats["last_email_ok_at"]    = datetime.now().isoformat()
-            _notif_stats["last_email_error"]    = None
-            _notif_stats["last_transport"]      = transport_used
+            _notif_stats["envoyees"] += 1
+            _notif_stats["last_email_ok_at"] = datetime.now().isoformat()
+            _notif_stats["last_email_error"] = None
+            _notif_stats["last_transport"] = transport_used
         else:
-            _notif_stats["echecs"]              += 1
-            _notif_stats["last_email_error"]    = err
-            _notif_stats["last_transport"]      = transport_used
+            _notif_stats["echecs"] += 1
+            _notif_stats["last_email_error"] = err
+            _notif_stats["last_transport"] = transport_used
 
     brevo_configured = bool(_env_first("BREVO_API_KEY"))
 
@@ -750,14 +755,14 @@ async def sim_notif_test(bg: BackgroundTasks):
                 ok, err, transport_used = _envoyer_email_smart([fake], email_cfg)
                 with _notif_lock:
                     if ok:
-                        _notif_stats["envoyees"]            += 1
-                        _notif_stats["last_email_ok_at"]    = datetime.now().isoformat()
-                        _notif_stats["last_email_error"]    = None
-                        _notif_stats["last_transport"]      = transport_used
+                        _notif_stats["envoyees"] += 1
+                        _notif_stats["last_email_ok_at"] = datetime.now().isoformat()
+                        _notif_stats["last_email_error"] = None
+                        _notif_stats["last_transport"] = transport_used
                     else:
-                        _notif_stats["echecs"]              += 1
-                        _notif_stats["last_email_error"]    = err
-                        _notif_stats["last_transport"]      = transport_used
+                        _notif_stats["echecs"] += 1
+                        _notif_stats["last_email_error"] = err
+                        _notif_stats["last_transport"] = transport_used
                 print(f"[sim_router] notif-test email -> ok={ok} "
                       f"transport={transport_used} err={err}")
             if wa_cfg is not None:

@@ -14,7 +14,8 @@ except Exception as e:
 # Test LLM
 try:
     from openai import OpenAI
-    client = OpenAI(base_url="https://openrouter.ai/api/v1", api_key=os.getenv("OPENROUTER_API_KEY"))
+    client = OpenAI(base_url="https://openrouter.ai/api/v1",
+                    api_key=os.getenv("OPENROUTER_API_KEY"))
     r = client.chat.completions.create(
         model="meta-llama/llama-3.3-70b-instruct",
         messages=[{"role": "user", "content": "salut"}],
@@ -22,7 +23,7 @@ try:
     )
     print("LLM OK:", r.choices[0].message.content)
 except Exception as e:
-    print("LLM ERREUR:", e) 
+    print("LLM ERREUR:", e)
 # Test /ask complet
 try:
     from app.rag_engine import RAGEngine

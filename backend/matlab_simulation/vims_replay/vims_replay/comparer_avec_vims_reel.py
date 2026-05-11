@@ -71,7 +71,7 @@ def plot_compare(real_df: pd.DataFrame, sim_df: pd.DataFrame, out_png: Path):
                     transform=ax.transAxes, ha='center')
             continue
         real_vals = sub['Valeur moyenne'].astype(float).dropna().values
-        sim_vals  = sim_df[name].astype(float).values
+        sim_vals = sim_df[name].astype(float).values
 
         ax.hist(real_vals, bins=30, color='#1f77b4', alpha=0.6, label='reel VIMS', density=True)
         ax.hist(sim_vals,  bins=30, color='#ff7f0e', alpha=0.5, label='simulateur', density=True)
@@ -110,11 +110,12 @@ def main():
         sub = real_df[real_df['Paramètres Diagnostic'] == name]
         if sub.empty:
             continue
-        unite = sub['Unité de mesure'].dropna().iloc[0] if not sub['Unité de mesure'].dropna().empty else ''
+        unite = sub['Unité de mesure'].dropna(
+        ).iloc[0] if not sub['Unité de mesure'].dropna().empty else ''
         rmean = sub['Valeur moyenne'].mean()
-        rstd  = sub['Valeur moyenne'].std()
+        rstd = sub['Valeur moyenne'].std()
         smean = sim_df[name].mean()
-        sstd  = sim_df[name].std()
+        sstd = sim_df[name].std()
         print(f'{name[-50:]:50s}  {rmean:7.0f} ± {rstd:6.0f}   {smean:7.0f} ± {sstd:6.0f}  {unite:7s}')
 
 

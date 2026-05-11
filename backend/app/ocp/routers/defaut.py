@@ -20,7 +20,7 @@ from pathlib import Path
 from app.ocp.utils.ocp_cache import labels_cached, load_clean_cached
 from app.ocp.utils.data_processing import clean_episodes
 from app.ocp.utils.thresholds import (SENSORS_CONFIG, FEATURE_COLS, LABEL_NAMES,
-                               LABEL_COLORS)
+                                      LABEL_COLORS)
 
 router = APIRouter()
 UPLOAD_DIR = Path(__file__).parent.parent.parent.parent / "data" / "ocp_uploads"
@@ -59,16 +59,16 @@ def defauts_summary():
       - nombre et duree totale des episodes de panne
       - capteur le plus critique
     """
-    df     = _load()
+    df = _load()
     labels = labels_cached(CURRENT_FILE)
     binary = clean_episodes(labels, anomaly_level=2)
 
-    total  = len(labels)
-    dist   = {
+    total = len(labels)
+    dist = {
         LABEL_NAMES[k]: int((labels == k).sum())
         for k in sorted(LABEL_NAMES.keys())
     }
-    pct    = {k: round(100 * v / total, 2) for k, v in dist.items()}
+    pct = {k: round(100 * v / total, 2) for k, v in dist.items()}
 
     # Episodes de panne
     episodes = _extract_episodes(binary, df["Date"].values)
@@ -80,7 +80,7 @@ def defauts_summary():
         if col not in df.columns:
             continue
         vals = df[col].values
-        al   = cfg["alarm"]
+        al = cfg["alarm"]
         if cfg["alarm_dir"] == "max":
             alarm_counts[col] = int((vals >= al).sum())
         else:
@@ -114,18 +114,18 @@ def defauts_analyse(
       exceeds_min   : capteurs depassant leur seuil d alarme MIN
       faulty_sensors: capteurs avec donnees aberrantes (codes defaillants)
     """
-    df  = _load()
-    n   = len(df)
+    df = _load()
+    n = len(df)
 
-    exceeds_max    = []
-    exceeds_min    = []
+    exceeds_max = []
+    exceeds_min = []
     faulty_sensors = []
 
     for col, cfg in SENSORS_CONFIG.items():
         if col not in df.columns:
             continue
         vals = df[col].values
-        al   = cfg["alarm"]
+        al = cfg["alarm"]
 
         entry = {
             "sensor":      col,
@@ -201,12 +201,12 @@ def defauts_episodes(
       - capteurs impliques
       - niveau max atteint
     """
-    df     = _load()
+    df = _load()
     labels = labels_cached(CURRENT_FILE)
     binary = clean_episodes(labels, anomaly_level=anomaly_level)
     episodes = _extract_episodes(binary, df["Date"].values,
-                                  labels=labels, df=df,
-                                  max_eps=max_episodes)
+                                 labels=labels, df=df,
+                                 max_eps=max_episodes)
     return {
         "anomaly_level": anomaly_level,
         "nb_episodes":   len(episodes),
@@ -230,25 +230,25 @@ def defauts_capteur(col: str):
         raise HTTPException(status_code=404,
                             detail=f"Capteur inconnu : {col}")
 
-    df  = _load()
+    df = _load()
     cfg = SENSORS_CONFIG[col]
     if col not in df.columns:
         raise HTTPException(status_code=422,
                             detail=f"Colonne {col} absente des donnees.")
 
     vals = df[col].values
-    n    = len(vals)
-    al   = cfg["alarm"]
-    mn   = cfg["min_normal"]
-    mx   = cfg["max_normal"]
+    n = len(vals)
+    al = cfg["alarm"]
+    mn = cfg["min_normal"]
+    mx = cfg["max_normal"]
 
     if cfg["alarm_dir"] == "max":
-        n_critique  = int((vals >= al).sum())
-        n_anomalie  = int(((vals >= mx) & (vals < al)).sum())
+        n_critique = int((vals >= al).sum())
+        n_anomalie = int(((vals >= mx) & (vals < al)).sum())
         n_prealerte = int(((vals >= mn + (mx - mn) * 0.90) & (vals < mx)).sum())
     else:
-        n_critique  = int((vals <= al).sum())
-        n_anomalie  = int(((vals <= mn) & (vals > al)).sum())
+        n_critique = int((vals <= al).sum())
+        n_anomalie = int(((vals <= mn) & (vals > al)).sum())
         n_prealerte = int(((vals <= mx - (mx - mn) * 0.90) & (vals > mn)).sum())
 
     n_normal = n - n_critique - n_anomalie - n_prealerte
@@ -271,10 +271,10 @@ def defauts_capteur(col: str):
             "Critique":    n_critique,
         },
         "pourcentages": {
-            "Normal":     round(100 * n_normal     / n, 2),
-            "Pre-alerte": round(100 * n_prealerte  / n, 2),
-            "Anomalie":   round(100 * n_anomalie   / n, 2),
-            "Critique":   round(100 * n_critique   / n, 2),
+            "Normal":     round(100 * n_normal / n, 2),
+            "Pre-alerte": round(100 * n_prealerte / n, 2),
+            "Anomalie":   round(100 * n_anomalie / n, 2),
+            "Critique":   round(100 * n_critique / n, 2),
         },
         "seuils": {
             "min_normal": mn,
@@ -290,10 +290,10 @@ def defauts_capteur(col: str):
 # ─────────────────────────────────────────────────────────────
 
 def _extract_episodes(binary: np.ndarray,
-                       dates:  np.ndarray,
-                       labels: np.ndarray = None,
-                       df: pd.DataFrame  = None,
-                       max_eps: int       = 500) -> List[Dict]:
+                      dates:  np.ndarray,
+                      labels: np.ndarray = None,
+                      df: pd.DataFrame = None,
+                      max_eps: int = 500) -> List[Dict]:
     """
     Extrait la liste des episodes de panne (binary == 1).
     """
@@ -306,8 +306,8 @@ def _extract_episodes(binary: np.ndarray,
                 j += 1
             # Episode [i, j)
             date_debut = pd.Timestamp(dates[i])
-            date_fin   = pd.Timestamp(dates[j - 1])
-            duree_min  = (j - i) * FREQ_MIN
+            date_fin = pd.Timestamp(dates[j - 1])
+            duree_min = (j - i) * FREQ_MIN
 
             ep = {
                 "id":         len(episodes) + 1,
@@ -320,7 +320,7 @@ def _extract_episodes(binary: np.ndarray,
             # Niveau max
             if labels is not None:
                 level_max = int(labels[i:j].max())
-                ep["niveau_max"]  = level_max
+                ep["niveau_max"] = level_max
                 ep["niveau_name"] = LABEL_NAMES.get(level_max, "?")
 
             # Capteurs impliques
@@ -330,8 +330,8 @@ def _extract_episodes(binary: np.ndarray,
                 for col, cfg in SENSORS_CONFIG.items():
                     if col not in df.columns:
                         continue
-                    v   = sub[col].values
-                    al  = cfg["alarm"]
+                    v = sub[col].values
+                    al = cfg["alarm"]
                     if cfg["alarm_dir"] == "max":
                         n_al = int((v >= al).sum())
                     else:

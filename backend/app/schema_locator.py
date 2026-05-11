@@ -52,8 +52,8 @@ except ImportError:
 CROP_PADDING_PTS = 80
 
 # Résolution du rendu (DPI) — 180 pour les crops, 100 pour fallback page entière
-CROP_DPI      = 180
-FALLBACK_DPI  = 100
+CROP_DPI = 180
+FALLBACK_DPI = 100
 
 # Couleur des rectangles de surbrillance (RGB 0-1)
 HIGHLIGHT_COLOR = (0.92, 0.10, 0.10)   # rouge vif
@@ -77,9 +77,9 @@ class SchemaLocation:
     pdf_path:   str            # chemin absolu
     page:       int            # numéro de page (1-indexé)
     matched_keywords: List[str] = field(default_factory=list)
-    score:      int   = 0      # nombre de matches
-    image_b64:  str   = ""     # PNG en base64
-    crop_box:   Optional[Tuple[float,float,float,float]] = None  # (x0,y0,x1,y1) pts
+    score:      int = 0      # nombre de matches
+    image_b64:  str = ""     # PNG en base64
+    crop_box:   Optional[Tuple[float, float, float, float]] = None  # (x0,y0,x1,y1) pts
     is_fallback: bool = False  # True si page entière (aucun match textuel)
 
 
@@ -91,19 +91,19 @@ def _normalize(text: str) -> str:
     """Normalise pour la recherche : accents, casse, ponctuation."""
     text = text.lower()
     for src, dst in [
-        ("é","e"),("è","e"),("ê","e"),("ë","e"),
-        ("à","a"),("â","a"),("ä","a"),
-        ("ù","u"),("û","u"),("ü","u"),
-        ("ô","o"),("ö","o"),
-        ("î","i"),("ï","i"),
-        ("ç","c"),("-"," "),(","," "),("."," "),
+        ("é", "e"), ("è", "e"), ("ê", "e"), ("ë", "e"),
+        ("à", "a"), ("â", "a"), ("ä", "a"),
+        ("ù", "u"), ("û", "u"), ("ü", "u"),
+        ("ô", "o"), ("ö", "o"),
+        ("î", "i"), ("ï", "i"),
+        ("ç", "c"), ("-", " "), (",", " "), (".", " "),
     ]:
         text = text.replace(src, dst)
     return re.sub(r"\s+", " ", text).strip()
 
 
 def _rects_overlap_or_close(r1: "fitz.Rect", r2: "fitz.Rect",
-                             margin: float = CLUSTER_MERGE_DISTANCE) -> bool:
+                            margin: float = CLUSTER_MERGE_DISTANCE) -> bool:
     """Retourne True si deux Rect sont proches (distance < margin pts)."""
     expanded = fitz.Rect(r1.x0 - margin, r1.y0 - margin,
                          r1.x1 + margin, r1.y1 + margin)
@@ -271,11 +271,11 @@ def locate_in_schema(
                 break  # une variante suffit pour ce keyword
 
     loc = SchemaLocation(
-        pdf_name   = path.name,
-        pdf_path   = str(path),
-        page       = page_number,
-        matched_keywords = matched_kws,
-        score      = len(all_rects),
+        pdf_name=path.name,
+        pdf_path=str(path),
+        page=page_number,
+        matched_keywords=matched_kws,
+        score=len(all_rects),
     )
 
     if all_rects:
@@ -294,15 +294,15 @@ def locate_in_schema(
             cluster_union.y1 + padding,
         )
 
-        loc.crop_box   = (crop_rect.x0, crop_rect.y0, crop_rect.x1, crop_rect.y1)
-        loc.image_b64  = _render_crop(page, crop_rect, all_rects, dpi=crop_dpi)
+        loc.crop_box = (crop_rect.x0, crop_rect.y0, crop_rect.x1, crop_rect.y1)
+        loc.image_b64 = _render_crop(page, crop_rect, all_rects, dpi=crop_dpi)
         loc.is_fallback = False
 
         print(f"📍 Localisé '{matched_kws}' dans {path.name} p.{page_number} "
               f"— {len(all_rects)} occurrence(s), cluster box {cluster_union}")
     else:
         # Aucun match textuel → page entière
-        loc.image_b64  = _page_to_base64_fallback(page)
+        loc.image_b64 = _page_to_base64_fallback(page)
         loc.is_fallback = True
         print(f"📄 Fallback page entière : {path.name} p.{page_number} "
               f"(aucun match pour {keywords})")
@@ -370,11 +370,11 @@ def search_schemas(
 
             if score >= MIN_SCORE:
                 results.append(SchemaLocation(
-                    pdf_name = path.name,
-                    pdf_path = str(path),
-                    page     = page_num,
-                    matched_keywords = matched_kws,
-                    score    = score,
+                    pdf_name=path.name,
+                    pdf_path=str(path),
+                    page=page_num,
+                    matched_keywords=matched_kws,
+                    score=score,
                 ))
 
         doc.close()
@@ -390,11 +390,11 @@ def search_schemas(
     final: List[SchemaLocation] = []
     for loc in top:
         rendered = locate_in_schema(
-            pdf_path    = loc.pdf_path,
-            page_number = loc.page,
-            keywords    = loc.matched_keywords,
-            padding     = padding,
-            crop_dpi    = crop_dpi,
+            pdf_path=loc.pdf_path,
+            page_number=loc.page,
+            keywords=loc.matched_keywords,
+            padding=padding,
+            crop_dpi=crop_dpi,
         )
         if rendered:
             final.append(rendered)
@@ -539,10 +539,10 @@ def _build_variants(keyword: str) -> List[str]:
 def extract_schema_crops_for_diagnosis(
     diagnosis_text:  str,
     symptoms:        Optional[List[str]] = None,
-    fault_code:      Optional[str]       = None,
+    fault_code:      Optional[str] = None,
     rag_sources:     Optional[List[str]] = None,
-    schema_dir:      Optional[str]       = None,
-    max_crops:       int                 = 3,
+    schema_dir:      Optional[str] = None,
+    max_crops:       int = 3,
 ) -> List[dict]:
     """
     Point d'entrée principal depuis api.py /diagnose.
@@ -610,12 +610,12 @@ def extract_schema_crops_for_diagnosis(
         return []
 
     locations: List[SchemaLocation] = search_schemas(
-        schema_paths = schema_pdfs,
-        keywords     = keywords,
-        page_hint    = None,      # scan complet (utiliser page_hints si besoin)
-        max_results  = max_crops,
-        padding      = CROP_PADDING_PTS,
-        crop_dpi     = CROP_DPI,
+        schema_paths=schema_pdfs,
+        keywords=keywords,
+        page_hint=None,      # scan complet (utiliser page_hints si besoin)
+        max_results=max_crops,
+        padding=CROP_PADDING_PTS,
+        crop_dpi=CROP_DPI,
     )
 
     # Si search_schemas ne trouve rien et qu'on a des hints RAG → fallback page entière

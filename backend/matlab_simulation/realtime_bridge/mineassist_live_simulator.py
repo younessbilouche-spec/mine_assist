@@ -52,43 +52,43 @@ import numpy as np
 # ============================================================
 
 # --- Hydraulique (cf. parametres_hydraulique.m, etape 1) ---
-Q_NOM         = 1500e-3 / 60.0       # m^3/s (debit nominal cumule 2 pompes, 1500 L/min)
-ETA_POMPE     = 0.92
-P_MAX         = 28e6                 # 280 bar = soupape decharge
-P_MIN         = 0.5e6
-A_PISTON      = 0.04                 # m^2
-M_CHARGE      = 40000.0              # kg
-G             = 9.81
-R_CANAL       = 5.0e9                # Pa.s/m^3
-C_HYDR        = 1.0e-8               # m^3/Pa
-B_FROT        = 1.5e6                # N.s/m
-K_BUTEE       = 1.0e7                # raideur butee
-C_BUTEE       = 5.0e5                # amortissement butee
-X_MAX         = 0.6                  # m
+Q_NOM = 1500e-3 / 60.0       # m^3/s (debit nominal cumule 2 pompes, 1500 L/min)
+ETA_POMPE = 0.92
+P_MAX = 28e6                 # 280 bar = soupape decharge
+P_MIN = 0.5e6
+A_PISTON = 0.04                 # m^2
+M_CHARGE = 40000.0              # kg
+G = 9.81
+R_CANAL = 5.0e9                # Pa.s/m^3
+C_HYDR = 1.0e-8               # m^3/Pa
+B_FROT = 1.5e6                # N.s/m
+K_BUTEE = 1.0e7                # raideur butee
+C_BUTEE = 5.0e5                # amortissement butee
+X_MAX = 0.6                  # m
 
 # --- Thermique (cf. parametres_thermique.m, etape 2) ---
-P_MOT_MAX     = 820e3                # W (3516B)
-ETA_THERMO    = 0.40
-FRAC_COOLANT  = 0.55
-RPM_IDLE      = 750
-RPM_MAX       = 1900
-C_BLOCK       = 2.3e6                # J/K
-C_COOLANT     = 0.875e6              # J/K
-U_BC          = 5e4                  # W/K
-U_RAD_ON      = 1.2e4                # W/K
-U_RAD_OFF     = 1.5e3
-T_FAN_ON      = 85.0
-T_FAN_OFF     = 82.0
-T_AMB         = 35.0                 # Benguerir
+P_MOT_MAX = 820e3                # W (3516B)
+ETA_THERMO = 0.40
+FRAC_COOLANT = 0.55
+RPM_IDLE = 750
+RPM_MAX = 1900
+C_BLOCK = 2.3e6                # J/K
+C_COOLANT = 0.875e6              # J/K
+U_BC = 5e4                  # W/K
+U_RAD_ON = 1.2e4                # W/K
+U_RAD_OFF = 1.5e3
+T_FAN_ON = 85.0
+T_FAN_OFF = 82.0
+T_AMB = 35.0                 # Benguerir
 
 # Conditions initiales
-T_BLOCK_0     = 90.0
-T_COOLANT_0   = 83.0
+T_BLOCK_0 = 90.0
+T_COOLANT_0 = 83.0
 
 # Bruit capteur
-SIGMA_T       = 0.5                  # degC
-SIGMA_P       = 200.0                # kPa
-SIGMA_RPM     = 5.0
+SIGMA_T = 0.5                  # degC
+SIGMA_P = 200.0                # kPa
+SIGMA_RPM = 5.0
 
 
 # ============================================================
@@ -98,28 +98,39 @@ SIGMA_RPM     = 5.0
 def cmd_hydraulique(t: float) -> float:
     """Commande operateur (-1..+1) pour le verin."""
     tau = t % 60.0
-    if tau < 10:    return 0.2     # approche / penetration
-    if tau < 25:    return 1.0     # levage a fond
-    if tau < 40:    return 0.0     # maintien haut
-    if tau < 55:    return -1.0    # vidage / descente
+    if tau < 10:
+        return 0.2     # approche / penetration
+    if tau < 25:
+        return 1.0     # levage a fond
+    if tau < 40:
+        return 0.0     # maintien haut
+    if tau < 55:
+        return -1.0    # vidage / descente
     return 0.0                     # retour position basse
 
 
 def cycle_phase(t: float) -> str:
     tau = t % 60.0
-    if tau < 10:    return "approche"
-    if tau < 25:    return "levage"
-    if tau < 40:    return "maintien"
-    if tau < 55:    return "vidage"
+    if tau < 10:
+        return "approche"
+    if tau < 25:
+        return "levage"
+    if tau < 40:
+        return "maintien"
+    if tau < 55:
+        return "vidage"
     return "retour"
 
 
 def regime_moteur(t: float) -> float:
     """Regime moteur cycle (rpm)."""
     tau = t % 60.0
-    if tau < 15:    return 750.0    # ralenti
-    if tau < 40:    return 1500.0   # charge moy
-    if tau < 50:    return 1700.0   # pleine charge
+    if tau < 15:
+        return 750.0    # ralenti
+    if tau < 40:
+        return 1500.0   # charge moy
+    if tau < 50:
+        return 1700.0   # pleine charge
     return 750.0
 
 
@@ -200,8 +211,8 @@ def step_hydraulique(s: State, t: float, def_cfg: DefautConfig) -> None:
               - (s.p_pompe - P_MIN) / R_CANAL) / C_HYDR
         # bilan de force sur la charge
         F_pression = s.p_pompe * A_PISTON
-        F_poids    = M_CHARGE * G
-        F_frot     = B_FROT * s.v_verin
+        F_poids = M_CHARGE * G
+        F_frot = B_FROT * s.v_verin
         # butee haute / basse
         F_butee = 0.0
         if s.x_verin > X_MAX:
@@ -247,7 +258,7 @@ def step_thermique(s: State, t: float, def_cfg: DefautConfig, dt: float = 1.0) -
 
     Q_rad = U_rad * (s.T_coolant - T_AMB)
 
-    s.T_block   += dt * (Q_combustion - Q_bc) / C_BLOCK
+    s.T_block += dt * (Q_combustion - Q_bc) / C_BLOCK
     s.T_coolant += dt * (Q_bc - Q_rad) / C_eff
 
 
@@ -273,10 +284,10 @@ def derive_other_sensors(s: State, t: float, def_cfg: DefautConfig, rng: np.rand
 
     # Huile direction / freinage / hydraulique : couplees a la pression hydraulique
     p_hyd_bar = s.p_pompe / 1e5
-    T_huile_dir   = 45 + 0.05 * p_hyd_bar + rng.normal(0, 0.7)
+    T_huile_dir = 45 + 0.05 * p_hyd_bar + rng.normal(0, 0.7)
     T_huile_frein = 60 + 0.04 * p_hyd_bar + rng.normal(0, 0.7)
-    T_huile_hyd   = 50 + 0.10 * p_hyd_bar + rng.normal(0, 0.8)
-    T_PTO_avant   = 50 + 12 * norm_rpm + rng.normal(0, 1.2)
+    T_huile_hyd = 50 + 0.10 * p_hyd_bar + rng.normal(0, 0.8)
+    T_PTO_avant = 50 + 12 * norm_rpm + rng.normal(0, 1.2)
 
     # Essieux (VIMS : moy 40-50 degC)
     T_essieu_av = 42 + 8 * norm_rpm + rng.normal(0, 1.0)
@@ -433,7 +444,8 @@ def run(args):
                          [m["parametre"].replace("CH994.P1.", "").replace("CH994.P2.", "")
                           for m in payload["mesures"]]
                 csv_writer.writerow(header)
-            row = [f"{t:.1f}", ts_sim.isoformat(), payload["cycle_phase"], payload["defaut_actif"] or ""]
+            row = [f"{t:.1f}", ts_sim.isoformat(), payload["cycle_phase"],
+                   payload["defaut_actif"] or ""]
             row += [f"{m['valeur']:.2f}" for m in payload["mesures"]]
             csv_writer.writerow(row)
 

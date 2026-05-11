@@ -94,7 +94,8 @@ def valider_seuil(df: pd.DataFrame, seuil: dict) -> dict:
             "ok": violations == 0,
         }
     elif op == 'range':
-        lo = seuil['limite_min']; hi = seuil['limite_max']
+        lo = seuil['limite_min']
+        hi = seuil['limite_max']
         mask = (vals < lo) | (vals > hi)
         violations = int(mask.sum())
         return {
@@ -130,12 +131,14 @@ def valider_seuil(df: pd.DataFrame, seuil: dict) -> dict:
             n_actifs = int(mask_cond.sum())
             windows_actifs += n_actifs
             if n_actifs == 0:
-                details.append(f"{cond['rpm_min']}-{cond['rpm_max']} rpm : aucun sample dans cette plage")
+                details.append(
+                    f"{cond['rpm_min']}-{cond['rpm_max']} rpm : aucun sample dans cette plage")
                 continue
             if 'P_min_kPa' in cond:
                 violations_basse = int((vals[mask_cond] < cond['P_min_kPa']).sum())
                 violations += violations_basse
-                details.append(f"{cond['rpm_min']}-{cond['rpm_max']} rpm, P>={cond['P_min_kPa']} -> {violations_basse}/{n_actifs} viol")
+                details.append(
+                    f"{cond['rpm_min']}-{cond['rpm_max']} rpm, P>={cond['P_min_kPa']} -> {violations_basse}/{n_actifs} viol")
             if 'P_max_kPa' in cond:
                 violations_haute = int((vals[mask_cond] > cond['P_max_kPa']).sum())
                 # Pour le seuil "faible pression" on n'alarme pas sur haute, juste basse
@@ -143,7 +146,8 @@ def valider_seuil(df: pd.DataFrame, seuil: dict) -> dict:
                     pass
                 else:
                     violations += violations_haute
-                    details.append(f"{cond['rpm_min']}-{cond['rpm_max']} rpm, P<={cond['P_max_kPa']} -> {violations_haute} viol")
+                    details.append(
+                        f"{cond['rpm_min']}-{cond['rpm_max']} rpm, P<={cond['P_max_kPa']} -> {violations_haute} viol")
         return {
             "id": seuil['id'],
             "param_ocp": seuil['param_ocp'],
@@ -175,13 +179,15 @@ def afficher_resultats(results: list, mode: str):
             print(f'  ERR {r["erreur"]}')
             continue
         status = 'OK' if r['ok'] else 'KO'
-        if r['ok']: nb_ok += 1
-        else:       nb_ko += 1
+        if r['ok']:
+            nb_ok += 1
+        else:
+            nb_ko += 1
         param = r['param_ocp'][:40]
         regle = r['regle'][:35]
-        viol  = r['violations']
-        pct   = r['pct_respecte']
-        obs   = f'[{r["val_min_obs"]:.0f}..{r["val_max_obs"]:.0f}]'
+        viol = r['violations']
+        pct = r['pct_respecte']
+        obs = f'[{r["val_min_obs"]:.0f}..{r["val_max_obs"]:.0f}]'
         print(f'{r["id"]:>3}  {param:40s}  {regle:35s}  {viol:>6d}  {pct:>6.1f}%  {obs:>15s}  {status}')
     print('-' * 110)
     print(f'  Bilan : {nb_ok} seuils OK, {nb_ko} seuils violes ({mode})')
@@ -209,7 +215,8 @@ def main():
 
         # Mode fault
         print('\n>>> Phase 2/2 : simulation avec defaut ventilo_hs')
-        df_fault = lance_simulation(duration=max(args.duration, 1500), fault='ventilo_hs', t_fault=60)
+        df_fault = lance_simulation(duration=max(args.duration, 1500),
+                                    fault='ventilo_hs', t_fault=60)
         results_fault = [valider_seuil(df_fault, s) for s in seuils]
         nb_ok_f, nb_ko_f = afficher_resultats(results_fault, mode='FAULT ventilo_hs')
 
@@ -217,11 +224,13 @@ def main():
         print('  CONCLUSION')
         print('=' * 110)
         print(f'  Mode normal  : {nb_ok_n} respectes / {nb_ko_n} violes')
-        print(f'  Mode fault   : {nb_ok_f} respectes / {nb_ko_f} violes (les violations sont attendues sur certains seuils)')
+        print(
+            f'  Mode fault   : {nb_ok_f} respectes / {nb_ko_f} violes (les violations sont attendues sur certains seuils)')
         if nb_ko_n == 0:
             print(f'\n  [OK] La simulation NORMALE respecte 100 % des seuils OCP.')
         else:
-            print(f'\n  [KO] La simulation NORMALE viole {nb_ko_n} seuils -> a corriger dans le simulateur.')
+            print(
+                f'\n  [KO] La simulation NORMALE viole {nb_ko_n} seuils -> a corriger dans le simulateur.')
     else:
         df = lance_simulation(duration=args.duration, fault=args.fault, t_fault=args.t_fault)
         results = [valider_seuil(df, s) for s in seuils]

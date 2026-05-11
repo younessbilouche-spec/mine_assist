@@ -30,7 +30,7 @@ from app.auth import get_current_user
 
 router = APIRouter()
 
-BASE_DIR   = Path(__file__).resolve().parent.parent.parent
+BASE_DIR = Path(__file__).resolve().parent.parent.parent
 MODEL_META = BASE_DIR / "models" / "model_meta.json"
 TRAIN_SCRIPT = BASE_DIR / "train_anomaly.py"
 

@@ -50,7 +50,7 @@ DATA_DIR = Path(__file__).parent.parent / "data" / "ocp"
 
 FILE_ARRETS_2025 = "Suivi_des_ARRETS_2025.xlsx"
 FILE_ARRETS_2026 = "Suivi_des_ARRETS_2026.xlsx"
-FILE_SE          = "suivi_des_SE_2023-2026.xlsx"
+FILE_SE = "suivi_des_SE_2023-2026.xlsx"
 
 # Mapping nomenclature OCP → nom standard
 ENGINS_MAP = {
@@ -185,7 +185,7 @@ def _load_se() -> pd.DataFrame:
         for sheet in xl.sheet_names:
             try:
                 df = pd.read_excel(path, sheet_name=sheet, header=1,
-                                  usecols=list(range(10)))
+                                   usecols=list(range(10)))
                 df["_feuille"] = sheet
                 frames.append(df)
             except Exception:
@@ -206,7 +206,7 @@ def _ensure_loaded():
         return
     print("[ocp_history] Chargement des fichiers Excel OCP...")
     _cache["arrets"] = _load_arrets()
-    _cache["se"]     = _load_se()
+    _cache["se"] = _load_se()
     _cache["loaded"] = True
     n_arrets = len(_cache["arrets"]) if _cache["arrets"] is not None else 0
     n_se = len(_cache["se"]) if _cache["se"] is not None else 0

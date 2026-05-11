@@ -38,8 +38,8 @@ from typing import List, Optional
 
 import pandas as pd
 
-BASE_DIR  = Path(__file__).resolve().parent.parent
-DATA_DIR  = BASE_DIR / "data"
+BASE_DIR = Path(__file__).resolve().parent.parent
+DATA_DIR = BASE_DIR / "data"
 
 # ─── Prompt système pour /diagnose  ─────────────────────────────────────────
 # Extrait de CHF442.pdf + RENR6306 + RENR9347 (fourni par l'utilisateur)
@@ -212,11 +212,14 @@ Format : prose structurée, courte. Pas de markdown excessif.
 #  FONCTIONS UTILITAIRES
 # ─────────────────────────────────────────────────────────────────────────────
 
+
 def _get_llm_key() -> Optional[str]:
     return os.getenv("OPENROUTER_API_KEY")
 
+
 def _get_model() -> str:
     return os.getenv("OPENROUTER_MODEL", "meta-llama/llama-3.3-70b-instruct")
+
 
 def _call_llm_streaming(system: str, messages: list):
     """Générateur streaming SSE via OpenRouter."""
@@ -238,6 +241,7 @@ def _call_llm_streaming(system: str, messages: list):
         if delta:
             yield delta
 
+
 def _detect_language(text: str) -> str:
     """Détection de langue simple (FR/EN/AR)."""
     ar = len(re.findall(r'[\u0600-\u06FF]', text))
@@ -248,6 +252,7 @@ def _detect_language(text: str) -> str:
     if fr >= en:
         return "fr"
     return "en"
+
 
 def _summarize_xlsx(file_bytes: bytes, filename: str) -> str:
     """
@@ -273,15 +278,15 @@ def _summarize_xlsx(file_bytes: bytes, filename: str) -> str:
 
         # ── Fichier capteurs CAT (colonne "Paramètres Diagnostic") ───────────
         param_col = next((c for c in cols if 'param' in c.lower() and 'diagn' in c.lower()), None)
-        avg_col   = next((c for c in cols if 'moyenne' in c.lower() or 'moy' in c.lower()), None)
-        min_col   = next((c for c in cols if 'minimale' in c.lower() or 'min' in c.lower()), None)
-        max_col   = next((c for c in cols if 'maximale' in c.lower() or 'max' in c.lower()), None)
-        unit_col  = next((c for c in cols if 'unit' in c.lower()), None)
-        time_col  = next((c for c in cols if 'heure' in c.lower() or 'date' in c.lower()), None)
+        avg_col = next((c for c in cols if 'moyenne' in c.lower() or 'moy' in c.lower()), None)
+        min_col = next((c for c in cols if 'minimale' in c.lower() or 'min' in c.lower()), None)
+        max_col = next((c for c in cols if 'maximale' in c.lower() or 'max' in c.lower()), None)
+        unit_col = next((c for c in cols if 'unit' in c.lower()), None)
+        time_col = next((c for c in cols if 'heure' in c.lower() or 'date' in c.lower()), None)
 
         if param_col and avg_col:
             df_full = pd.read_excel(io.BytesIO(file_bytes), header=0
-                       if 'Param' in df.columns[0] else 8)
+                                    if 'Param' in df.columns[0] else 8)
             df_full.columns = [str(c).strip() for c in df_full.columns]
             df_full[avg_col] = pd.to_numeric(df_full[avg_col], errors='coerce')
             if time_col and time_col in df_full.columns:
@@ -301,9 +306,11 @@ def _summarize_xlsx(file_bytes: bytes, filename: str) -> str:
                 if unit_col and unit_col in grp.columns:
                     u = grp[unit_col].dropna()
                     unite = str(u.iloc[0]).strip() if not u.empty else ""
-                moy  = round(vals.mean(), 2)
-                vmin = round(float(grp[min_col].min()), 2) if min_col and min_col in grp.columns else round(float(vals.min()), 2)
-                vmax = round(float(grp[max_col].max()), 2) if max_col and max_col in grp.columns else round(float(vals.max()), 2)
+                moy = round(vals.mean(), 2)
+                vmin = round(float(grp[min_col].min()), 2) if min_col and min_col in grp.columns else round(
+                    float(vals.min()), 2)
+                vmax = round(float(grp[max_col].max()), 2) if max_col and max_col in grp.columns else round(
+                    float(vals.max()), 2)
                 text += f"- {param}: moy={moy}{unite}, min={vmin}{unite}, max={vmax}{unite}, N={len(vals)}\n"
             return text
 
@@ -377,7 +384,7 @@ def _search_sis_code(mid: str, cid: str, fmi: str) -> str:
                     if match:
                         # Extraire un bloc autour du match
                         start = max(0, match.start() - 100)
-                        end   = min(len(content), match.start() + 2500)
+                        end = min(len(content), match.start() + 2500)
                         excerpt = content[start:end].strip()
                         return f"[Source: {txt_file.name}]\n{excerpt}"
             except Exception:
@@ -660,8 +667,8 @@ def register_improvements(app, rag=None):
     #  Patch /diagnose  — Remplace le system prompt avec notre version enrichie
     # ─────────────────────────────────────────────────────────────────────────
     # On expose également les constantes pour que api.py puisse les importer
-    app.state.SYSTEM_DIAGNOSE_WITH_CONTEXT   = SYSTEM_DIAGNOSE_WITH_CONTEXT
-    app.state.SYSTEM_DIAGNOSE_NO_CONTEXT     = SYSTEM_DIAGNOSE_NO_CONTEXT
+    app.state.SYSTEM_DIAGNOSE_WITH_CONTEXT = SYSTEM_DIAGNOSE_WITH_CONTEXT
+    app.state.SYSTEM_DIAGNOSE_NO_CONTEXT = SYSTEM_DIAGNOSE_NO_CONTEXT
 
     _logger.info(
         "[improvements.py] Endpoints enregistrés : "

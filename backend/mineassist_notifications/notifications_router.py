@@ -3,6 +3,7 @@ MineAssist — Router FastAPI pour les notifications
 À intégrer dans main.py : app.include_router(notifications_router)
 """
 
+import os
 from fastapi import APIRouter, BackgroundTasks, HTTPException
 from pydantic import BaseModel, Field
 from datetime import datetime
@@ -21,7 +22,6 @@ notifications_router = APIRouter(prefix="/notifications", tags=["Notifications"]
 # ─────────────────────────────────────────────────────────────
 # CONFIG — À mettre dans .env en production
 # ─────────────────────────────────────────────────────────────
-import os
 
 EMAIL_CFG = EmailConfig(
     smtp_host=os.getenv("SMTP_HOST", "smtp.gmail.com"),

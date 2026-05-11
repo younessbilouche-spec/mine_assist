@@ -5,6 +5,8 @@ Usage: python run_surveillance.py --fichier data.xlsx --email --whatsapp
 Peut être exécuté manuellement, via cron, ou planifié.
 """
 
+from alert_detector import analyser_batch, SEUILS_994F
+from notification_service import EmailConfig, WhatsAppConfig, notifier
 import argparse
 import logging
 import sys
@@ -16,8 +18,6 @@ from pathlib import Path
 # Ajouter le dossier courant au path
 sys.path.insert(0, str(Path(__file__).parent))
 
-from notification_service import EmailConfig, WhatsAppConfig, notifier
-from alert_detector import analyser_batch, SEUILS_994F
 
 # ─── Logging ────────────────────────────────────────────────
 logging.basicConfig(
@@ -43,8 +43,8 @@ def charger_donnees_excel(chemin: str) -> list[dict]:
     logger.info(f"Chargement du fichier: {chemin}")
     try:
         df = pd.read_excel(chemin, sheet_name=0, header=8)
-        df.columns = ['Engin','Parametre','Code','Heure',
-                      'Val_min','Val_moy','Val_max','Unite','Capteur_OK']
+        df.columns = ['Engin', 'Parametre', 'Code', 'Heure',
+                      'Val_min', 'Val_moy', 'Val_max', 'Unite', 'Capteur_OK']
         df = df.dropna(subset=['Parametre', 'Heure'])
         df['Parametre'] = df['Parametre'].str.strip()
 
@@ -71,7 +71,7 @@ def charger_donnees_excel(chemin: str) -> list[dict]:
 
 def afficher_resume(alertes):
     n_crit = sum(1 for a in alertes if a.niveau.value == "ALERTE")
-    n_att  = sum(1 for a in alertes if a.niveau.value == "Attention")
+    n_att = sum(1 for a in alertes if a.niveau.value == "Attention")
 
     print("\n" + "═"*60)
     print("  🔧 MINEASSIST — RÉSUMÉ DE SURVEILLANCE")
@@ -127,8 +127,8 @@ def main():
         to_number=os.getenv("CHEF_WHATSAPP", ""),
     )
 
-    use_email     = args.email or args.tous
-    use_whatsapp  = args.whatsapp or args.tous
+    use_email = args.email or args.tous
+    use_whatsapp = args.whatsapp or args.tous
 
     # ── Mode test ──
     if args.test:

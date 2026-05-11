@@ -3,21 +3,7 @@ MineAssist — Router FastAPI pour les notifications
 À intégrer dans api.py : app.include_router(notifications_router)
 """
 
-from pathlib import Path
-from dotenv import load_dotenv
-
-# Charger explicitement backend/.env
-BASE_DIR = Path(__file__).resolve().parent.parent
-load_dotenv(BASE_DIR / ".env")
-
-import os
-import logging
-from datetime import datetime
-from typing import Optional
-
-from fastapi import APIRouter, BackgroundTasks
-from pydantic import BaseModel, Field
-
+from app.alert_detector import analyser_batch, SEUILS_994F, LABELS
 from app.notification_service import (
     Alerte,
     NiveauAlerte,
@@ -25,7 +11,19 @@ from app.notification_service import (
     WhatsAppConfig,
     notifier,
 )
-from app.alert_detector import analyser_batch, SEUILS_994F, LABELS
+from pydantic import BaseModel, Field
+from fastapi import APIRouter, BackgroundTasks
+from typing import Optional
+from datetime import datetime
+import logging
+import os
+from pathlib import Path
+from dotenv import load_dotenv
+
+# Charger explicitement backend/.env
+BASE_DIR = Path(__file__).resolve().parent.parent
+load_dotenv(BASE_DIR / ".env")
+
 
 logger = logging.getLogger(__name__)
 notifications_router = APIRouter(prefix="/notifications", tags=["Notifications"])

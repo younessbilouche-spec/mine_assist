@@ -51,8 +51,8 @@ SELECTED_SENSORS = [
     "converter_out_temp",  # Transmission — score 0.650
     "rear_axle_temp",   # Essieux     — score 0.507
     "brake_oil_temp",   # Freinage    — score 0.484
-    "air_tank_pressure",# Pneumatique — score 0.451
-    "steering_oil_temp",# Direction   — score 0.343
+    "air_tank_pressure",  # Pneumatique — score 0.451
+    "steering_oil_temp",  # Direction   — score 0.343
 ]
 
 # Mapping noms de colonnes Excel OCP → noms courts du pipeline
@@ -118,9 +118,12 @@ def _pivot_excel_to_wide(df_raw: pd.DataFrame) -> pd.DataFrame:
     vers le format large (1 ligne par timestamp, 1 colonne par capteur).
     """
     # Détecter les colonnes clés
-    col_param = next((c for c in df_raw.columns if "paramètre" in str(c).lower() or "parametre" in str(c).lower()), None)
-    col_time = next((c for c in df_raw.columns if "heure" in str(c).lower() or "time" in str(c).lower() or "date" in str(c).lower()), None)
-    col_val = next((c for c in df_raw.columns if "moyenne" in str(c).lower() or "moy" in str(c).lower()), None)
+    col_param = next((c for c in df_raw.columns if "paramètre" in str(
+        c).lower() or "parametre" in str(c).lower()), None)
+    col_time = next((c for c in df_raw.columns if "heure" in str(c).lower()
+                    or "time" in str(c).lower() or "date" in str(c).lower()), None)
+    col_val = next((c for c in df_raw.columns if "moyenne" in str(
+        c).lower() or "moy" in str(c).lower()), None)
 
     if col_param is None or col_time is None or col_val is None:
         # Peut-être déjà en format large
@@ -235,7 +238,8 @@ def _predict_rul(X: pd.DataFrame) -> dict:
     iso_is_anomaly = None
     if "iso_forest" in _models and "iso_scaler" in _models:
         try:
-            sensor_cols = [f"{s}_mean" for s in SELECTED_SENSORS if f"{s}_mean" in last_point.columns]
+            sensor_cols = [
+                f"{s}_mean" for s in SELECTED_SENSORS if f"{s}_mean" in last_point.columns]
             if sensor_cols:
                 X_iso = _models["iso_scaler"].transform(last_point[sensor_cols].fillna(0))
                 iso_score = float(_models["iso_forest"].score_samples(X_iso)[0])
@@ -309,7 +313,8 @@ def _predict_history(X: pd.DataFrame, stride: int = 24) -> list:
             X_aligned = row.reindex(columns=expected_cols, fill_value=0)
             rul = float(model_global.predict(X_aligned)[0])
             rul = max(0.0, min(rul, 168.0))
-            ts = X.index[i].strftime("%Y-%m-%dT%H:%M:%S") if hasattr(X.index[i], "strftime") else str(X.index[i])
+            ts = X.index[i].strftime("%Y-%m-%dT%H:%M:%S") if hasattr(X.index[i],
+                                                                     "strftime") else str(X.index[i])
             if rul < ALERT_BANDS["RED"]:
                 alert = "RED"
             elif rul < ALERT_BANDS["ORANGE"]:
@@ -388,7 +393,7 @@ async def predict_from_file(file: UploadFile = File(...)):
 def predict_current():
     """
     Prédiction RUL sur le fichier capteurs courant uploadé via /pred/upload.
-    
+
     Cet endpoint résout le bug critique de "déconnexion" entre la page
     'Fichiers Capteurs' et la page 'Prédiction' : l'utilisateur uploade UNE
     seule fois, et toutes les pages prédiction lisent automatiquement le

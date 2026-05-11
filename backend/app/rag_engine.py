@@ -237,11 +237,12 @@ class RAGEngine:
 
             # ── Si c'est un fichier capteurs → résumé statistique ─────────────
             param_col = next((c for c in cols if "Param" in c and "Diagn" in c), None)
-            avg_col   = next((c for c in cols if "moyenne" in c.lower() or "moy" in c.lower()), None)
-            min_col   = next((c for c in cols if "minimale" in c.lower() or "min" in c.lower()), None)
-            max_col   = next((c for c in cols if "maximale" in c.lower() or "max" in c.lower()), None)
-            unit_col  = next((c for c in cols if "unit" in c.lower() or "unité" in c.lower()), None)
-            time_col  = next((c for c in cols if "heure" in c.lower() or "date" in c.lower() or "horodatage" in c.lower()), None)
+            avg_col = next((c for c in cols if "moyenne" in c.lower() or "moy" in c.lower()), None)
+            min_col = next((c for c in cols if "minimale" in c.lower() or "min" in c.lower()), None)
+            max_col = next((c for c in cols if "maximale" in c.lower() or "max" in c.lower()), None)
+            unit_col = next((c for c in cols if "unit" in c.lower() or "unité" in c.lower()), None)
+            time_col = next((c for c in cols if "heure" in c.lower()
+                            or "date" in c.lower() or "horodatage" in c.lower()), None)
 
             if param_col and avg_col:
                 df[avg_col] = pd.to_numeric(df[avg_col], errors="coerce")
@@ -275,10 +276,12 @@ class RAGEngine:
                     if vals.empty:
                         continue
 
-                    moy   = round(vals.mean(), 2)
-                    vmin  = round(float(grp[min_col].min()), 2) if min_col else round(float(vals.min()), 2)
-                    vmax  = round(float(grp[max_col].max()), 2) if max_col else round(float(vals.max()), 2)
-                    nb    = len(vals)
+                    moy = round(vals.mean(), 2)
+                    vmin = round(float(grp[min_col].min()),
+                                 2) if min_col else round(float(vals.min()), 2)
+                    vmax = round(float(grp[max_col].max()),
+                                 2) if max_col else round(float(vals.max()), 2)
+                    nb = len(vals)
 
                     # Résumé mensuel si la colonne temps existe
                     monthly = ""
@@ -303,13 +306,13 @@ class RAGEngine:
             anomalie_col = next(
                 (c for c in cols if "anomalie" in c.lower() or "code d" in c.lower()), None
             )
-            cid_col   = next((c for c in cols if c.lower().startswith("cid")), None)
-            fmi_col   = next((c for c in cols if c.lower().startswith("fmi")), None)
-            eid_col   = next((c for c in cols if c.lower().startswith("eid")), None)
-            sev_col   = next((c for c in cols if "gravit" in c.lower()), None)
-            occ_col   = next((c for c in cols if "occurrence" in c.lower()), None)
-            date_col  = next((c for c in cols if "date" in c.lower()), None)
-            src_col   = next((c for c in cols if "source" in c.lower()), None)
+            cid_col = next((c for c in cols if c.lower().startswith("cid")), None)
+            fmi_col = next((c for c in cols if c.lower().startswith("fmi")), None)
+            eid_col = next((c for c in cols if c.lower().startswith("eid")), None)
+            sev_col = next((c for c in cols if "gravit" in c.lower()), None)
+            occ_col = next((c for c in cols if "occurrence" in c.lower()), None)
+            date_col = next((c for c in cols if "date" in c.lower()), None)
+            src_col = next((c for c in cols if "source" in c.lower()), None)
 
             if anomalie_col:
                 # Résumé par code d'anomalie (compte occurrences, gravité max)
@@ -662,8 +665,8 @@ class RAGEngine:
         if any(w in q_lower for w in ["comment", "procédure", "procedure", "how to", "step", "étape", "كيف", "إجراء"]):
             # Extraction des noms-clés (ce sur quoi on intervient)
             for term in ["filtre hydraulique", "filtre à huile", "filtre à air",
-                          "vidange moteur", "vidange transmission", "vidange hydraulique",
-                          "courroie", "pneu", "frein", "joint"]:
+                         "vidange moteur", "vidange transmission", "vidange hydraulique",
+                         "courroie", "pneu", "frein", "joint"]:
                 if term in q_lower:
                     variants.append(f"procedure {term} CAT 994F replacement steps")
                     break
@@ -751,12 +754,12 @@ class RAGEngine:
                 where={"type": "excel"},
                 include=["documents", "metadatas", "distances"],
             )
-            docs   = results["documents"][0]
-            metas  = results["metadatas"][0]
-            dists  = results["distances"][0]
+            docs = results["documents"][0]
+            metas = results["metadatas"][0]
+            dists = results["distances"][0]
 
             # Pas de seuil de distance strict : on prend tout ce qui contient des mots clés
-            query_norm  = self._normalize_text(query)
+            query_norm = self._normalize_text(query)
             query_words = [w for w in query_norm.split() if len(w) > 3]
             matched = []
             for doc, meta, dist in zip(docs, metas, dists):
@@ -792,7 +795,8 @@ class RAGEngine:
         if self._is_sensor_query(query):
             excel_chunks = self._get_excel_capteur_chunks_from_chroma(query)
             if excel_chunks:
-                print(f"📊 Injection Excel capteurs : {len(excel_chunks)} chunk(s) injectés en tête de contexte")
+                print(
+                    f"📊 Injection Excel capteurs : {len(excel_chunks)} chunk(s) injectés en tête de contexte")
             else:
                 print("⚠️ Aucun chunk Excel capteur trouvé dans ChromaDB — vérifier l'indexation")
 
@@ -811,15 +815,16 @@ class RAGEngine:
                         n_results=min(top_k, self.collection.count()),
                         include=["documents", "metadatas", "distances"],
                     )
-                    docs      = results["documents"][0]
-                    metas     = results["metadatas"][0]
+                    docs = results["documents"][0]
+                    metas = results["metadatas"][0]
                     distances = results["distances"][0]
 
                     for doc, meta, dist in zip(docs, metas, distances):
                         if dist >= 0.95 or meta.get("type") == "excel":
                             continue
                         # Identifier unique pour dédup
-                        cid = meta.get("chunk_id") or f"{meta.get('source','?')}#{meta.get('page','?')}"
+                        cid = meta.get(
+                            "chunk_id") or f"{meta.get('source','?')}#{meta.get('page','?')}"
                         if cid in seen_ids:
                             continue
                         seen_ids.add(cid)

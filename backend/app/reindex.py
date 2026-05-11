@@ -10,14 +10,15 @@ Ce script :
   3. Affiche un résumé de ce qui a été indexé par source
 """
 
+from collections import Counter
+import chromadb
+from app.rag_engine import RAGEngine, CHROMA_PATH, DATA_DIR
 import sys
 from pathlib import Path
 
 # ── Ajuste si ton backend est dans un sous-dossier (ex: backend/) ────────────
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
-from app.rag_engine import RAGEngine, CHROMA_PATH, DATA_DIR
-import chromadb
 
 # ── 1. Suppression de la collection existante ─────────────────────────────────
 print("🗑️  Suppression de l'ancienne collection ChromaDB...")
@@ -38,7 +39,6 @@ print("\n" + "="*60)
 print("📊 RAPPORT D'INDEXATION")
 print("="*60)
 
-from collections import Counter
 type_counts = Counter(m["type"] for m in rag.metadatas)
 source_counts = Counter(rag.sources)
 

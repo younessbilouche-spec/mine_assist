@@ -43,7 +43,8 @@ def _oil_score(a: dict) -> int:
     mc = a.get("metaux_contaminants") or {}
     par = a.get("particules") or {}
     ref = 169 if "80W90" in str(a.get("grade_huile") or "") else 200
-    score = 100 - _status_rank(a.get("etat_machine")) * 12 - _status_rank(a.get("etat_lubrifiant")) * 12
+    score = 100 - _status_rank(a.get("etat_machine")) * 12 - \
+        _status_rank(a.get("etat_lubrifiant")) * 12
     visc = pc.get("viscosite_40")
     if visc is not None:
         gap = abs(float(visc) - ref) / ref
@@ -86,8 +87,10 @@ def executive_report():
     oil_critical = sum(1 for s in oil_scores if s < 45)
     oil_watch = sum(1 for s in oil_scores if 45 <= s < 75)
 
-    capteur_files = list((DATA_DIR / "gmao" / "capteurs").glob("*")) if (DATA_DIR / "gmao" / "capteurs").exists() else []
-    anomaly_files = list((DATA_DIR / "gmao" / "anomalies").glob("*")) if (DATA_DIR / "gmao" / "anomalies").exists() else []
+    capteur_files = list((DATA_DIR / "gmao" / "capteurs").glob("*")
+                         ) if (DATA_DIR / "gmao" / "capteurs").exists() else []
+    anomaly_files = list((DATA_DIR / "gmao" / "anomalies").glob("*")
+                         ) if (DATA_DIR / "gmao" / "anomalies").exists() else []
     ocp_current = DATA_DIR / "ocp_uploads" / "current_data.xlsx"
 
     plan_action = []

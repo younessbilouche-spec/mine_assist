@@ -71,7 +71,7 @@ async def upload_file(file: UploadFile = File(...)):
             )
 
         df_clean = clean_data(df)
-        labels   = label_points(df_clean)
+        labels = label_points(df_clean)
 
         unique, counts = zip(*sorted(
             {int(l): int((labels == l).sum()) for l in set(labels)}.items()

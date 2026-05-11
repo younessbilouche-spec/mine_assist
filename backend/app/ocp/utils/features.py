@@ -17,20 +17,20 @@
 import numpy as np
 import pandas as pd
 from typing import List
-from app.ocp.utils.thresholds  import SENSORS_CONFIG, FEATURE_COLS
+from app.ocp.utils.thresholds import SENSORS_CONFIG, FEATURE_COLS
 
 # Frequence d echantillonnage : 2 min → pas/heure = 30
-FREQ_MIN   = 2
-STEPS_PH   = 60 // FREQ_MIN          # 30 pas / heure
+FREQ_MIN = 2
+STEPS_PH = 60 // FREQ_MIN          # 30 pas / heure
 
-WIN_1H     = 1  * STEPS_PH           # 30
-WIN_6H     = 6  * STEPS_PH           # 180
-WIN_24H    = 24 * STEPS_PH           # 720
-WIN_4H     = 4  * STEPS_PH           # 120  (fenetre cumul depassement)
+WIN_1H = 1 * STEPS_PH           # 30
+WIN_6H = 6 * STEPS_PH           # 180
+WIN_24H = 24 * STEPS_PH           # 720
+WIN_4H = 4 * STEPS_PH           # 120  (fenetre cumul depassement)
 
-N_BASE_FEATURES   = len(FEATURE_COLS)     # 6
-N_ENG_PER_SENSOR  = 9                     # features par capteur
-N_TOTAL_FEATURES  = N_BASE_FEATURES * N_ENG_PER_SENSOR  # 54
+N_BASE_FEATURES = len(FEATURE_COLS)     # 6
+N_ENG_PER_SENSOR = 9                     # features par capteur
+N_TOTAL_FEATURES = N_BASE_FEATURES * N_ENG_PER_SENSOR  # 54
 
 
 def engineer_features(df: pd.DataFrame) -> np.ndarray:
@@ -49,8 +49,8 @@ def engineer_features(df: pd.DataFrame) -> np.ndarray:
     result = np.zeros((N, N_TOTAL_FEATURES), dtype=np.float32)
 
     for j, col in enumerate(FEATURE_COLS):
-        cfg     = SENSORS_CONFIG[col]
-        raw     = df[col].values.astype(np.float64)
+        cfg = SENSORS_CONFIG[col]
+        raw = df[col].values.astype(np.float64)
 
         # ── 1. Derivee 1re (diff normalisee par l ecart type)
         d1 = np.zeros(N)
@@ -61,9 +61,9 @@ def engineer_features(df: pd.DataFrame) -> np.ndarray:
         d2[2:] = d1[2:] - d1[1:-1]
 
         # ── 3-5. Moyennes glissantes
-        s    = pd.Series(raw)
-        ma1h  = s.rolling(WIN_1H,  min_periods=1).mean().values
-        ma6h  = s.rolling(WIN_6H,  min_periods=1).mean().values
+        s = pd.Series(raw)
+        ma1h = s.rolling(WIN_1H,  min_periods=1).mean().values
+        ma6h = s.rolling(WIN_6H,  min_periods=1).mean().values
         ma24h = s.rolling(WIN_24H, min_periods=1).mean().values
 
         # ── 6. Z-score 24h : (valeur - moy24h) / std24h
@@ -103,8 +103,8 @@ def engineer_features(df: pd.DataFrame) -> np.ndarray:
 
 
 def normalize_features(feats: np.ndarray,
-                        fit_data: np.ndarray = None,
-                        params: dict = None) -> tuple:
+                       fit_data: np.ndarray = None,
+                       params: dict = None) -> tuple:
     """
     Normalisation Min-Max feature par feature.
 

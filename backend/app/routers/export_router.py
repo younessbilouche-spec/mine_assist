@@ -36,19 +36,19 @@ router = APIRouter()
 
 # ── Schéma de la requête (identique à ce qu'envoie DiagnosePage) ──────────────
 class RapportDiagRequest(BaseModel):
-    fault_code:               Optional[str]       = None
-    symptoms:                 List[str]            = []
-    gmao_context:             Optional[str]        = None
-    hours_since_maintenance:  Optional[int]        = None
-    diagnostic:               str                  = ""
-    sources:                  List[str]            = []
+    fault_code:               Optional[str] = None
+    symptoms:                 List[str] = []
+    gmao_context:             Optional[str] = None
+    hours_since_maintenance:  Optional[int] = None
+    diagnostic:               str = ""
+    sources:                  List[str] = []
 
 
 # ── Couleurs OCP ───────────────────────────────────────────────────────────────
-OCP_GREEN  = (0,    132/255, 61/255)    # #00843D
-OCP_SAND   = (201/255, 168/255, 76/255) # #C9A84C
-OCP_DARK   = (42/255,  42/255, 30/255)  # #2A2A1E
-OCP_MUTED  = (138/255,125/255, 96/255)  # #8A7D60
+OCP_GREEN = (0,    132/255, 61/255)    # #00843D
+OCP_SAND = (201/255, 168/255, 76/255)  # C9A84C
+OCP_DARK = (42/255,  42/255, 30/255)  # #2A2A1E
+OCP_MUTED = (138/255, 125/255, 96/255)  # #8A7D60
 OCP_DANGER = (192/255, 57/255, 43/255)  # #C0392B
 
 
@@ -170,7 +170,7 @@ def _build_pdf(req: RapportDiagRequest) -> bytes:
         ("LEFTPADDING",  (0, 0), (-1, -1), 12),
         ("RIGHTPADDING", (0, 0), (-1, -1), 12),
         ("TOPPADDING",   (0, 0), (-1, -1), 10),
-        ("BOTTOMPADDING",(0, 0), (-1, -1), 10),
+        ("BOTTOMPADDING", (0, 0), (-1, -1), 10),
     ]))
     elements.append(header_table)
     elements.append(Spacer(1, 18))
@@ -180,14 +180,16 @@ def _build_pdf(req: RapportDiagRequest) -> bytes:
         "⚠ Aide à la décision uniquement — Consulter le manuel officiel CAT avant toute intervention.",
         style_warn
     ))
-    elements.append(HRFlowable(width="100%", thickness=0.5, color=colors.HexColor("#D4C9B0"), spaceAfter=12))
+    elements.append(HRFlowable(width="100%", thickness=0.5,
+                    color=colors.HexColor("#D4C9B0"), spaceAfter=12))
 
     # ── SECTION 1 : CONTEXTE ─────────────────────────────────────────────────
     elements.append(Paragraph("1. Contexte de l'intervention", style_section))
 
     context_rows = [
         ["Code défaut",   req.fault_code or "Non renseigné"],
-        ["Heures maint.", f"{req.hours_since_maintenance} h" if req.hours_since_maintenance else "Non renseigné"],
+        ["Heures maint.",
+            f"{req.hours_since_maintenance} h" if req.hours_since_maintenance else "Non renseigné"],
         ["Engin",         "CAT 994F — OCP Khouribga"],
         ["Date analyse",  now.strftime("%d/%m/%Y %H:%M")],
         ["Référence",     rapport_id],

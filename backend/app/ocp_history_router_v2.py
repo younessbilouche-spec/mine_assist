@@ -71,10 +71,10 @@ def history_dashboard(
     _ensure_fresh()
 
     try:
-        stats    = arrets_stats(engin=engin)
-        types    = arrets_types(engin=engin)
+        stats = arrets_stats(engin=engin)
+        types = arrets_types(engin=engin)
         timeline = arrets_timeline(engin=engin)
-        liste    = arrets_list(engin=engin, limit=limit)
+        liste = arrets_list(engin=engin, limit=limit)
     except Exception as e:
         raise HTTPException(500, detail=f"Erreur agrégation history : {e}")
 

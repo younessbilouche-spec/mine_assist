@@ -8,6 +8,7 @@ import pandas as pd
 
 ROOT = Path(__file__).resolve().parent
 
+
 def main():
     df = pd.read_csv(ROOT / 'ventilo_hs_demo.csv', sep=';', encoding='utf-8-sig')
     df['Heure'] = pd.to_datetime(df['Heure'])
@@ -28,8 +29,10 @@ def main():
     for ax, (col, unite, seuils) in zip(axes.flatten(), plots):
         ax.plot(t, df[col].values, color='#1f77b4', linewidth=0.8)
         if seuils:
-            ax.axhline(seuils[0], color='orange', linestyle='--', linewidth=1, label=f'attention {seuils[0]}')
-            ax.axhline(seuils[1], color='red',    linestyle='--', linewidth=1, label=f'alerte    {seuils[1]}')
+            ax.axhline(seuils[0], color='orange', linestyle='--',
+                       linewidth=1, label=f'attention {seuils[0]}')
+            ax.axhline(seuils[1], color='red',    linestyle='--',
+                       linewidth=1, label=f'alerte    {seuils[1]}')
             ax.legend(fontsize=7, loc='upper left')
         ax.axvline(60, color='gray', linestyle=':', linewidth=1)
         ax.set_title(f'{col.split(".")[-1]} ({unite})', fontsize=9)

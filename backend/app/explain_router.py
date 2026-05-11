@@ -21,6 +21,13 @@ Implémentation :
 """
 
 from __future__ import annotations
+from app.ocp.routers.rul_router import (
+    SELECTED_SENSORS,
+    _build_features_from_wide,
+    _models,
+    _pivot_excel_to_wide,
+    load_rul_models,
+)
 
 import json
 import logging
@@ -35,20 +42,14 @@ from pydantic import BaseModel, Field
 logger = logging.getLogger("uvicorn.error")
 
 # Réutilise les utilitaires du router RUL existant
-from app.ocp.routers.rul_router import (
-    SELECTED_SENSORS,
-    _build_features_from_wide,
-    _models,
-    _pivot_excel_to_wide,
-    load_rul_models,
-)
 
 explain_router = APIRouter(prefix="/pred/rul", tags=["Explicabilité ML"])
 
 
 # ─── Pydantic models ─────────────────────────────────────────────────────────
 class ExplainRequest(BaseModel):
-    target: str = Field(default="global", description="global | moteur | transmission | hydraulique")
+    target: str = Field(
+        default="global", description="global | moteur | transmission | hydraulique")
     use_current_file: bool = Field(default=True)
     point_index: int = Field(default=-1, description="Index du point à expliquer (-1 = dernier)")
 

@@ -1,3 +1,13 @@
+import joblib
+import json
+from app.pdf_image_extractor import extract_images_for_sources, check_dependencies
+from app.rag_engine import RAGEngine
+from app.notifications_router import notifications_router
+from openai import OpenAI
+from pydantic import BaseModel, Field
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi import FastAPI, HTTPException, Query
+from dotenv import load_dotenv
 import os
 import ast
 import hashlib
@@ -15,8 +25,6 @@ from app.ocp_history_router import history_router
 from fastapi import FastAPI, Depends
 
 
-
-
 import pandas as pd
 from app.auth import auth_router, get_current_user, require_role
 
@@ -27,8 +35,9 @@ from app.capteur_thresholds import (
 )
 
 
-
 _GMAO_CAPTEURS_CACHE = None
+
+
 def load_gmao_capteurs() -> tuple[pd.DataFrame, list[dict]]:
     global _GMAO_CAPTEURS_CACHE
 
@@ -39,13 +48,14 @@ def load_gmao_capteurs() -> tuple[pd.DataFrame, list[dict]]:
 
     all_files = [
         f for f in list((BASE_DIR / "data" / "gmao" / "capteurs").glob("*.xlsx")) +
-                    list((BASE_DIR / "data" / "gmao" / "capteurs").glob("*.xls")) +
-                    list((BASE_DIR / "data" / "gmao" / "capteurs").glob("*.csv"))
+        list((BASE_DIR / "data" / "gmao" / "capteurs").glob("*.xls")) +
+        list((BASE_DIR / "data" / "gmao" / "capteurs").glob("*.csv"))
         if not f.name.startswith("~$")
     ]
 
     if not all_files:
-        raise HTTPException(status_code=404, detail="Aucun fichier capteurs trouvé dans data/gmao/capteurs")
+        raise HTTPException(
+            status_code=404, detail="Aucun fichier capteurs trouvé dans data/gmao/capteurs")
 
     frames = []
     file_debug = []
@@ -96,17 +106,11 @@ def load_gmao_capteurs() -> tuple[pd.DataFrame, list[dict]]:
 
     _GMAO_CAPTEURS_CACHE = df
     return _GMAO_CAPTEURS_CACHE, file_debug
+
+
 _GMAO_ANOMALIES = None
 _GMAO_CAPTEURS = None
-from dotenv import load_dotenv
-from fastapi import FastAPI, HTTPException, Query
-from fastapi.middleware.cors import CORSMiddleware
-from pydantic import BaseModel, Field
-from openai import OpenAI
 
-from app.notifications_router import notifications_router
-from app.rag_engine import RAGEngine
-from app.pdf_image_extractor import extract_images_for_sources, check_dependencies
 
 load_dotenv()
 
@@ -192,10 +196,6 @@ class DiagnoseRequest(BaseModel):
     symptoms: List[str] = Field(default_factory=list)
     gmao_context: Optional[str] = None
     hours_since_maintenance: Optional[int] = None
-
-
-
-
 
 
 @app.on_event("startup")
@@ -352,7 +352,8 @@ def _standardize_anomaly_dataframe(df: pd.DataFrame, source_file: str) -> pd.Dat
     ])
 
     out = pd.DataFrame()
-    out["machine"] = [_normalize_machine_label(_detect_machine_from_filename(source_file))] * len(df)
+    out["machine"] = [_normalize_machine_label(
+        _detect_machine_from_filename(source_file))] * len(df)
 
     if col_date:
         out["Date de l'anomalie"] = pd.to_datetime(df[col_date], errors="coerce")
@@ -666,6 +667,8 @@ def gmao_geo_anomalies(machine: str = Query("994F-1", description="Engin cible, 
         raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+
+
 @app.get("/gmao/stats")
 def gmao_stats(machine: str = Query("994F-1", description="Engin cible, ex: 994F-1")):
     """
@@ -705,7 +708,8 @@ def gmao_stats(machine: str = Query("994F-1", description="Engin cible, ex: 994F
                         "kind": "anomalies",
                         "duplicate_of": seen_hashes[file_hash],
                     })
-                    print(f"⚠️ Fichier anomalies dupliqué ignoré : {f.name} = {seen_hashes[file_hash]}")
+                    print(
+                        f"⚠️ Fichier anomalies dupliqué ignoré : {f.name} = {seen_hashes[file_hash]}")
                     continue
 
                 raw_df = _read_anomaly_file(f)
@@ -753,7 +757,8 @@ def gmao_stats(machine: str = Query("994F-1", description="Engin cible, ex: 994F
                 detail=f"Aucune anomalie GMAO trouvée pour {target_machine or machine}"
             )
         df["month"] = df["Date de l'anomalie"].dt.to_period("M").astype(str)
-        df["Occurrences"] = pd.to_numeric(df["Occurrences"], errors="coerce").fillna(1).clip(lower=1)
+        df["Occurrences"] = pd.to_numeric(
+            df["Occurrences"], errors="coerce").fillna(1).clip(lower=1)
         df["Gravité"] = pd.to_numeric(df["Gravité"], errors="coerce").fillna(0).astype(int)
         severity_weights = {0: 0.5, 1: 1.0, 2: 4.0, 3: 9.0}
         df["risk_score"] = df["Gravité"].map(severity_weights).fillna(1.0) * df["Occurrences"]
@@ -880,7 +885,8 @@ def gmao_stats(machine: str = Query("994F-1", description="Engin cible, ex: 994F
             .reset_index()
             .sort_values(["risk_score", "occurrences", "events"], ascending=False)
         )
-        total_risk_for_pareto = float(priority_df["risk_score"].sum()) if not priority_df.empty else 0.0
+        total_risk_for_pareto = float(
+            priority_df["risk_score"].sum()) if not priority_df.empty else 0.0
         priority_df["risk_score"] = priority_df["risk_score"].round(1)
 
         def _priority_label(row) -> str:
@@ -931,7 +937,8 @@ def gmao_stats(machine: str = Query("994F-1", description="Engin cible, ex: 994F
             })
 
         recent_events = []
-        recent_cols = ["Date de l'anomalie", "Code d'anomalie", "Gravité", "Source", "Type", "Occurrences", "Heures Valeur"]
+        recent_cols = ["Date de l'anomalie", "Code d'anomalie",
+                       "Gravité", "Source", "Type", "Occurrences", "Heures Valeur"]
         for _, row in df.sort_values("Date de l'anomalie", ascending=False).head(12)[recent_cols].iterrows():
             recent_events.append({
                 "date": row["Date de l'anomalie"].strftime("%Y-%m-%d %H:%M") if pd.notna(row["Date de l'anomalie"]) else None,
@@ -997,11 +1004,14 @@ def gmao_stats(machine: str = Query("994F-1", description="Engin cible, ex: 994F
             )
 
             total_machine = len(machine_df)
-            sev_ge2_rate = round(float(((machine_df["Gravité"] >= 2).sum() / total_machine) * 100), 1) if total_machine else 0.0
-            diagnostic_share = round(float(((machine_df["Type"].astype(str) == "Diagnostic").sum() / total_machine) * 100), 1) if total_machine else 0.0
+            sev_ge2_rate = round(
+                float(((machine_df["Gravité"] >= 2).sum() / total_machine) * 100), 1) if total_machine else 0.0
+            diagnostic_share = round(float(((machine_df["Type"].astype(
+                str) == "Diagnostic").sum() / total_machine) * 100), 1) if total_machine else 0.0
 
             if machine_df["Heures Valeur"].notna().any():
-                hours_span = float(machine_df["Heures Valeur"].max() - machine_df["Heures Valeur"].min())
+                hours_span = float(machine_df["Heures Valeur"].max() -
+                                   machine_df["Heures Valeur"].min())
                 service_hours_span_by_machine[machine_name] = round(hours_span, 1)
             else:
                 hours_span = 0.0
@@ -1029,7 +1039,8 @@ def gmao_stats(machine: str = Query("994F-1", description="Engin cible, ex: 994F
 
         top_machine = max(by_machine, key=by_machine.get) if by_machine else None
         top_source = by_source[0]["Source"] if by_source else None
-        coverage_mismatch = len(set(active_months_by_machine.values())) > 1 if active_months_by_machine else False
+        coverage_mismatch = len(set(active_months_by_machine.values())
+                                ) > 1 if active_months_by_machine else False
 
         return {
             "target_machine": target_machine,
@@ -1193,11 +1204,11 @@ def detect_capteur_alertes(df: pd.DataFrame) -> list[dict]:
     )
 
     for _, row in latest_df.iterrows():
-        param      = str(row.get("parametre", "")).strip()
-        val_max    = row.get("val_max")
-        val_min    = row.get("val_min")
-        machine    = row.get("machine", "N/A")
-        unite      = row.get("unite", "")
+        param = str(row.get("parametre", "")).strip()
+        val_max = row.get("val_max")
+        val_min = row.get("val_min")
+        machine = row.get("machine", "N/A")
+        unite = row.get("unite", "")
         horodatage = row.get("horodatage")
 
         for key, rule in CAPTEUR_THRESHOLDS.items():
@@ -1243,12 +1254,12 @@ def detect_capteur_alertes(df: pd.DataFrame) -> list[dict]:
     seen_hist = set()
 
     for _, row in hist_df.iterrows():
-        param        = str(row.get("parametre", "")).strip()
+        param = str(row.get("parametre", "")).strip()
         val_max_hist = row.get("val_max_hist")
         val_min_hist = row.get("val_min_hist")
-        machine      = row.get("machine", "N/A")
-        unite        = row.get("unite", "")
-        horodatage   = row.get("horodatage_max")
+        machine = row.get("machine", "N/A")
+        unite = row.get("unite", "")
+        horodatage = row.get("horodatage_max")
 
         for key, rule in CAPTEUR_THRESHOLDS.items():
             if key.lower() in param.lower():
@@ -1298,8 +1309,6 @@ def detect_capteur_alertes(df: pd.DataFrame) -> list[dict]:
     return alertes
 
 
-
-
 def build_capteur_threshold_summary(df: pd.DataFrame) -> list[dict]:
     summaries = []
     if df.empty:
@@ -1328,17 +1337,21 @@ def build_capteur_threshold_summary(df: pd.DataFrame) -> list[dict]:
 
         coverage_pct = round((len(param_df) / max_rows) * 100, 1) if max_rows else 0.0
 
-        max_observed = float(param_df["val_max"].max()) if param_df["val_max"].notna().any() else None
-        min_observed = float(param_df["val_min"].min()) if param_df["val_min"].notna().any() else None
+        max_observed = float(param_df["val_max"].max()
+                             ) if param_df["val_max"].notna().any() else None
+        min_observed = float(param_df["val_min"].min()
+                             ) if param_df["val_min"].notna().any() else None
 
         max_breach_rate = None
         min_breach_rate = None
 
         if "max" in rule:
-            max_breach_rate = round(float((param_df["val_max"] > float(rule["max"])).mean() * 100), 2)
+            max_breach_rate = round(
+                float((param_df["val_max"] > float(rule["max"])).mean() * 100), 2)
 
         if "min" in rule:
-            min_breach_rate = round(float((param_df["val_min"] < float(rule["min"])).mean() * 100), 2)
+            min_breach_rate = round(
+                float((param_df["val_min"] < float(rule["min"])).mean() * 100), 2)
 
         breach_candidates = [v for v in [max_breach_rate, min_breach_rate] if v is not None]
         worst_breach_rate = max(breach_candidates) if breach_candidates else 0.0
@@ -1501,7 +1514,6 @@ def _sanitize_capteur_series(df_param: pd.DataFrame) -> pd.DataFrame:
     return df_param
 
 
-
 @app.get("/gmao/evolution/{parametre}")
 def gmao_evolution(parametre: str):
     try:
@@ -1518,7 +1530,8 @@ def gmao_evolution(parametre: str):
         df_param = _sanitize_capteur_series(df_param)
 
         if df_param.empty:
-            raise HTTPException(status_code=404, detail=f"Aucune mesure exploitable pour '{parametre}'")
+            raise HTTPException(
+                status_code=404, detail=f"Aucune mesure exploitable pour '{parametre}'")
 
         filtered_count = raw_count - len(df_param)
 
@@ -1533,13 +1546,15 @@ def gmao_evolution(parametre: str):
         df_resampled.columns = ["horodatage", "val_moy"]
 
         if df_resampled.empty:
-            raise HTTPException(status_code=404, detail=f"Aucune série horaire exploitable pour '{parametre}'")
+            raise HTTPException(
+                status_code=404, detail=f"Aucune série horaire exploitable pour '{parametre}'")
 
         unite = df_param["unite"].iloc[0] if "unite" in df_param.columns else ""
 
         # Stats descriptives
         mu = float(df_resampled["val_moy"].mean())
-        sigma = float(df_resampled["val_moy"].std()) if pd.notna(df_resampled["val_moy"].std()) else 0.0
+        sigma = float(df_resampled["val_moy"].std()) if pd.notna(
+            df_resampled["val_moy"].std()) else 0.0
         last_value = float(df_resampled["val_moy"].iloc[-1])
 
         # Seuils métier si connus, sinon fallback statistique
@@ -1736,13 +1751,20 @@ def gmao_timeseries(
         if resample == "auto":
             span_min = (df_p["horodatage"].max() - df_p["horodatage"].min()).total_seconds() / 60
             target_min = max(1, span_min / max_points)
-            if target_min < 2:     resample = "1min"
-            elif target_min < 7:   resample = "5min"
-            elif target_min < 20:  resample = "15min"
-            elif target_min < 60:  resample = "30min"
-            elif target_min < 180: resample = "1h"
-            elif target_min < 720: resample = "6h"
-            else:                  resample = "1D"
+            if target_min < 2:
+                resample = "1min"
+            elif target_min < 7:
+                resample = "5min"
+            elif target_min < 20:
+                resample = "15min"
+            elif target_min < 60:
+                resample = "30min"
+            elif target_min < 180:
+                resample = "1h"
+            elif target_min < 720:
+                resample = "6h"
+            else:
+                resample = "1D"
 
         df_p = df_p.set_index("horodatage")
         agg = df_p.resample(resample).agg(
@@ -1789,8 +1811,10 @@ def gmao_timeseries(
 
         alerte_active = False
         if last_value is not None:
-            if seuils["max"] is not None and last_value > seuils["max"]: alerte_active = True
-            if seuils["min"] is not None and last_value < seuils["min"]: alerte_active = True
+            if seuils["max"] is not None and last_value > seuils["max"]:
+                alerte_active = True
+            if seuils["min"] is not None and last_value < seuils["min"]:
+                alerte_active = True
 
         unite = df_p["unite"].iloc[0] if "unite" in df_p.columns and not df_p["unite"].dropna().empty else ""
 
@@ -1945,6 +1969,7 @@ Règles :
 # APPEL LLM
 # ─────────────────────────────────────────────────────────────
 
+
 def get_llm_client() -> OpenAI:
     if not OPENROUTER_API_KEY:
         raise HTTPException(status_code=503, detail="OPENROUTER_API_KEY manquante")
@@ -1979,6 +2004,7 @@ def ask_status():
         "status": "ok" if key_ok else "error",
         "message": "OpenRouter prêt" if key_ok else "OPENROUTER_API_KEY manquante dans le fichier .env",
     }
+
 
 @app.post("/ask")
 def ask(req: AskRequest):
@@ -2022,16 +2048,16 @@ def ask(req: AskRequest):
             # Détecter les erreurs courantes et donner un message clair
             if "401" in err_str or "Unauthorized" in err_str or "Invalid API key" in err_str:
                 raise HTTPException(status_code=401,
-                    detail="Clé OPENROUTER_API_KEY invalide ou expirée. Vérifiez votre clé sur openrouter.ai")
+                                    detail="Clé OPENROUTER_API_KEY invalide ou expirée. Vérifiez votre clé sur openrouter.ai")
             if "402" in err_str or "insufficient" in err_str.lower() or "credits" in err_str.lower():
                 raise HTTPException(status_code=402,
-                    detail="Crédit OpenRouter insuffisant. Rechargez votre compte sur openrouter.ai")
+                                    detail="Crédit OpenRouter insuffisant. Rechargez votre compte sur openrouter.ai")
             if "429" in err_str or "rate" in err_str.lower():
                 raise HTTPException(status_code=429,
-                    detail="Limite de requêtes OpenRouter atteinte. Attendez quelques secondes.")
+                                    detail="Limite de requêtes OpenRouter atteinte. Attendez quelques secondes.")
             if "Connection" in err_str or "timeout" in err_str.lower() or "network" in err_str.lower():
                 raise HTTPException(status_code=503,
-                    detail="Impossible de contacter OpenRouter. Vérifiez votre connexion internet.")
+                                    detail="Impossible de contacter OpenRouter. Vérifiez votre connexion internet.")
             raise HTTPException(status_code=500, detail=f"Erreur LLM : {err_str[:300]}")
 
         if not answer or not answer.strip():
@@ -2053,7 +2079,8 @@ def ask(req: AskRequest):
         pdf_images = []
         if wants_images:
             try:
-                pdf_images = extract_images_for_sources(sources, query=req.question, max_images=3) or []
+                pdf_images = extract_images_for_sources(
+                    sources, query=req.question, max_images=3) or []
                 _logger.info(f"[ASK] {len(pdf_images)} images PDF extraites (demande explicite)")
             except Exception as e_img:
                 _logger.warning(f"[ASK] images PDF ignorées: {e_img}")
@@ -2130,13 +2157,10 @@ Contexte GMAO : {req.gmao_context or 'Aucun'}
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Erreur diagnostic : {str(e)[:400]}")
 
-import joblib
-import json
 
 # ─────────────────────────────────────────────────────────────
 # ANOMALY DETECTION — Isolation Forest
 # ─────────────────────────────────────────────────────────────
-
 MODELS_DIR = BASE_DIR / "models"
 
 
@@ -2189,7 +2213,8 @@ def gmao_anomaly_results():
                 "is_anomaly": int(row["is_anomaly"]),
             })
 
-        training_start = df["Heure_round"].min().strftime("%Y-%m-%d %H:%M") if not df.empty else None
+        training_start = df["Heure_round"].min().strftime(
+            "%Y-%m-%d %H:%M") if not df.empty else None
         training_end = df["Heure_round"].max().strftime("%Y-%m-%d %H:%M") if not df.empty else None
 
         return {
@@ -2222,13 +2247,13 @@ def predict_anomaly(data: dict):
     Body: {"valeurs": [temp_liq, temp_ech_d, temp_ech_g, temp_conv, pression_huile, regime]}
     """
     try:
-        model_path  = MODELS_DIR / "isolation_forest.pkl"
+        model_path = MODELS_DIR / "isolation_forest.pkl"
         scaler_path = MODELS_DIR / "scaler.pkl"
 
         if not model_path.exists():
             raise HTTPException(status_code=404, detail="Modèle non trouvé")
 
-        model  = joblib.load(model_path)
+        model = joblib.load(model_path)
         scaler = joblib.load(scaler_path)
 
         valeurs = data.get("valeurs", [])
@@ -2240,7 +2265,7 @@ def predict_anomaly(data: dict):
 
         X = scaler.transform([valeurs])
         prediction = model.predict(X)[0]
-        score      = float(model.decision_function(X)[0])
+        score = float(model.decision_function(X)[0])
 
         is_anomaly = bool(prediction == -1)
 

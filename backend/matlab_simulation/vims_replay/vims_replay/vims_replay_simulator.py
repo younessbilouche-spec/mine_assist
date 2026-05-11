@@ -58,7 +58,7 @@ def load_sensors() -> dict:
 # =============================================================================
 def cycle_chargeur(t: float) -> dict:
     """Renvoie un dict des etats moteur a l'instant t (s).
-    
+
     Cycle de 60 s pour un chargeur 994F :
       0-10 s  : idle (regime bas, pas de charge hydraulique)
       10-15 s : reprise moteur (montee en regime)
@@ -70,36 +70,36 @@ def cycle_chargeur(t: float) -> dict:
     phase = (t % 60.0) / 60.0
     if phase < 10/60:
         # idle
-        rpm_norm  = 0.10  # ~750 rpm
+        rpm_norm = 0.10  # ~750 rpm
         load_norm = 0.05
-        hyd_norm  = 0.02
+        hyd_norm = 0.02
     elif phase < 15/60:
         # reprise
         x = (phase - 10/60) / (5/60)
-        rpm_norm  = 0.10 + x * 0.55  # 750 -> 1450 rpm
+        rpm_norm = 0.10 + x * 0.55  # 750 -> 1450 rpm
         load_norm = 0.05 + x * 0.35
-        hyd_norm  = 0.02 + x * 0.55
+        hyd_norm = 0.02 + x * 0.55
     elif phase < 30/60:
         # creusage : pic haute pression hydraulique (~17 MPa)
         # Seuil OCP 6 : pendant rpm > 1500, P_hyd doit etre >= 15000 kPa
-        rpm_norm  = 0.85
+        rpm_norm = 0.85
         load_norm = 0.90
-        hyd_norm  = 0.65    # P = 30 + 26000*0.65 = 16930 kPa ✓ seuil OCP
+        hyd_norm = 0.65    # P = 30 + 26000*0.65 = 16930 kPa ✓ seuil OCP
     elif phase < 40/60:
         # pleine charge : maintien hydraulique a regime nominal max
-        rpm_norm  = 0.95
+        rpm_norm = 0.95
         load_norm = 0.95
-        hyd_norm  = 0.62    # P = 30 + 26000*0.62 = 16150 kPa ✓ seuil OCP
+        hyd_norm = 0.62    # P = 30 + 26000*0.62 = 16150 kPa ✓ seuil OCP
     elif phase < 50/60:
         # retour vide (pression baisse)
-        rpm_norm  = 0.55
+        rpm_norm = 0.55
         load_norm = 0.40
-        hyd_norm  = 0.10
+        hyd_norm = 0.10
     else:
         # idle retour
-        rpm_norm  = 0.15
+        rpm_norm = 0.15
         load_norm = 0.15
-        hyd_norm  = 0.04
+        hyd_norm = 0.04
     return {"rpm_norm": rpm_norm, "load_norm": load_norm, "hyd_norm": hyd_norm}
 
 
@@ -125,7 +125,7 @@ class ThermalState:
              C_eau: float = 50e3, C_met: float = 25e3,
              k_off: float = 200.0, k_on: float = 1800.0):
         """Avance les noeuds thermiques d'un pas dt (s).
-        
+
         ventilo_eff : 0..1, multiplie l'efficacite k_on (en cas de defaut).
         """
         # Hysteresis ventilo 82/85 (seuils MineAssist)
@@ -142,10 +142,10 @@ class ThermalState:
         # Puissance dissipee dans l'eau, fonction de la charge moteur
         P_diss = 8000.0 + 22000.0 * load_norm  # 8 kW idle -> 30 kW pleine charge
 
-        q_em  = k_em  * (self.T_eau - self.T_met)
+        q_em = k_em * (self.T_eau - self.T_met)
         q_air = k_air * (self.T_met - T_amb)
         self.T_eau += dt * (P_diss - q_em) / C_eau
-        self.T_met += dt * (q_em - q_air)   / C_met
+        self.T_met += dt * (q_em - q_air) / C_met
 
         # Autres temperatures (1er ordre vers cible_charge)
         # PTO avant
@@ -187,7 +187,7 @@ class SimulatorConfig:
 
 def simulate(cfg: SimulatorConfig) -> tuple[list, list]:
     """Lance la simulation et renvoie (timestamps, samples).
-    
+
     samples est une liste de dicts avec une cle par capteur (nom exact VIMS).
     """
     rng = np.random.default_rng(cfg.seed)
@@ -216,13 +216,13 @@ def simulate(cfg: SimulatorConfig) -> tuple[list, list]:
         ts = t0 + timedelta(seconds=int(t))
         # ===== Cycle moteur =====
         c = cycle_chargeur(t)
-        rpm_norm  = c["rpm_norm"]
+        rpm_norm = c["rpm_norm"]
         load_norm = c["load_norm"]
-        hyd_norm  = c["hyd_norm"]
+        hyd_norm = c["hyd_norm"]
 
         # ===== Defauts =====
         ventilo_eff = 1.0
-        load_extra  = 0.0
+        load_extra = 0.0
         if cfg.fault and t >= cfg.t_fault:
             if cfg.fault == "ventilo_hs":
                 # Degradation lineaire sur 600 s
@@ -385,11 +385,14 @@ def export_xlsx_vims_format(timestamps: list, samples: list, path: Path,
     bold = Font(bold=True, size=14)
     ws["A1"] = "Rapport de diagnostic paramètres"
     ws["A1"].font = bold
-    ws["A3"] = "Enterprise"; ws["B3"] = "Benguérir"
-    ws["A4"] = "Engin"     ; ws["B4"] = engin
+    ws["A3"] = "Enterprise"
+    ws["B3"] = "Benguérir"
+    ws["A4"] = "Engin"
+    ws["B4"] = engin
     ts_min = timestamps[0].strftime("%d.%m.%Y %H:%M:%S")
     ts_max = timestamps[-1].strftime("%d.%m.%Y %H:%M:%S")
-    ws["A5"] = "Intervalle"; ws["B5"] = f"{ts_min} - {ts_max}"
+    ws["A5"] = "Intervalle"
+    ws["B5"] = f"{ts_min} - {ts_max}"
     ws["A6"] = "Paramètres Diagnostic"
     ws["B6"] = f"{len(sensors['capteurs'])} objet"
 
@@ -416,7 +419,7 @@ def export_xlsx_vims_format(timestamps: list, samples: list, path: Path,
         for s in sensors["capteurs"]:
             nom = s["nom"]
             unite = s["unite"]
-            code  = s["code"]
+            code = s["code"]
             vals = [sample[nom] for sample in samples[i0:i1]]
             # Pour les binaires, valeur entiere
             if s["type"] in ("binaire", "compteur_defaut"):
@@ -444,7 +447,8 @@ def export_xlsx_vims_format(timestamps: list, samples: list, path: Path,
     ws.column_dimensions["D"].width = 20
 
     wb.save(path)
-    print(f"[ok] Excel VIMS ecrit -> {path} ({nwin} snapshots x {len(sensors['capteurs'])} capteurs)")
+    print(
+        f"[ok] Excel VIMS ecrit -> {path} ({nwin} snapshots x {len(sensors['capteurs'])} capteurs)")
 
 
 # =============================================================================
@@ -461,7 +465,7 @@ def _cycle_phase_replay(t: float) -> str:
     if phase < 30/60:
         return "creusage"      # 15-30s
     if phase < 40/60:
-        return "pleine charge" # 30-40s
+        return "pleine charge"  # 30-40s
     if phase < 50/60:
         return "vidage"        # 40-50s
     return "retour"            # 50-60s
@@ -605,7 +609,8 @@ def main():
     p.add_argument("--csv",  default="", help="Fichier CSV de sortie (1 Hz)")
     p.add_argument("--xlsx", default="", help="Fichier Excel format VIMS (snapshot 2 min)")
     p.add_argument("--post", default="", help="URL backend (envoi temps reel)")
-    p.add_argument("--speed", type=float, default=1.0, help="Multiplicateur vitesse (post seulement)")
+    p.add_argument("--speed", type=float, default=1.0,
+                   help="Multiplicateur vitesse (post seulement)")
     p.add_argument("--seed",  type=int, default=42, help="Seed du RNG")
     args = p.parse_args()
 
