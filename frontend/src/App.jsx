@@ -20,6 +20,7 @@ import MaintenanceHistoryDashboard from "./pages/MaintenanceHistoryDashboard"
 import DiagnosePageV2 from "./pages/DiagnosePage"
 import AskPageV2 from "./pages/AskPageV2"
 import MLHealthHistoryPage from "./pages/MLHealthHistoryPage"
+import MLInsightsPage from "./pages/MLInsightsPage"
 
 
 import { API, C } from "./config"
@@ -1051,6 +1052,7 @@ const TABS = [
   { id:"alertes_ocp",icon:"🚨", label:"Alertes & Plan",      shortLabel:"Alertes" },
   { id:"executive_report",icon:"📄", label:"Rapport Exécutif",          shortLabel:"Rapport" },
   { id:"historique", icon:"📚", label:"Historique Maintenance", shortLabel:"Historique"  },
+  { id:"ml_insights", icon:"💡", label:"ML Insights",            shortLabel:"Insights" },
 ]
 
 export default function App() {
@@ -1188,6 +1190,7 @@ export default function App() {
                 {activeTab === "live_sim" && <LiveSimulationDashboard />}
                 {activeTab === "alertes_ocp" && <AlertesPage apiFetch={apiFetch} />}
                 {activeTab === "historique" && <MaintenanceHistoryDashboard apiFetch={apiFetch} />}
+                {activeTab === "ml_insights" && <MLInsightsPage apiFetch={apiFetch} />}
               </>
             )}
           </div>

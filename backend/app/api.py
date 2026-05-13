@@ -16,6 +16,9 @@ from pathlib import Path
 from typing import List, Optional, Any
 from app.routers.export_router import router as export_router
 from app.routers.ml_router import router as ml_router
+from app.routers.ml_improvements import router as ml_v6_router
+
+
 from app.oil_analysis_router import router as oil_router
 from datetime import datetime, timedelta
 from app.sim_router import sim_router
@@ -136,6 +139,7 @@ app.include_router(oil_router)
 app.include_router(sim_router)
 app.include_router(ocp_router, prefix="/pred", tags=["Maintenance Prédictive — XGBoost + RF"])
 app.include_router(history_router)
+app.include_router(ml_v6_router, prefix="/ml", tags=["ML v6 — Insights"])
 
 from app.routers.inference import get_predictor
 @app.on_event("startup")
