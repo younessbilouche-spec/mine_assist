@@ -18,5 +18,5 @@ ocp_router.include_router(defaut.router,     tags=["OCP - Défauts"])
 ocp_router.include_router(health.router,     tags=["OCP - Santé"])
 # ocp_router.include_router(prediction.router, tags=["OCP - Prédiction"]) # Désactivé
 ocp_router.include_router(alertes.router,    tags=["OCP - Alertes"])
-# ── Nouveau : Prédiction RUL via XGBoost + RandomForest (PFE 2025) ──────────
-# ocp_router.include_router(rul_router, prefix="/rul", tags=["OCP - RUL XGBoost"]) # Désactivé
+# ── Prédiction RUL via XGBoost + RandomForest ────────────────────────────────
+ocp_router.include_router(rul_router, prefix="/rul", tags=["OCP - RUL XGBoost"])
