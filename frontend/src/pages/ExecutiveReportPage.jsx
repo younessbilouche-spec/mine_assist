@@ -1,11 +1,7 @@
 import { useCallback, useState } from "react"
-import { API } from "../config"
+import { API , C} from "../config"
 
-const C = {
-  card: "#FFFDF8", bg: "#F7F2E6", dark: "#12372A", text: "#1E2A24", muted: "#6B7280",
-  border: "#E3D8C4", green: "#00843D", orange: "#C4760A", red: "#B91C1C",
-  greenPale: "#E8F5EE", orangePale: "#FFF4E5", redPale: "#FEE2E2",
-}
+
 
 function tokenHeaders() {
   const token =

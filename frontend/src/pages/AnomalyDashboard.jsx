@@ -5,28 +5,9 @@ import {
   CartesianGrid, Tooltip, Legend, ResponsiveContainer,
   ReferenceLine
 } from "recharts"
-import { API } from "../config"
+import { API , C} from "../config"
 
-const C = {
-  bg:        "#F5F0E8",
-  bgCard:    "rgba(255,253,248,0.92)",
-  border:    "#D4C9B0",
-  green:     "#00843D",
-  greenLt:   "#00A84F",
-  greenDark: "#005C2B",
-  greenPale: "#E8F5EE",
-  orange:    "#C4760A",
-  orangePale:"#FDF3E3",
-  sand:      "#C9A84C",
-  sandPale:  "#F7F0DC",
-  text:      "#2A2A1E",
-  textMid:   "#5A5240",
-  textMuted: "#8A7D60",
-  textLight: "#B0A080",
-  danger:    "#C0392B",
-  dangerPale:"#FDECEA",
-  ok:        "#00843D",
-}
+
 
 function Card({ children, style }) {
   return (

@@ -21,7 +21,7 @@ import { API } from "../config"
 //     parametres={data.parametres}
 //     anomalyPoints={data.anomaly_points}
 //     timelinePoints={data.timeline}
-//     apiUrl={API_URL}
+//     apiUrl={API}
 //   />
 //
 // Le composant s'occupe de TOUT : appel /gmao/predict-anomaly, état des

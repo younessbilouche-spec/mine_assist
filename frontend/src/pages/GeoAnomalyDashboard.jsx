@@ -20,33 +20,12 @@ import {
 import L from "leaflet"
 import "leaflet/dist/leaflet.css"
 import "leaflet.heat"
-import { API } from "../config"
+import { API , C} from "../config"
 
-// ── À MIGRER : remplacer par `import { API, C } from "../config"` ────────────
-const API_URL = API
+// ── À MIGRER : remplacer par `import { API, C , C} from "../config"` ────────────
 const TARGET_MACHINE = "994F-1"
 
-const C = {
-  bg: "#F5F0E8",
-  bgCard: "rgba(255,253,248,0.96)",
-  bgSoft: "#FBF7EF",
-  border: "#D4C9B0",
-  borderSoft: "#E8DEC9",
-  green: "#00843D",
-  greenLt: "#00A84F",
-  greenDark: "#005C2B",
-  greenPale: "#E8F5EE",
-  orange: "#C4760A",
-  orangePale: "#FDF3E3",
-  red: "#C0392B",
-  redPale: "#FDECEA",
-  sand: "#C9A84C",
-  sandPale: "#F7F0DC",
-  text: "#2A2A1E",
-  textMid: "#5A5240",
-  textMuted: "#8A7D60",
-  textLight: "#B0A080",
-}
+
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 const toNum = (v, fallback = 0) => {
@@ -469,7 +448,7 @@ export default function GeoAnomalyDashboard() {
     let cancelled = false
     setLoading(true); setError("")
     const params = new URLSearchParams({ machine: TARGET_MACHINE })
-    fetch(`${API_URL}/gmao/geo-anomalies?${params}`)
+    fetch(`${API}/gmao/geo-anomalies?${params}`)
       .then(async res => {
         const json = await res.json().catch(() => null)
         if (!res.ok) throw new Error(json?.detail || `Erreur API ${res.status}`)

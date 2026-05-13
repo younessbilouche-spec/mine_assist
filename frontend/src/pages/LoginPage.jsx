@@ -1,20 +1,8 @@
 import { useState } from "react"
 import ocpLogo from "../assets/ocp-logo.png"
+import { C } from "../config"
 
-const C = {
-  bg: "#F7F2E6",
-  card: "#FFFDF8",
-  dark: "#12372A",
-  text: "#1E2A24",
-  muted: "#7C7366",
-  border: "#E3D8C4",
-  green: "#00843D",
-  greenDark: "#006B31",
-  gold: "#C4760A",
-  red: "#B91C1C",
-  redPale: "#FEE2E2",
-  greenPale: "#E8F5EE",
-}
+
 
 
 function OcpLogo({ compact = false }) {
@@ -147,7 +135,7 @@ export default function LoginPage({ onLogin }) {
               <div style={{ fontSize: 11, letterSpacing: 4, color: "#F8D08C", fontWeight: 900, textTransform: "uppercase", marginBottom: 14 }}>Plateforme industrielle</div>
               <h1 style={{ fontFamily: "Georgia, serif", fontSize: 48, lineHeight: 1.05, margin: 0 }}>Pilotage maintenance 360°</h1>
               <p style={{ fontSize: 16, lineHeight: 1.7, opacity: .84, marginTop: 18 }}>
-                Surveillance capteurs, diagnostic assisté, analyse huiles, prédiction RUL (XGBoost) et plan d'action pour la chargeuse CAT 994F.
+                Surveillance capteurs, diagnostic assisté, analyse huiles, Health Score (Isolation Forest) et plan d'action pour la chargeuse CAT 994F.
               </p>
             </div>
           </div>
@@ -155,7 +143,7 @@ export default function LoginPage({ onLogin }) {
           <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 12 }}>
             {[
               ["IA", "Diagnostic"],
-              ["RUL", "XGBoost"],
+              ["IA", "Health Score"],
               ["OKSA", "Huiles"],
             ].map(([k, v]) => (
               <div key={k} style={{ border: "1px solid rgba(255,255,255,.20)", borderRadius: 14, padding: 14, background: "rgba(255,255,255,.08)", backdropFilter: "blur(10px)" }}>

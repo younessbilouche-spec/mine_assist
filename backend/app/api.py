@@ -132,21 +132,26 @@ ALLOW_ALL_ORIGINS = "*" in ALLOWED_ORIGINS
 
 app = FastAPI(title=APP_NAME)
 app.include_router(export_router, prefix="/export", tags=["Export PDF"])
-app.include_router(ml_router, prefix="/ml", tags=["Machine Learning"])
+app.include_router(ml_router, prefix="/ml", tags=["ML — Health Score & Anomaly Detection"])
 app.include_router(auth_router)
 app.include_router(notifications_router)
 app.include_router(oil_router)
 app.include_router(sim_router)
+# L'ancienne API XGBoost/RF est désactivée pour alléger le backend
+from app.ocp.router import ocp_router
 app.include_router(ocp_router, prefix="/pred", tags=["Maintenance Prédictive — XGBoost + RF"])
 app.include_router(history_router)
 app.include_router(ml_v6_router, prefix="/ml", tags=["ML v6 — Insights"])
+
+from app.routers.multi_agent_router import multi_agent_router
+app.include_router(multi_agent_router)
 
 from app.routers.inference import get_predictor
 @app.on_event("startup")
 async def startup_ml():
     try:
-        get_predictor(str(BASE_DIR / "models"))
-        print("✅ Predictor ML chargé")
+        # get_predictor(str(BASE_DIR / "models")) # Désactivé : anciens modèles
+        print("✅ Predictor ML désactivé (allégement du démarrage)")
     except Exception as e:
         print(f"⚠️  Predictor ML non disponible (lancer pipeline_ml.py) : {e}")
 # ── Sprint 1 + 2 (mai 2026) — modules additifs ──────────────────────────────
@@ -166,9 +171,9 @@ except Exception as _e:
 
 # ── Sprint 3 (mai 2026) — Explicabilité + Métriques ─────────────────────────
 try:
-    from app.explain_router import explain_router
-    app.include_router(explain_router)
-    print("[OK] explain_router (SHAP + drift + anomaly explain) chargé.")
+    # from app.explain_router import explain_router
+    # app.include_router(explain_router)
+    print("[SKIP] explain_router (SHAP) désactivé car basé sur XGBoost.")
 except Exception as _e:
     print(f"[WARN] explain_router non chargé : {_e}")
 
@@ -214,8 +219,8 @@ class DiagnoseRequest(BaseModel):
 def startup_event():
     # Charger les modèles XGBoost + RF au démarrage
     try:
-        load_rul_models()
-        print("[OK] Modèles XGBoost + RandomForest chargés.")
+        # load_rul_models() # Désactivé pour accélérer le démarrage
+        print("[SKIP] Modèles XGBoost + RandomForest désactivés au démarrage.")
     except Exception as e:
         print(f"[WARN] Modèles RUL non disponibles : {e}")
 

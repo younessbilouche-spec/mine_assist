@@ -22,7 +22,7 @@ try:
     OCR_AVAILABLE = True
 except ImportError:
     OCR_AVAILABLE = False
-    print("⚠️ OCR non disponible — pip install pytesseract pdf2image")
+    print("[WARN] OCR non disponible — pip install pytesseract pdf2image")
 
 # ── DOCX optionnel ──────────────────────────────────────────────────────────
 try:
@@ -30,7 +30,7 @@ try:
     DOCX_AVAILABLE = True
 except ImportError:
     DOCX_AVAILABLE = False
-    print("⚠️ python-docx non installé — pip install python-docx")
+    print("[WARN] python-docx non installé — pip install python-docx")
 
 # ── PPTX optionnel ──────────────────────────────────────────────────────────
 try:
@@ -38,7 +38,7 @@ try:
     PPTX_AVAILABLE = True
 except ImportError:
     PPTX_AVAILABLE = False
-    print("⚠️ python-pptx non installé — pip install python-pptx")
+    print("[WARN] python-pptx non installé — pip install python-pptx")
 
 # ── ChromaDB + embeddings ───────────────────────────────────────────────────
 try:
@@ -47,7 +47,7 @@ try:
     CHROMA_AVAILABLE = True
 except ImportError:
     CHROMA_AVAILABLE = False
-    print("⚠️ chromadb non installé — fallback lexical activé")
+    print("[WARN] chromadb non installé — fallback lexical activé")
 
 CHROMA_PATH = DATA_DIR / "chroma_db"
 EMBEDDING_MODEL = "paraphrase-multilingual-MiniLM-L12-v2"
@@ -74,7 +74,7 @@ class RAGEngine:
         ]:
             if Path(p).exists():
                 pytesseract.pytesseract.tesseract_cmd = p
-                print(f"✅ Tesseract détecté : {p}")
+                print(f"[OK] Tesseract détecté : {p}")
                 return
 
     def _init_chroma(self):
@@ -91,9 +91,9 @@ class RAGEngine:
                 embedding_function=ef,
                 metadata={"hnsw:space": "cosine"},
             )
-            print(f"✅ ChromaDB initialisé ({self.collection.count()} chunks existants)")
+            print(f"[OK] ChromaDB initialisé ({self.collection.count()} chunks existants)")
         except Exception as e:
-            print(f"⚠️ Erreur ChromaDB : {e} — fallback lexical activé")
+            print(f"[WARN] Erreur ChromaDB : {e} — fallback lexical activé")
             self.chroma_client = None
             self.collection = None
 
@@ -206,7 +206,7 @@ class RAGEngine:
             ocr_text_len = len(" ".join(t for t, _ in ocr_pages).strip())
             if ocr_text_len > extracted_text_len:
                 pages = ocr_pages
-                print(f"ℹ️ OCR retenu pour {Path(path).name}")
+                print(f"[INFO] OCR retenu pour {Path(path).name}")
 
         return pages
 
@@ -472,7 +472,7 @@ class RAGEngine:
 
     def load_documents_from_folder(self, folder_path: Path, allowed_extensions: List[str]):
         if not folder_path.exists():
-            print(f"⚠️ Dossier introuvable : {folder_path}")
+            print(f"[WARN] Dossier introuvable : {folder_path}")
             return
 
         # Scan récursif : inclut les sous-dossiers (gmao/capteurs/, gmao/anomalies/, etc.)
@@ -489,17 +489,17 @@ class RAGEngine:
                 if ext == ".pdf":
                     pages = self.load_pdf(str(file_path))
                     self._add_chunks(pages, name, "pdf")
-                    print(f"📄 PDF : {name} ({len(pages)} pages)")
+                    print(f"[DOC] PDF : {name} ({len(pages)} pages)")
 
                 elif ext == ".docx":
                     sections = self.load_docx(str(file_path))
                     self._add_chunks(sections, name, "docx")
-                    print(f"📝 DOCX : {name} ({len(sections)} sections)")
+                    print(f"[DOC] DOCX : {name} ({len(sections)} sections)")
 
                 elif ext in [".pptx", ".ppt"]:
                     slides = self.load_pptx(str(file_path))
                     self._add_chunks(slides, name, "pptx")
-                    print(f"📊 PPTX : {name} ({len(slides)} diapositives)")
+                    print(f"[STATS] PPTX : {name} ({len(slides)} diapositives)")
 
                 elif ext in [".xlsx", ".xls"]:
                     text = self.load_excel(str(file_path))
@@ -512,7 +512,7 @@ class RAGEngine:
                             "page": 0,
                             "type": "excel",
                         })
-                    print(f"📈 Excel : {name} ({len(chunks)} chunks)")
+                    print(f"[STATS] Excel : {name} ({len(chunks)} chunks)")
 
                 elif ext == ".csv":
                     text = self.load_csv(str(file_path))
@@ -525,7 +525,7 @@ class RAGEngine:
                             "page": 0,
                             "type": "csv",
                         })
-                    print(f"📄 CSV : {name} ({len(chunks)} chunks)")
+                    print(f"[DOC] CSV : {name} ({len(chunks)} chunks)")
 
             except Exception as e:
                 print(f"Erreur lecture fichier {file_path.name}: {e}")
@@ -540,7 +540,7 @@ class RAGEngine:
         self.load_documents_from_folder(SCHEMAS_DIR, [".pdf", ".docx", ".pptx", ".ppt"])
         self.load_documents_from_folder(FAULT_CODES_DIR, [".pdf", ".docx", ".xlsx", ".xls", ".csv"])
 
-        print(f"📚 Total : {len(self.documents)} chunks de {len(set(self.sources))} sources")
+        print(f"[TOTAL] Total : {len(self.documents)} chunks de {len(set(self.sources))} sources")
 
     def index_all(self):
         self.load_documents()
@@ -570,9 +570,9 @@ class RAGEngine:
                         ids=new_ids[start:start + batch_size],
                         metadatas=new_metas[start:start + batch_size],
                     )
-                print(f"✅ {len(new_docs)} nouveaux chunks indexés dans ChromaDB")
+                print(f"[OK] {len(new_docs)} nouveaux chunks indexés dans ChromaDB")
             else:
-                print("ℹ️ Aucun nouveau document à indexer")
+                print("[INFO] Aucun nouveau document à indexer")
 
         return {
             "documents_indexed": len(self.documents),
@@ -772,7 +772,7 @@ class RAGEngine:
             return [(doc, meta) for _, doc, meta in matched[:3]]
 
         except Exception as e:
-            print(f"⚠️ Erreur requête Excel ChromaDB : {e}")
+            print(f"[WARN] Erreur requête Excel ChromaDB : {e}")
             return []
 
     def build_context(self, query: str, top_k: int = 10, max_chars: int = 6000) -> Tuple[str, List[str]]:
@@ -796,9 +796,9 @@ class RAGEngine:
             excel_chunks = self._get_excel_capteur_chunks_from_chroma(query)
             if excel_chunks:
                 print(
-                    f"📊 Injection Excel capteurs : {len(excel_chunks)} chunk(s) injectés en tête de contexte")
+                    f"[STATS] Injection Excel capteurs : {len(excel_chunks)} chunk(s) injectés en tête de contexte")
             else:
-                print("⚠️ Aucun chunk Excel capteur trouvé dans ChromaDB — vérifier l'indexation")
+                print("[WARN] Aucun chunk Excel capteur trouvé dans ChromaDB — vérifier l'indexation")
 
         # ── Query expansion : ajoute synonymes techniques pour booster le recall ──
         expanded_queries = self._expand_query(query)

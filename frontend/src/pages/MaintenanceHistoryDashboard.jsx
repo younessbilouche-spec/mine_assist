@@ -15,31 +15,10 @@ import {
   BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer,
   CartesianGrid, AreaChart, Area,
 } from "recharts"
-import { API } from "../config"
+import { API , C} from "../config"
 
-const API_URL = API
 
-const C = {
-  bg:         "#F5F0E8",
-  bgGradient: "linear-gradient(135deg, #F5F0E8 0%, #EFE7D5 100%)",
-  card:       "rgba(255,253,248,0.96)",
-  green:      "#00843D",
-  greenLt:    "#00A84F",
-  greenDark:  "#005C2B",
-  greenPale:  "#E8F5EE",
-  sand:       "#C9A84C",
-  sandPale:   "#F7F0DC",
-  red:        "#DC2626",
-  redPale:    "#FEE2E2",
-  orange:     "#F59E0B",
-  orangePale: "#FEF3C7",
-  text:       "#1C1A14",
-  textMid:    "#4A4535",
-  textMuted:  "#8A7D60",
-  border:     "#D4C9B0",
-  borderLt:   "#E8E2D4",
-  shadow:     "0 1px 2px rgba(28,26,20,0.04), 0 4px 12px rgba(28,26,20,0.06)",
-}
+
 
 // Couleurs par catégorie de panne
 const CAT_COLORS = {
@@ -326,7 +305,7 @@ export default function MaintenanceHistoryDashboard() {
     setError(null)
 
     // v2 : 1 seul appel agrégé /history/dashboard (avec fallback sur l'ancien)
-    fetch(`${API_URL}/history/dashboard?engin=${engin}&limit=500`)
+    fetch(`${API}/history/dashboard?engin=${engin}&limit=500`)
       .then(r => {
         if (!r.ok) throw new Error(`HTTP ${r.status}`)
         return r.json()
@@ -345,11 +324,11 @@ export default function MaintenanceHistoryDashboard() {
       .catch(() => {
         // Fallback : ancien comportement (5 fetchs en parallèle)
         Promise.all([
-          fetch(`${API_URL}/history/status`).then(r => r.json()).catch(() => null),
-          fetch(`${API_URL}/history/arrets/stats?engin=${engin}`).then(r => r.json()).catch(() => null),
-          fetch(`${API_URL}/history/arrets/types?engin=${engin}`).then(r => r.json()).catch(() => null),
-          fetch(`${API_URL}/history/arrets/timeline?engin=${engin}`).then(r => r.json()).catch(() => null),
-          fetch(`${API_URL}/history/arrets/list?engin=${engin}&limit=200`).then(r => r.json()).catch(() => null),
+          fetch(`${API}/history/status`).then(r => r.json()).catch(() => null),
+          fetch(`${API}/history/arrets/stats?engin=${engin}`).then(r => r.json()).catch(() => null),
+          fetch(`${API}/history/arrets/types?engin=${engin}`).then(r => r.json()).catch(() => null),
+          fetch(`${API}/history/arrets/timeline?engin=${engin}`).then(r => r.json()).catch(() => null),
+          fetch(`${API}/history/arrets/list?engin=${engin}&limit=200`).then(r => r.json()).catch(() => null),
         ]).then(([st, sta, ty, tl, ls]) => {
           if (abort) return
           setStatus(st); setStats(sta); setTypes(ty); setTimeline(tl); setList(ls)
@@ -429,7 +408,7 @@ export default function MaintenanceHistoryDashboard() {
               {e === "all" ? "Tous" : `CAT ${e}`}
             </button>
           ))}
-          <a href={`${API_URL}/history/export.xlsx?engin=${engin}`} download
+          <a href={`${API}/history/export.xlsx?engin=${engin}`} download
              style={{
                padding: "10px 16px", fontSize: 11, fontWeight: 800, letterSpacing: 1.5,
                background: C.sand, color: "#FFF", border: `1px solid ${C.sand}`,

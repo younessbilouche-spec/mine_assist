@@ -17,22 +17,16 @@
  */
 
 import React, { useEffect, useState } from 'react'
+import { C } from "../config"
 import {
   RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Radar,
   BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Legend,
   LineChart, Line, CartesianGrid,
 } from 'recharts'
 
-const API = (typeof window !== 'undefined' && window.__API_URL__) || 'http://localhost:8000'
+import { API } from "../config"
 
-const C = {
-  bg:    'var(--bg, #F5F0E1)',
-  card:  'var(--bg-card, #FBF7E9)',
-  fg:    'var(--fg, #3A3025)',
-  fgMuted: 'var(--fg-muted, #6B5E45)',
-  border: 'var(--border, #D4C9B0)',
-  accent: 'var(--accent, #B8842B)',
-}
+
 
 const ENGINE_COLORS = ['#B8842B', '#2A6FB8', '#3F8F3F', '#C0392B', '#9C5BBE']
 const DEFAULT_ENGINS = ['994F1', '994F2', '994F3', '994F4']

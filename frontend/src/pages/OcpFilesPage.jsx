@@ -66,7 +66,7 @@ export default function OcpFilesPage({ apiFetch, onNavigate }) {
         Fichiers Capteurs
         <span style={{ background:'#E8F5EE', border:'1px solid #00A84F55', color:'#00843D', borderRadius:99, padding:'6px 16px', fontSize:14, fontWeight:700, letterSpacing:'1px' }}>MAINTENANCE 4.0</span>
       </h1>
-      <p className="page-subtitle" style={{ color:'#8A7D60' }}>Importez un seul fichier Excel capteurs; il alimente ensuite Défauts, Santé, Prédiction RUL et Alertes.</p>
+      <p className="page-subtitle" style={{ color:'#8A7D60' }}>Importez un seul fichier Excel capteurs; il alimente ensuite Défauts, Santé et Alertes.</p>
 
       {error && <div style={{ background:'#FDECEA', border:'1px solid #C0392B55', borderRadius:10, padding:'12px 18px', color:'#C0392B', fontSize:13, marginBottom:24, fontWeight:600 }}>{error}</div>}
 
@@ -145,7 +145,7 @@ export default function OcpFilesPage({ apiFetch, onNavigate }) {
         <div style={{ display:'flex', gap:12, justifyContent:'center', marginTop:28 }}>
           <button onClick={() => onNavigate?.('ocp_defaut')} className="btn btn-outline">⚠ Analyser les défauts</button>
           <button onClick={() => onNavigate?.('ocp_sante')} className="btn btn-outline">❤ Santé engin</button>
-          <button onClick={() => onNavigate?.('prediction')} className="btn btn-primary">📈 Prédiction RUL →</button>
+          <button onClick={() => onNavigate?.('alertes_ocp')} className="btn btn-primary">🚨 Voir les Alertes →</button>
         </div>
       )}
 

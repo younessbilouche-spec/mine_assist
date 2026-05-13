@@ -16,22 +16,56 @@ export const API = import.meta.env.VITE_API_URL ?? "http://127.0.0.1:8000"
 // ── Thème OCP — source unique de vérité ──────────────────────────────────────
 // Remplace les dizaines de `const C = { bg: "#F5F0E8", ... }` répétés
 export const C = {
+  // Backgrounds
   bg:         "#F5F0E8",
   bgCard:     "rgba(255,253,248,0.92)",
   bgSidebar:  "rgba(248,244,236,0.97)",
+  bgGradient: "linear-gradient(145deg, #F7F2E6 0%, #EDE5D0 40%, #E8DFC8 100%)",
+  card:       "#FFFDF8",
+
+  // Borders
   border:     "#D4C9B0",
+  borderLight:"#E3D8C4",
+  borderLt:   "#E8E2D4",
+  borderSoft: "#EDE5D5",
+
+  // Greens
   green:      "#00843D",
   greenLt:    "#00A84F",
   greenDark:  "#005C2B",
   greenPale:  "#E8F5EE",
+
+  // OCP brand
   orange:     "#C4760A",
   orangePale: "#FDF3E3",
+  gold:       "#C4760A",
   sand:       "#C9A84C",
   sandPale:   "#F7F0DC",
+  dark:       "#12372A",
+
+  // Status colors
+  amber:      "#D97706",
+  amberPale:  "#FEF3C7",
+  red:        "#B91C1C",
+  redPale:    "#FEE2E2",
+  blue:       "#2563EB",
+  bluePale:   "#DBEAFE",
+
+  // Text
   text:       "#2A2A1E",
   textMid:    "#5A5240",
   textMuted:  "#8A7D60",
   textLight:  "#B0A080",
+  muted:      "#8A7D60",
+  light:      "#B0A080",
+
+  // Aliases
+  fg:         "#2A2A1E",
+  fgMuted:    "#8A7D60",
+  accent:     "#00843D",
+  shadow:     "0 2px 10px rgba(139,105,20,0.07)",
+
+  // Semantic
   danger:     "#C0392B",
   dangerPale: "#FDECEA",
   ok:         "#00843D",

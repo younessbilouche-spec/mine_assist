@@ -10,6 +10,7 @@
  *            GET /ml/dashboard-summary
  */
 import { useState, useEffect } from 'react'
+import { C } from "../config"
 import {
   AreaChart, Area, BarChart, Bar,
   XAxis, YAxis, CartesianGrid, Tooltip,
@@ -17,13 +18,7 @@ import {
 } from 'recharts'
 import { API } from '../config'
 
-const C = {
-  green: '#00843D', greenPale: '#E8F5EE',
-  orange: '#f59e0b', orangePale: '#FEF3C7',
-  red: '#ef4444', redPale: '#FEE2E2',
-  text: '#2A2A1E', muted: '#8A7D60', light: '#B0A080',
-  border: '#D4C9B0', card: '#FFFDF8', bg: '#F5F0E8',
-}
+
 
 function scoreColor(s) {
   if (s >= 70) return C.green
@@ -270,10 +265,10 @@ export default function MLHealthHistoryPage() {
         background: C.orangePale, border: `1px solid #fde68a`,
         borderRadius: 10, padding: '12px 18px', fontSize: 12, color: '#92400e'
       }}>
-        <strong>Note PFE :</strong> La prédiction supervisée du RUL (XGBoost) a été étudiée
-        sur 4 configurations (AUC ≈ 0.51). Elle est reportée en v2.0 — conditions :
-        ≥ 24 mois de données, annotation GMAO enrichie, capteurs vibratoires.
-        Cette démarche honnête constitue un apport méthodologique du projet.
+        <strong>Note PFE :</strong> Le pipeline ML repose sur le Health Score (seuils CAT),
+        l'Isolation Forest (détection d'anomalies non supervisée) et le K-Means
+        (classification des modes opérationnels). Cette approche non supervisée
+        est adaptée à l'absence de données de panne annotées sur le site OCP Benguerir.
       </div>
 
     </div>

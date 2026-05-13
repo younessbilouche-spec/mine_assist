@@ -98,7 +98,7 @@ function AlerteCard({ alerte, isOpen, onToggle }) {
             fontSize: 9, color: '#B0A080', marginTop: 3,
             textTransform: 'uppercase', letterSpacing: 0.5,
           }}>
-            {alerte.type === 'RUL' ? '📊 IA · XGBoost RUL' : `🔧 ${alerte.type || 'capteur'}`}
+            {alerte.type === 'RUL' ? '📊 IA · Isolation Forest' : `🔧 ${alerte.type || 'capteur'}`}
           </div>
         </div>
         <div style={{ flex: '1 1 200px', minWidth: 0 }}>
@@ -489,7 +489,7 @@ export default function AlertesPage(props) {
                         fontSize: 9, padding: '2px 6px', borderRadius: 8,
                         background: '#F7F0DC', color: '#8C7012',
                         fontWeight: 700, letterSpacing: 0.5,
-                      }}>📊 XGBoost RUL</span>
+                      }}>📊 Isolation Forest</span>
                     )}
                     {data._timing && (
                       <span style={{ marginLeft: 6, color: '#B0A080' }}>

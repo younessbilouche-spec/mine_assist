@@ -1,26 +1,9 @@
 import { useCallback, useEffect, useMemo, useState } from "react"
 import { BarChart, Bar, CartesianGrid, Cell, Legend, Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts"
-import { API } from "../config"
+import { API , C} from "../config"
 import { getOcpAlertes, getOcpEngineHealth, runOcpPrediction, getOcpUploadStatus } from "../services/ocpApi"
 
-const C = {
-  bg: "#F7F2E6",
-  card: "#FFFDF8",
-  dark: "#12372A",
-  text: "#1E2A24",
-  muted: "#6B7280",
-  border: "#E3D8C4",
-  green: "#00843D",
-  greenPale: "#E8F5EE",
-  amber: "#D97706",
-  amberPale: "#FEF3C7",
-  red: "#B91C1C",
-  redPale: "#FEE2E2",
-  blue: "#2563EB",
-  bluePale: "#DBEAFE",
-  orange: "#C4760A",
-  orangePale: "#FFF4E5",
-}
+
 
 function errorText(value) {
   if (value == null) return ""
@@ -180,7 +163,7 @@ export default function MaintenanceExecutiveDashboard({ apiFetch: ocpFetch, onNa
     activeAlerts.slice(0, 6).forEach(a => {
       const urgency = statusRank(a.urgence || a.niveau || a.status || a.etat)
       items.push(rpnItem({
-        source: "Capteurs/XGBoost", equipement: a.capteur || a.composant || a.type || "CAT 994F", mode: a.titre || a.message || a.description || "Alerte active",
+        source: "Capteurs/IF", equipement: a.capteur || a.composant || a.type || "CAT 994F", mode: a.titre || a.message || a.description || "Alerte active",
         cause: a.cause || a.valeur || "Dépassement seuil / probabilité panne", action: a.action || a.recommandation || "Inspecter et appliquer plan OCP",
         gravite: urgency >= 3 ? 5 : urgency === 2 ? 4 : 3, probabilite: urgency >= 3 ? 5 : 4, detectabilite: 2,
         delai: urgency >= 3 ? "Immédiat" : "24-72h", responsable: "Maintenance OCP",
@@ -192,7 +175,7 @@ export default function MaintenanceExecutiveDashboard({ apiFetch: ocpFetch, onNa
       gravite: 4, probabilite: 4, detectabilite: 2, delai: it.delai || it.echeance || "Planifiée", responsable: it.responsable || "Chef maintenance",
     })))
     if (rulProb != null && rulProb >= .25) items.push(rpnItem({
-      source: "XGBoost_RUL", equipement: "CAT 994F", mode: `Probabilité panne ${Math.round(rulProb * 100)}%`, cause: "Signature temporelle anormale", action: "Vérifier capteurs critiques + réduire intervalle inspection",
+      source: "Health Score", equipement: "CAT 994F", mode: `Probabilité panne ${Math.round(rulProb * 100)}%`, cause: "Signature temporelle anormale", action: "Vérifier capteurs critiques + réduire intervalle inspection",
       gravite: rulProb >= .75 ? 5 : 4, probabilite: rulProb >= .75 ? 5 : 4, detectabilite: 3, delai: rulProb >= .75 ? "Immédiat" : "Sous 48h", responsable: "Fiabilité",
     }))
     return items.sort((a, b) => b.rpn - a.rpn).slice(0, 10)
@@ -206,7 +189,7 @@ export default function MaintenanceExecutiveDashboard({ apiFetch: ocpFetch, onNa
       <div>
         <div style={{ fontSize: 11, fontWeight: 900, color: C.orange, letterSpacing: 4, textTransform: "uppercase" }}>MineAssist · Pilotage Maintenance</div>
         <h1 style={{ fontSize: 32, color: C.dark, margin: "4px 0", fontFamily: "Georgia, serif" }}>Vue 360° CAT 994F</h1>
-        <div style={{ color: C.muted, fontSize: 13 }}>Maintenance prédictive · GMAO · Capteurs · XGBoost RUL · Analyse huiles · Aide à la décision</div>
+        <div style={{ color: C.muted, fontSize: 13 }}>Maintenance prédictive · GMAO · Capteurs · Health Score · Analyse huiles · Aide à la décision</div>
       </div>
       <button onClick={load} style={{ border: "none", background: C.green, color: "white", borderRadius: 8, padding: "10px 18px", fontWeight: 900, cursor: "pointer" }}>{loading ? "Chargement..." : "Actualiser"}</button>
     </div>
@@ -220,7 +203,7 @@ export default function MaintenanceExecutiveDashboard({ apiFetch: ocpFetch, onNa
       <Kpi title="État global" value={<StatusBadge status={globalRank} />} sub="pire état détecté" status={globalRank} icon="🏭" />
       <Kpi title="Santé huile" value={oilAvg == null ? "—" : `${oilAvg}/100`} sub={`${oilLatest.length} composant(s) suivis`} status={oilAvg == null ? 0 : oilAvg < 45 ? 3 : oilAvg < 70 ? 2 : 0} icon="🛢" />
       <Kpi title="Alertes actives" value={activeAlerts.length} sub="capteurs, seuils et LSTM" status={activeAlerts.length ? 2 : 0} icon="🚨" />
-      <Kpi title="RUL Prédit" value={rulProb == null ? "—" : `${Math.round(rulProb * 100)}%`} sub="risque panne court terme" status={rulProb == null ? 0 : rulProb >= .75 ? 3 : rulProb >= .45 ? 2 : 1} icon="🔮" />
+      <Kpi title="Risque ML" value={rulProb == null ? "—" : `${Math.round(rulProb * 100)}%`} sub="risque panne court terme" status={rulProb == null ? 0 : rulProb >= .75 ? 3 : rulProb >= .45 ? 2 : 1} icon="🔮" />
       <Kpi title="Fichier OCP" value={data.upload?.has_file || data.upload?.file_exists ? "OK" : "—"} sub={data.upload?.filename || "dernier Excel capteurs"} status={data.upload?.has_file || data.upload?.file_exists ? 0 : 1} icon="📁" />
     </div>
 
@@ -264,7 +247,7 @@ export default function MaintenanceExecutiveDashboard({ apiFetch: ocpFetch, onNa
     <Card>
       <SectionTitle icon="🔎" title="Traçabilité opérationnelle" sub="Informations à montrer dans le rapport et la soutenance" />
       <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 10 }} className="grid-4col">
-        {[{ k: "Machine", v: "CAT 994F2 · OCP Benguerir" }, { k: "Données", v: "Capteurs Excel + PDF OKSA + GMAO" }, { k: "IA", v: "XGBoost RUL + Isolation Forest + RAG" }, { k: "Décision", v: "AMDEC/RPN + plan maintenance" }].map(x => <div key={x.k} style={{ background: C.bg, border: `1px solid ${C.border}`, borderRadius: 10, padding: 12 }}><div style={{ fontSize: 10, color: C.muted, fontWeight: 900, letterSpacing: 2 }}>{x.k}</div><div style={{ fontSize: 13, color: C.text, fontWeight: 800, marginTop: 5 }}>{x.v}</div></div>)}
+        {[{ k: "Machine", v: "CAT 994F2 · OCP Benguerir" }, { k: "Données", v: "Capteurs Excel + PDF OKSA + GMAO" }, { k: "IA", v: "Health Score + Isolation Forest + K-Means + RAG" }, { k: "Décision", v: "AMDEC/RPN + plan maintenance" }].map(x => <div key={x.k} style={{ background: C.bg, border: `1px solid ${C.border}`, borderRadius: 10, padding: 12 }}><div style={{ fontSize: 10, color: C.muted, fontWeight: 900, letterSpacing: 2 }}>{x.k}</div><div style={{ fontSize: 13, color: C.text, fontWeight: 800, marginTop: 5 }}>{x.v}</div></div>)}
       </div>
     </Card>
   </div>

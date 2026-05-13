@@ -111,7 +111,7 @@ function generateSensorHistory(capteurs) {
   })
 }
 
-function generateAnomалies() {
+function generateAnomalies() {
   const types = [
     'Avertissement de Colmatage du filtre à combustible',
     'Prélub. de moteur neutralisée',
@@ -363,7 +363,7 @@ export default function EquipementRULPage({ equipement, onBack }) {
     } finally {
       setRulHistory(generateRULHistory(nextEq.rul_A))
       setSensorHist(generateSensorHistory(nextEq.capteurs))
-      setAnomalies(generateAnomалies())
+      setAnomalies(generateAnomalies())
     }
   }, [eq])
 

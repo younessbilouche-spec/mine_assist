@@ -1,5 +1,6 @@
 import { useState } from "react"
 import { C } from "../../config"
+import logo from "../../assets/mineassist_logo_final.png"
 
 const NAV_WIDTH = 260
 const NAV_COLLAPSED = 68
@@ -30,26 +31,20 @@ export default function DashboardShell({
         <div style={{
           padding: collapsed ? "18px 0" : "22px 20px 14px",
           borderBottom: `1px solid var(--c-border, ${C.border})`,
-          display: "flex", alignItems: "center",
-          justifyContent: collapsed ? "center" : "flex-start",
-          gap: 10, flexShrink: 0,
+          display: "flex", flexDirection: "column", alignItems: collapsed ? "center" : "flex-start",
+          gap: 12, flexShrink: 0,
         }}>
           <div style={{
-            width: 36, height: 36, borderRadius: 10,
-            background: `linear-gradient(135deg, ${C.green}, ${C.greenDark})`,
+            width: collapsed ? 44 : "100%", height: collapsed ? 44 : 80,
             display: "flex", alignItems: "center", justifyContent: "center",
-            color: "#fff", fontWeight: 800, fontSize: 14, letterSpacing: 2,
-            flexShrink: 0, boxShadow: `0 2px 8px rgba(0,132,61,0.35)`,
+            flexShrink: 0, 
           }}>
-            OCP
+            <img src={logo} alt="MineAssist" style={{ width: "100%", height: "100%", objectFit: "contain", mixBlendMode: "multiply" }} />
           </div>
           {!collapsed && (
-            <div style={{ overflow: "hidden" }}>
-              <div style={{ fontSize: 16, fontWeight: 700, color: "var(--c-text)", letterSpacing: 1 }}>
-                MineAssist
-              </div>
-              <div style={{ fontSize: 9, color: "var(--c-textMuted)", letterSpacing: 2, textTransform: "uppercase" }}>
-                CAT 994F · Diagnostic IA
+            <div style={{ paddingLeft: 4 }}>
+              <div style={{ fontSize: 9, color: C.orange, fontWeight: 800, letterSpacing: 3, textTransform: "uppercase" }}>
+                Diagnostic IA · CAT 994F
               </div>
             </div>
           )}

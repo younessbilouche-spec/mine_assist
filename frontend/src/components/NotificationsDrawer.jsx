@@ -7,7 +7,7 @@
  * 30 secondes vers /pred/rul/alert-class et /pred/rul/drift.
  * 
  * Branchement (TopBar.jsx ou App.jsx) :
- *   <NotificationsBell apiUrl={API_URL} pollMs={30000} />
+ *   <NotificationsBell apiUrl={API} pollMs={30000} />
  * 
  * Stockage :
  *   - localStorage 'mineassist_notifs_seen' : { id: timestamp }

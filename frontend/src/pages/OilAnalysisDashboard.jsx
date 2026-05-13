@@ -11,27 +11,10 @@ import {
   PolarAngleAxis, PolarRadiusAxis, Radar, LineChart, Line,
 } from "recharts"
 
-import { API } from "../config"
-const API_URL = API
+import { API , C} from "../config"
 
 // ── Color system ─────────────────────────────────────────────────────────────
-const C = {
-  bg:         "#F8FAFC",
-  bgCard:     "#FFFFFF",
-  border:     "#E2E8F0",
-  text:       "#0F172A",
-  textMid:    "#475569",
-  textMuted:  "#94A3B8",
-  orange:     "#E67E22",
-  orangePale: "#FCE9D6",
-  green:      "#00843D",
-  greenPale:  "#E0F2E9",
-  red:        "#DC2626",
-  redPale:    "#FEE2E2",
-  amber:      "#D97706",
-  amberPale:  "#FEF3C7",
-  dark:       "#0F172A",
-}
+
 
 const STATUS_COLOR = {
   CRITIQUE:  { bg: C.redPale,   text: C.red,    dot: "#EF4444" },
@@ -663,8 +646,8 @@ export default function OilAnalysisDashboard() {
     setLoading(true); setError(null)
     try {
       const [sum, list] = await Promise.all([
-        apiFetch(`${API_URL}/oil/analyses/summary`),
-        apiFetch(`${API_URL}/oil/analyses`),
+        apiFetch(`${API}/oil/analyses/summary`),
+        apiFetch(`${API}/oil/analyses`),
       ])
       const cleanAnalyses = (list.analyses || []).filter(validAnalyse)
       const cleanComposants = (sum.composants || []).filter(c =>
@@ -707,7 +690,7 @@ export default function OilAnalysisDashboard() {
         localStorage.getItem('mineassist_token') ||
         localStorage.getItem('token') ||
         localStorage.getItem('access_token')
-      const res   = await fetch(`${API_URL}/oil/upload-pdf`, {
+      const res   = await fetch(`${API}/oil/upload-pdf`, {
         method: 'POST',
         headers: token ? { Authorization: `Bearer ${token}` } : {},
         body: form,

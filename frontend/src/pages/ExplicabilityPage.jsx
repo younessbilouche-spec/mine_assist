@@ -18,21 +18,11 @@
 
 import React, { useEffect, useMemo, useState } from 'react'
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell, ReferenceLine } from 'recharts'
+import { C } from "../config"
 
-const API = (typeof window !== 'undefined' && window.__API_URL__) || 'http://localhost:8000'
+import { API } from "../config"
 
-const C = {
-  bg: 'var(--bg, #F5F0E1)',
-  card: 'var(--bg-card, #FBF7E9)',
-  fg: 'var(--fg, #3A3025)',
-  fgMuted: 'var(--fg-muted, #6B5E45)',
-  accent: 'var(--accent, #B8842B)',
-  border: 'var(--border, #D4C9B0)',
-  red:    '#C0392B',
-  orange: '#E58E26',
-  green:  '#3F8F3F',
-  blue:   '#2A6FB8',
-}
+
 
 function Card({ title, subtitle, children, action }) {
   return (

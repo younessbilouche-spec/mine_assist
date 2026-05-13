@@ -8,23 +8,14 @@
  *   3. Recommandations prescriptives (ML + RAG)
  */
 import { useState, useEffect } from 'react'
+import { C } from "../config"
 import {
   LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip,
   ResponsiveContainer, ReferenceLine, ReferenceDot,
 } from 'recharts'
 import { API } from '../config'
 
-const C = {
-  green: '#00843D',
-  orange: '#f59e0b',
-  red: '#ef4444',
-  text: '#2A2A1E',
-  muted: '#8A7D60',
-  light: '#B0A080',
-  border: '#D4C9B0',
-  card: '#FFFDF8',
-  bgPaper: '#F5F0E8',
-}
+
 
 const verdictColor = {
   stable:              { c: C.green,  ic: '🟢', label: 'STABLE' },

@@ -3,27 +3,11 @@ import {
   Area, AreaChart, Bar, BarChart, CartesianGrid, Cell, ComposedChart,
   Line, ResponsiveContainer, Tooltip, XAxis, YAxis,
 } from "recharts"
-import { API } from "../config"
+import { API , C} from "../config"
 
-const API_URL = API
 const TARGET_MACHINE = "994F-1"
 
-const C = {
-  bgCard: "rgba(255,253,248,0.94)",
-  border: "#D4C9B0",
-  green: "#00843D",
-  greenDark: "#005C2B",
-  greenPale: "#E8F5EE",
-  orange: "#C4760A",
-  orangePale: "#FDF3E3",
-  sand: "#C9A84C",
-  text: "#2A2A1E",
-  textMid: "#5A5240",
-  textMuted: "#8A7D60",
-  textLight: "#B0A080",
-  danger: "#C0392B",
-  dangerPale: "#FDECEA",
-}
+
 
 const PRIORITY_COLOR = { P1: C.danger, P2: C.orange, P3: C.green }
 const SEVERITY_COLOR = { 0: C.textLight, 1: C.green, 2: C.orange, 3: C.danger }
@@ -181,7 +165,7 @@ export default function GmaoDashboard() {
     const params = new URLSearchParams({ machine: TARGET_MACHINE })
     setLoading(true)
     setError("")
-    fetch(`${API_URL}/gmao/stats?${params}`)
+    fetch(`${API}/gmao/stats?${params}`)
       .then(async res => {
         const json = await res.json().catch(() => ({}))
         if (!res.ok) throw new Error(json.detail || `Erreur API ${res.status}`)

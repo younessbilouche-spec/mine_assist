@@ -1,15 +1,9 @@
 import { useState, useEffect } from "react"
-import GmaoDashboard from "./pages/GmaoDashboard"
-import AnomalyDashboard from "./pages/AnomalyDashboard"
-import GeoAnomalyDashboard from "./pages/GeoAnomalyDashboard"
-import OilAnalysisDashboard from "./pages/OilAnalysisDashboard"
-import MaintenanceExecutiveDashboard from "./pages/MaintenanceExecutiveDashboard"
-import ExecutiveReportPage from "./pages/ExecutiveReportPage"
 import { useAuth } from "./hooks/useAuth"
-import LoginPage from "./pages/LoginPage"
-import DiagnosticRenderer from "./pages/DiagnosticRenderer"
+import UnifiedHealthPage from "./pages/UnifiedHealthPage"
+import UnifiedAlertsPage from "./pages/UnifiedAlertsPage"
+import UnifiedExecutivePage from "./pages/UnifiedExecutivePage"
 import CapteursPage from "./pages/CapteursPage"
-import LiveSimulationDashboard from "./pages/LiveSimulationDashboard"
 import AlertesPage    from "./pages/AlertesPage"
 import OcpFilesPage from "./pages/OcpFilesPage"
 import OcpDefautPage from "./pages/OcpDefautPage"
@@ -21,6 +15,15 @@ import DiagnosePageV2 from "./pages/DiagnosePage"
 import AskPageV2 from "./pages/AskPageV2"
 import MLHealthHistoryPage from "./pages/MLHealthHistoryPage"
 import MLInsightsPage from "./pages/MLInsightsPage"
+import MultiAgentDiagnosticPage from "./pages/MultiAgentDiagnosticPage"
+import GmaoDashboard from "./pages/GmaoDashboard"
+import AnomalyDashboard from "./pages/AnomalyDashboard"
+import GeoAnomalyDashboard from "./pages/GeoAnomalyDashboard"
+import OilAnalysisDashboard from "./pages/OilAnalysisDashboard"
+import MaintenanceExecutiveDashboard from "./pages/MaintenanceExecutiveDashboard"
+import ExecutiveReportPage from "./pages/ExecutiveReportPage"
+import LoginPage from "./pages/LoginPage"
+import DiagnosticRenderer from "./pages/DiagnosticRenderer"
 
 
 import { API, C } from "./config"
@@ -900,7 +903,7 @@ function DiagnosePageOLD({ onSave, apiFetch }) {
       if (!r.ok) throw new Error(await r.text())
       const blob = await r.blob()
       const url  = URL.createObjectURL(blob)
-      const a    = document.create("a")
+      const a    = document.createElement("a")
       const cd   = r.headers.get("Content-Disposition") || ""
       const fn   = cd.match(/filename="(.+?)"/)?.[1] || "rapport_diagnostic.pdf"
       a.href = url; a.download = fn; a.click()
@@ -1036,23 +1039,19 @@ function HistoryDetail({ item, onClose }) {
 
 // ── App ───────────────────────────────────────────────────────────────────
 const TABS = [
-  { id:"maintenance_360",   icon:"🏭", label:"Vue 360° Maintenance",          shortLabel:"360°" },
-  { id:"ask",       icon:"💬", label:"Question libre",       shortLabel:"Q&R" },
-  { id:"diagnose",  icon:"🔧", label:"Diagnostic",           shortLabel:"Diag" },
-  { id:"capteurs",  icon:"📡", label:"Capteurs",             shortLabel:"Capteurs" },
-  { id:"gmao",      icon:"📊", label:"GMAO Analytics",       shortLabel:"GMAO" },
-  { id:"geo",       icon:"📍", label:"Analyse géographique", shortLabel:"Géo" },
-  { id:"anomaly",   icon:"🤖", label:"Détection IA",         shortLabel:"IA" },
-  { id:"oil",       icon:"🛢️", label:"Analyse huiles",       shortLabel:"Huiles" },
-  { id:"ocp_upload", icon:"📁", label:"OCP Fichiers",         shortLabel:"OCP" },
-  { id:"ocp_defaut", icon:"⚠️", label:"OCP Défauts",          shortLabel:"Défauts" },
-  { id:"ocp_sante",  icon:"❤", label:"OCP Santé",             shortLabel:"Santé" },
-  { id:"ml_history", icon:"📈", label:"ML Historique",           shortLabel:"ML" },
-  { id:"live_sim",   icon:"📡", label:"Supervision Live",       shortLabel:"Live" },
-  { id:"alertes_ocp",icon:"🚨", label:"Alertes & Plan",      shortLabel:"Alertes" },
-  { id:"executive_report",icon:"📄", label:"Rapport Exécutif",          shortLabel:"Rapport" },
-  { id:"historique", icon:"📚", label:"Historique Maintenance", shortLabel:"Historique"  },
-  { id:"ml_insights", icon:"💡", label:"ML Insights",            shortLabel:"Insights" },
+  { id:"maintenance_360", icon:"🏭", label:"Pilotage 360°",           shortLabel:"360°" },
+  { id:"ask",             icon:"💬", label:"MineAssist AI",           shortLabel:"AI" },
+  { id:"diagnose",        icon:"🔧", label:"Expert Diagnostic",       shortLabel:"Diag" },
+  { id:"capteurs",        icon:"📡", label:"Capteurs & Live",        shortLabel:"Live" },
+  { id:"alerts_ocp",      icon:"⚠️", label:"Centre d'Alertes",        shortLabel:"Alertes" },
+  { id:"ocp_sante",       icon:"❤️", label:"Performance & Santé",     shortLabel:"Santé" },
+  { id:"gmao",            icon:"📊", label:"GMAO Analytics",          shortLabel:"GMAO" },
+  { id:"geo",             icon:"📍", label:"Analyse Géo",             shortLabel:"Géo" },
+  { id:"anomaly",         icon:"🤖", label:"Détection IA",            shortLabel:"IA" },
+  { id:"multi_agent",     icon:"💬", label:"Conseil Experts",         shortLabel:"Agents" },
+  { id:"oil",             icon:"🛢️", label:"Analyses Huiles",         shortLabel:"Huiles" },
+  { id:"historique",      icon:"📚", label:"Historique",              shortLabel:"Hist" },
+  { id:"ocp_upload",      icon:"📁", label:"Import Données",          shortLabel:"Import" },
 ]
 
 export default function App() {
@@ -1063,6 +1062,7 @@ export default function App() {
   const [selectedItem, setSelectedItem] = useState(null)
   const [showChangePassword, setShowChangePassword] = useState(false)
   const [ocpTroubleshootingType, setOcpTroubleshootingType] = useState(null)
+  const [userCollapsedHistory, setUserCollapsedHistory] = useState(false)
 
   if (!isAuthenticated) {
     return <LoginPage onLogin={login} />
@@ -1095,9 +1095,10 @@ export default function App() {
     }
   }
 
-  const showHistory = !["gmao", "geo", "monitor", "evolution", "anomaly",
-    "live_sim", "alertes_ocp", "capteurs", "oil", "ocp_upload",
-    "ocp_defaut", "ocp_sante", "ocp_troubleshooting", "maintenance_360", "executive_report"].includes(activeTab)
+  const sidebarTabActive = !["gmao", "geo", "monitor", "evolution", "anomaly", "multi_agent",
+    "live_sim", "capteurs", "oil", "ocp_upload", "ocp_defaut", "ocp_sante", "ocp_troubleshooting", "maintenance_360", "executive_report", "ml_history", "alertes_ocp"].includes(activeTab)
+  
+  const showHistory = sidebarTabActive && !userCollapsedHistory
   const visibleTabs = TABS
 
   return (
@@ -1165,18 +1166,25 @@ export default function App() {
               <HistoryDetail item={selectedItem} onClose={() => setSelectedItem(null)}/>
             ) : (
               <>
-                {activeTab === "maintenance_360" && <MaintenanceExecutiveDashboard apiFetch={apiFetch} onNavigate={handleTabChange} />}
-                {activeTab === "executive_report" && <ExecutiveReportPage apiFetch={apiFetch} />}
-                {activeTab==="ask"      && <AskPageV2    onSave={handleSave} apiFetch={apiFetch} />}
+                {activeTab === "maintenance_360" && <UnifiedExecutivePage apiFetch={apiFetch} onNavigate={handleTabChange} />}
+                {activeTab==="ask"      && (
+                  <AskPageV2 
+                    onSave={handleSave} 
+                    apiFetch={apiFetch} 
+                    toggleHistory={() => setUserCollapsedHistory(!userCollapsedHistory)}
+                    historyCollapsed={userCollapsedHistory || !sidebarTabActive}
+                  />
+                )}
                 {activeTab==="diagnose" && <DiagnosePageV2 onSave={handleSave} apiFetch={apiFetch} />}
                 {activeTab==="gmao" && <GmaoDashboard/>}
                 {activeTab === "geo" && <GeoAnomalyDashboard />}
                 {activeTab === "capteurs" && <CapteursPage />}
                 {activeTab === "anomaly" && <AnomalyDashboard />}
+                {activeTab === "multi_agent" && <MultiAgentDiagnosticPage />}
                 {activeTab === "oil" && <OilAnalysisDashboard />}
                 {activeTab === "ocp_upload" && <OcpFilesPage apiFetch={apiFetch} onNavigate={handleTabChange} />}
-                {activeTab === "ocp_defaut" && <OcpDefautPage apiFetch={apiFetch} />}
-                {activeTab === "ocp_sante" && <OcpHealthPage apiFetch={apiFetch} onNavigate={handleTabChange} />}
+                {activeTab === "alerts_ocp" && <UnifiedAlertsPage apiFetch={apiFetch} onNavigate={handleTabChange} />}
+                {activeTab === "ocp_sante" && <UnifiedHealthPage apiFetch={apiFetch} onNavigate={handleTabChange} />}
                 {activeTab === "ocp_troubleshooting" && (
                   <OcpTroubleshootingPage
                     apiFetch={apiFetch}
@@ -1184,11 +1192,6 @@ export default function App() {
                     onBack={() => handleTabChange("alertes_ocp")}
                   />
                 )}
-                {(activeTab === "monitor" || activeTab === "evolution" || activeTab === "live") && (
-                  <CapteursPage initialMode={activeTab === "monitor" ? "historique" : (activeTab === "evolution" ? "evolution" : "live")} />
-                )}
-                {activeTab === "live_sim" && <LiveSimulationDashboard />}
-                {activeTab === "alertes_ocp" && <AlertesPage apiFetch={apiFetch} />}
                 {activeTab === "historique" && <MaintenanceHistoryDashboard apiFetch={apiFetch} />}
                 {activeTab === "ml_insights" && <MLInsightsPage apiFetch={apiFetch} />}
               </>

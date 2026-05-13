@@ -19,10 +19,9 @@ import {
   LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer,
   CartesianGrid, AreaChart, Area,
 } from "recharts"
-import { API } from "../config"
+import { API , C} from "../config"
 import { evalStatusOCP, getDisplayLimits, norm as normOCP } from "../utils/seuilsOCP"
 
-const API_URL = API
 const HISTORY_MAX = 300
 const POLL_FAST = 1500
 const POLL_SLOW = 6000
@@ -30,31 +29,7 @@ const POLL_SLOW = 6000
 // ════════════════════════════════════════════════════════════════════════════
 // PALETTE OCP
 // ════════════════════════════════════════════════════════════════════════════
-const C = {
-  bg:         "#F5F0E8",
-  bgGradient: "linear-gradient(135deg, #F5F0E8 0%, #EFE7D5 100%)",
-  card:       "rgba(255,253,248,0.96)",
-  cardElev:   "#FFFFFF",
-  green:      "#00843D",
-  greenLt:    "#00A84F",
-  greenDark:  "#005C2B",
-  greenPale:  "#E8F5EE",
-  sand:       "#C9A84C",
-  sandPale:   "#F7F0DC",
-  red:        "#DC2626",
-  redLt:      "#EF4444",
-  redPale:    "#FEE2E2",
-  orange:     "#F59E0B",
-  orangeLt:   "#FBBF24",
-  orangePale: "#FEF3C7",
-  text:       "#1C1A14",
-  textMid:    "#4A4535",
-  textMuted:  "#8A7D60",
-  textLight:  "#B0A080",
-  border:     "#D4C9B0",
-  borderLt:   "#E8E2D4",
-  shadow:     "0 1px 2px rgba(28,26,20,0.04), 0 4px 12px rgba(28,26,20,0.06)",
-}
+
 
 // ════════════════════════════════════════════════════════════════════════════
 // MAPPING CAPTEURS
@@ -617,7 +592,7 @@ export default function LiveSimulationDashboard() {
     const poll = async () => {
       const t0 = performance.now()
       try {
-        const res = await fetch(`${API_URL}/sim/state?n=2`, { cache: "no-store" })
+        const res = await fetch(`${API}/sim/state?n=2`, { cache: "no-store" })
         const t1 = performance.now()
         setLatency(Math.round(t1 - t0))
 
@@ -675,7 +650,7 @@ export default function LiveSimulationDashboard() {
   }, [running])
 
   useEffect(() => {
-    const load = () => fetch(`${API_URL}/sim/notif-status`)
+    const load = () => fetch(`${API}/sim/notif-status`)
       .then(r => r.ok ? r.json() : null)
       .then(setNotifStatus)
       .catch(() => {})
@@ -688,7 +663,7 @@ export default function LiveSimulationDashboard() {
     setTesting(true)
     setTestResult(null)
     try {
-      const r = await fetch(`${API_URL}/sim/notif-debug`, { method: "POST" })
+      const r = await fetch(`${API}/sim/notif-debug`, { method: "POST" })
       const data = await r.json()
       setTestResult({
         success: r.ok && data.ok !== false,
@@ -720,7 +695,7 @@ export default function LiveSimulationDashboard() {
   const handleClearBuffer = useCallback(async () => {
     if (!confirm("Vider le buffer de simulation côté serveur ?")) return
     try {
-      await fetch(`${API_URL}/sim/buffer`, { method: "DELETE" })
+      await fetch(`${API}/sim/buffer`, { method: "DELETE" })
       setHistory([])
       lastTsRef.current = null
       tickRef.current = 0

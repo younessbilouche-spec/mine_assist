@@ -4,20 +4,14 @@
  * Endpoints : /pred/rul/status + /pred/rul/predict/demo + /pred/rul/predict
  */
 import { useState, useEffect, useCallback, useRef } from 'react'
+import { C } from "../config"
 import {
   AreaChart, Area, XAxis, YAxis, CartesianGrid,
   Tooltip, ResponsiveContainer, ReferenceLine,
 } from 'recharts'
 import { API } from '../config'
 
-const C = {
-  green:'#00843D', greenDark:'#005C2B', greenPale:'#E8F5EE',
-  orange:'#F59E0B', orangePale:'#FEF3C7',
-  red:'#DC2626', redPale:'#FEE2E2',
-  bg:'#F5F0E8', card:'#FFFFFF',
-  border:'#D4C9B0', borderLight:'#E8E2D4',
-  text:'#1C1A14', textMid:'#4A4535', textMuted:'#8A7D60',
-}
+
 
 const SUBSYSTEMS = [
   { key:'global_grav2', label:'RUL Global',    icon:'⚙️', desc:'Toutes anomalies grav. ≥ 2' },
