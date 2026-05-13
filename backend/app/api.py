@@ -137,6 +137,14 @@ app.include_router(sim_router)
 app.include_router(ocp_router, prefix="/pred", tags=["Maintenance Prédictive — XGBoost + RF"])
 app.include_router(history_router)
 
+from app.routers.inference import get_predictor
+@app.on_event("startup")
+async def startup_ml():
+    try:
+        get_predictor(str(BASE_DIR / "models"))
+        print("✅ Predictor ML chargé")
+    except Exception as e:
+        print(f"⚠️  Predictor ML non disponible (lancer pipeline_ml.py) : {e}")
 # ── Sprint 1 + 2 (mai 2026) — modules additifs ──────────────────────────────
 try:
     from app.ocp_history_router_v2 import history_v2_router

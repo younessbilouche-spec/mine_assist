@@ -9,7 +9,7 @@ import { useAuth } from "./hooks/useAuth"
 import LoginPage from "./pages/LoginPage"
 import DiagnosticRenderer from "./pages/DiagnosticRenderer"
 import CapteursPage from "./pages/CapteursPage"
-import PredictionPage from "./pages/PredictionPage"
+import LiveSimulationDashboard from "./pages/LiveSimulationDashboard"
 import AlertesPage    from "./pages/AlertesPage"
 import OcpFilesPage from "./pages/OcpFilesPage"
 import OcpDefautPage from "./pages/OcpDefautPage"
@@ -19,6 +19,7 @@ import DashboardShell from "./components/ui/DashboardShell"
 import MaintenanceHistoryDashboard from "./pages/MaintenanceHistoryDashboard"
 import DiagnosePageV2 from "./pages/DiagnosePage"
 import AskPageV2 from "./pages/AskPageV2"
+import MLHealthHistoryPage from "./pages/MLHealthHistoryPage"
 
 
 import { API, C } from "./config"
@@ -1045,7 +1046,8 @@ const TABS = [
   { id:"ocp_upload", icon:"📁", label:"OCP Fichiers",         shortLabel:"OCP" },
   { id:"ocp_defaut", icon:"⚠️", label:"OCP Défauts",          shortLabel:"Défauts" },
   { id:"ocp_sante",  icon:"❤", label:"OCP Santé",             shortLabel:"Santé" },
-  { id:"prediction", icon:"📊", label:"Prédiction RUL",        shortLabel:"RUL" },
+  { id:"ml_history", icon:"📈", label:"ML Historique",           shortLabel:"ML" },
+  { id:"live_sim",   icon:"📡", label:"Supervision Live",       shortLabel:"Live" },
   { id:"alertes_ocp",icon:"🚨", label:"Alertes & Plan",      shortLabel:"Alertes" },
   { id:"executive_report",icon:"📄", label:"Rapport Exécutif",          shortLabel:"Rapport" },
   { id:"historique", icon:"📚", label:"Historique Maintenance", shortLabel:"Historique"  },
@@ -1092,7 +1094,7 @@ export default function App() {
   }
 
   const showHistory = !["gmao", "geo", "monitor", "evolution", "anomaly",
-    "prediction", "alertes_ocp", "capteurs", "oil", "ocp_upload",
+    "live_sim", "alertes_ocp", "capteurs", "oil", "ocp_upload",
     "ocp_defaut", "ocp_sante", "ocp_troubleshooting", "maintenance_360", "executive_report"].includes(activeTab)
   const visibleTabs = TABS
 
@@ -1183,7 +1185,7 @@ export default function App() {
                 {(activeTab === "monitor" || activeTab === "evolution" || activeTab === "live") && (
                   <CapteursPage initialMode={activeTab === "monitor" ? "historique" : (activeTab === "evolution" ? "evolution" : "live")} />
                 )}
-                {activeTab === "prediction" && <PredictionPage apiFetch={apiFetch} />}
+                {activeTab === "live_sim" && <LiveSimulationDashboard />}
                 {activeTab === "alertes_ocp" && <AlertesPage apiFetch={apiFetch} />}
                 {activeTab === "historique" && <MaintenanceHistoryDashboard apiFetch={apiFetch} />}
               </>

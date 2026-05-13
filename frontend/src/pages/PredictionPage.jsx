@@ -35,13 +35,17 @@ const SENSORS = [
   { key:'steering_oil_temp', label:'Temp. huile direction', unit:'°C',     sous:'Direction',    max:95   },
 ]
 
+// ─── Métriques ML réelles (pipeline R v5) ──────────────────────────────────
+// Note : la prédiction supervisée du RUL (XGBoost) a été étudiée et écartée
+// (AUC ≈ 0.51 avec 11 mois / 30 pannes critiques). Les métriques ci-dessous
+// correspondent au pipeline industriel Health Score + Isolation Forest + K-Means.
 const MODEL_METRICS = [
-  { label:'MAE test',             value:'21h',     desc:'Erreur moyenne RUL' },
-  { label:'Rappel RED',           value:'93%',     desc:'Détection pannes imminentes' },
-  { label:'Dataset',              value:'6 490',   desc:'Échantillons horaires' },
-  { label:'Entraînement',         value:'11 mois', desc:'Janv → Nov 2025' },
-  { label:'Capteurs clés',        value:'6',       desc:'Score composite' },
-  { label:'Modèle',               value:'XGBoost', desc:'Gradient Boosting' },
+  { label:'Health Score moyen',   value:'54.3',    desc:'/ 100 sur 11 mois' },
+  { label:'Temps en alerte',      value:'82.5%',   desc:'Score < 70 (surveillance)' },
+  { label:'Anomalies IF',         value:'2 197',   desc:'sur 43 929 mesures (5%)' },
+  { label:'Dataset',              value:'43 929',  desc:'Horodatages × 11 capteurs' },
+  { label:'Entraînement',         value:'11 mois', desc:'Janv → Déc 2025' },
+  { label:'Approche',             value:'R v5',    desc:'IF + K-Means + Health Score' },
 ]
 
 const alertClass = rul => rul==null?'UNKNOWN':rul<24?'RED':rul<72?'ORANGE':'GREEN'
@@ -295,7 +299,7 @@ export default function PredictionPage({ apiFetch }) {
         <div style={{display:'flex',alignItems:'center',gap:14,color:C.textMuted,padding:'50px 0'}}>
           <div style={{width:28,height:28,border:`3px solid ${C.greenPale}`,borderTopColor:C.green,
             borderRadius:'50%',animation:'spin 0.8s linear infinite'}}/>
-          <span style={{fontFamily:'Rajdhani,system-ui',fontSize:16,fontWeight:600}}>Chargement modèles XGBoost…</span>
+          <span style={{fontFamily:'Rajdhani,system-ui',fontSize:16,fontWeight:600}}>Chargement modèles ML…</span>
         </div>
       )}
 
