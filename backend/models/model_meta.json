@@ -1,19 +1,65 @@
 {
-  "trained_at": "2026-01-01T00:00:00",
-  "language": "R",
-  "approach": "engineering_grade_v5_R",
-  "modules": ["health_score", "isolation_forest", "kmeans"],
-  "n_samples": 43929,
-  "health_score_stats": {
-    "mean": 54.3,
-    "min": 0.0,
-    "pct_below_70": 82.5,
-    "pct_below_30": 13.8
-  },
-  "isolation_forest": {
-    "n_trees": 200,
-    "contamination": 0.102,
-    "n_anomalies": 2197
-  },
-  "kmeans_modes": 4
+  "parametres": [
+    "CH994.P1.Température liquide refroidissement",
+    "CH994.P1.Température échappement Droit",
+    "CH994.P1.Température échappement gauche",
+    "CH994.P1.Température sortie convertisseur",
+    "CH994.P1.Pression huile moteur",
+    "CH994.P1.Régime moteur"
+  ],
+  "n_estimators": 200,
+  "contamination": 0.05,
+  "n_train": 97200,
+  "nb_anomalies": 4860,
+  "pct_anomalies": 5.0,
+  "stats_2sigma": {
+    "CH994.P1.Température liquide refroidissement": {
+      "mu": 86.214,
+      "sigma": 5.73,
+      "seuil_max": 97.674,
+      "seuil_min": 74.754,
+      "min_obs": 6.0,
+      "max_obs": 108.0
+    },
+    "CH994.P1.Température échappement Droit": {
+      "mu": 407.953,
+      "sigma": 89.153,
+      "seuil_max": 586.26,
+      "seuil_min": 229.647,
+      "min_obs": 30.0,
+      "max_obs": 603.0
+    },
+    "CH994.P1.Température échappement gauche": {
+      "mu": 404.216,
+      "sigma": 84.937,
+      "seuil_max": 574.089,
+      "seuil_min": 234.342,
+      "min_obs": 50.0,
+      "max_obs": 620.0
+    },
+    "CH994.P1.Température sortie convertisseur": {
+      "mu": 97.069,
+      "sigma": 9.531,
+      "seuil_max": 116.132,
+      "seuil_min": 78.007,
+      "min_obs": 13.0,
+      "max_obs": 131.0
+    },
+    "CH994.P1.Pression huile moteur": {
+      "mu": 441.886,
+      "sigma": 29.193,
+      "seuil_max": 500.273,
+      "seuil_min": 383.499,
+      "min_obs": 278.0,
+      "max_obs": 633.0
+    },
+    "CH994.P1.Régime moteur": {
+      "mu": 1412.249,
+      "sigma": 313.826,
+      "seuil_max": 2039.901,
+      "seuil_min": 784.597,
+      "min_obs": 85.0,
+      "max_obs": 1780.0
+    }
+  }
 }

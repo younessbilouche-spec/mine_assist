@@ -1,41 +1,43 @@
 import joblib
 import json
-from app.pdf_image_extractor import extract_images_for_sources, check_dependencies
-from app.rag_engine import RAGEngine
-from app.notifications_router import notifications_router
-from openai import OpenAI
-from pydantic import BaseModel, Field
-from fastapi.middleware.cors import CORSMiddleware
-from fastapi import FastAPI, HTTPException, Query
-from dotenv import load_dotenv
 import os
 import ast
 import hashlib
 import re
 from pathlib import Path
 from typing import List, Optional, Any
+from datetime import datetime
+
+from dotenv import load_dotenv
+import pandas as pd
+
+from fastapi import FastAPI, HTTPException, Query
+from fastapi.middleware.cors import CORSMiddleware
+from pydantic import BaseModel, Field
+from openai import OpenAI
+
+from app.pdf_image_extractor import extract_images_for_sources, check_dependencies
+from app.rag_engine import RAGEngine
+from app.notifications_router import notifications_router
 from app.routers.export_router import router as export_router
 from app.routers.ml_router import router as ml_router
 from app.routers.ml_improvements import router as ml_v6_router
-
-
 from app.oil_analysis_router import router as oil_router
-from datetime import datetime, timedelta
 from app.sim_router import sim_router
-from app.ocp.router import ocp_router, load_rul_models
+from app.ocp.router import ocp_router
 from app.ocp_history_router import history_router
-
-from fastapi import FastAPI, Depends
-
-
-import pandas as pd
-from app.auth import auth_router, get_current_user, require_role
-
+from app.auth import auth_router
 from app.capteur_thresholds import (
     CAPTEUR_THRESHOLDS,
-    clean_param_name,
     find_capteur_rule,
 )
+
+# ── Chemins de base ──────────────────────────────────────────────────────────
+load_dotenv()
+BASE_DIR = Path(__file__).resolve().parent.parent
+DATA_DIR = BASE_DIR / "data"
+GMAO_ANOMALIES_DIR = DATA_DIR / "gmao" / "anomalies"
+GMAO_CAPTEURS_DIR = DATA_DIR / "gmao" / "capteurs"
 
 
 _GMAO_CAPTEURS_CACHE = None
@@ -115,7 +117,6 @@ _GMAO_ANOMALIES = None
 _GMAO_CAPTEURS = None
 
 
-load_dotenv()
 
 APP_NAME = os.getenv("APP_NAME", "MineAssist 994F")
 OPENROUTER_API_KEY = os.getenv("OPENROUTER_API_KEY")
@@ -138,7 +139,6 @@ app.include_router(notifications_router)
 app.include_router(oil_router)
 app.include_router(sim_router)
 # L'ancienne API XGBoost/RF est désactivée pour alléger le backend
-from app.ocp.router import ocp_router
 app.include_router(ocp_router, prefix="/pred", tags=["Maintenance Prédictive — XGBoost + RF"])
 app.include_router(history_router)
 app.include_router(ml_v6_router, prefix="/ml", tags=["ML v6 — Insights"])
@@ -146,7 +146,6 @@ app.include_router(ml_v6_router, prefix="/ml", tags=["ML v6 — Insights"])
 from app.routers.multi_agent_router import multi_agent_router
 app.include_router(multi_agent_router)
 
-from app.routers.inference import get_predictor
 @app.on_event("startup")
 async def startup_ml():
     try:
@@ -196,11 +195,6 @@ app.add_middleware(
 
 rag = RAGEngine()
 
-BASE_DIR = Path(__file__).resolve().parent.parent
-DATA_DIR = BASE_DIR / "data"
-
-GMAO_ANOMALIES_DIR = DATA_DIR / "gmao" / "anomalies"
-GMAO_CAPTEURS_DIR = DATA_DIR / "gmao" / "capteurs"
 
 
 class AskRequest(BaseModel):

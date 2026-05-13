@@ -4,24 +4,20 @@ import UnifiedHealthPage from "./pages/UnifiedHealthPage"
 import UnifiedAlertsPage from "./pages/UnifiedAlertsPage"
 import UnifiedExecutivePage from "./pages/UnifiedExecutivePage"
 import CapteursPage from "./pages/CapteursPage"
-import AlertesPage    from "./pages/AlertesPage"
 import OcpFilesPage from "./pages/OcpFilesPage"
-import OcpDefautPage from "./pages/OcpDefautPage"
-import OcpHealthPage from "./pages/OcpHealthPage"
 import OcpTroubleshootingPage from "./pages/OcpTroubleshootingPage"
 import DashboardShell from "./components/ui/DashboardShell"
 import MaintenanceHistoryDashboard from "./pages/MaintenanceHistoryDashboard"
 import DiagnosePageV2 from "./pages/DiagnosePage"
 import AskPageV2 from "./pages/AskPageV2"
-import MLHealthHistoryPage from "./pages/MLHealthHistoryPage"
+
 import MLInsightsPage from "./pages/MLInsightsPage"
 import MultiAgentDiagnosticPage from "./pages/MultiAgentDiagnosticPage"
 import GmaoDashboard from "./pages/GmaoDashboard"
 import AnomalyDashboard from "./pages/AnomalyDashboard"
 import GeoAnomalyDashboard from "./pages/GeoAnomalyDashboard"
 import OilAnalysisDashboard from "./pages/OilAnalysisDashboard"
-import MaintenanceExecutiveDashboard from "./pages/MaintenanceExecutiveDashboard"
-import ExecutiveReportPage from "./pages/ExecutiveReportPage"
+
 import LoginPage from "./pages/LoginPage"
 import DiagnosticRenderer from "./pages/DiagnosticRenderer"
 
@@ -681,7 +677,8 @@ function ChangePasswordModal({ open, onClose, apiFetch, onSuccess }) {
   )
 }
 
-// ── Ask Page ──────────────────────────────────────────────────────────────
+// ── Ask Page (legacy — remplacé par AskPageV2) ───────────────────────────
+// eslint-disable-next-line no-unused-vars
 function AskPage({ onSave, apiFetch }) {
   const [question,      setQuestion]      = useState("")
   const [loading,       setLoading]       = useState(false)
@@ -844,7 +841,8 @@ function AskPage({ onSave, apiFetch }) {
   )
 }
 
-// ── Diagnose Page ─────────────────────────────────────────────
+// ── Diagnose Page (legacy — remplacé par DiagnosePageV2) ─────
+// eslint-disable-next-line no-unused-vars
 function DiagnosePageOLD({ onSave, apiFetch }) {
   const [faultCode, setFaultCode] = useState("")
   const [symptoms, setSymptoms]   = useState("")

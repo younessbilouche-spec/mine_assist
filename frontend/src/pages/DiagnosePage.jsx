@@ -25,7 +25,7 @@
  *     - Affichage résumé statistique des capteurs
  */
 
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect } from 'react'
 import DiagnosticRenderer from './DiagnosticRenderer'
 import { API, C } from '../config'
 
@@ -269,7 +269,7 @@ function PageTitle({ children }) {
 }
 
 /** Panel de décodage instantané */
-function DecoderPanel({ parsed, faultCode }) {
+function DecoderPanel({ parsed }) {
   if (!parsed) {
     return (
       <div style={{ ...S.card, borderTop: `2px solid ${C.border}` }}>
