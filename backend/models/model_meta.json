@@ -1,65 +1,19 @@
 {
-  "parametres": [
-    "CH994.P1.Température liquide refroidissement",
-    "CH994.P1.Température échappement Droit",
-    "CH994.P1.Température échappement gauche",
-    "CH994.P1.Température sortie convertisseur",
-    "CH994.P1.Pression huile moteur",
-    "CH994.P1.Régime moteur"
-  ],
-  "n_estimators": 200,
-  "contamination": 0.05,
-  "n_train": 44521,
-  "nb_anomalies": 2226,
-  "pct_anomalies": 5.0,
-  "stats_2sigma": {
-    "CH994.P1.Température liquide refroidissement": {
-      "mu": 84.408,
-      "sigma": 5.094,
-      "seuil_max": 94.595,
-      "seuil_min": 74.22,
-      "min_obs": 17.0,
-      "max_obs": 104.0
-    },
-    "CH994.P1.Température échappement Droit": {
-      "mu": 402.057,
-      "sigma": 83.013,
-      "seuil_max": 568.084,
-      "seuil_min": 236.03,
-      "min_obs": 59.0,
-      "max_obs": 562.0
-    },
-    "CH994.P1.Température échappement gauche": {
-      "mu": 394.355,
-      "sigma": 77.62,
-      "seuil_max": 549.595,
-      "seuil_min": 239.115,
-      "min_obs": 61.0,
-      "max_obs": 546.0
-    },
-    "CH994.P1.Température sortie convertisseur": {
-      "mu": 94.158,
-      "sigma": 8.723,
-      "seuil_max": 111.604,
-      "seuil_min": 76.712,
-      "min_obs": 13.0,
-      "max_obs": 131.0
-    },
-    "CH994.P1.Pression huile moteur": {
-      "mu": 454.562,
-      "sigma": 24.468,
-      "seuil_max": 503.497,
-      "seuil_min": 405.627,
-      "min_obs": 324.0,
-      "max_obs": 633.0
-    },
-    "CH994.P1.Régime moteur": {
-      "mu": 1420.17,
-      "sigma": 307.261,
-      "seuil_max": 2034.692,
-      "seuil_min": 805.648,
-      "min_obs": 85.0,
-      "max_obs": 1760.0
-    }
-  }
+  "trained_at": "2026-01-01T00:00:00",
+  "language": "R",
+  "approach": "engineering_grade_v5_R",
+  "modules": ["health_score", "isolation_forest", "kmeans"],
+  "n_samples": 43929,
+  "health_score_stats": {
+    "mean": 54.3,
+    "min": 0.0,
+    "pct_below_70": 82.5,
+    "pct_below_30": 13.8
+  },
+  "isolation_forest": {
+    "n_trees": 200,
+    "contamination": 0.102,
+    "n_anomalies": 2197
+  },
+  "kmeans_modes": 4
 }
