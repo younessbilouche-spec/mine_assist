@@ -156,7 +156,7 @@ async def startup_ml():
         # get_predictor(str(BASE_DIR / "models")) # Désactivé : anciens modèles
         print("✅ Predictor ML désactivé (allégement du démarrage)")
     except Exception as e:
-        print(f"⚠️  Predictor ML non disponible (lancer pipeline_ml.py) : {e}")
+        print(f"⚠️  Predictor ML non disponible (lancer pipeline_ml_FINAL_v5.py) : {e}")
 # ── Sprint 1 + 2 (mai 2026) — modules additifs ──────────────────────────────
 try:
     from app.ocp_history_router_v2 import history_v2_router

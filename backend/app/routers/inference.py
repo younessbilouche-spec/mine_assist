@@ -74,7 +74,7 @@ class MineAssistPredictor:
             print(f"✅ Predictor chargé | {len(self._features)} features | "
                   f"Entraîné le {self._meta.get('trained_at', '?')}")
         except FileNotFoundError as e:
-            print(f"⚠️  Modèles non trouvés: {e} — lancez pipeline_ml.py d'abord")
+            print(f"⚠️  Modèles non trouvés: {e} — lancez pipeline_ml_FINAL_v5.py d'abord")
             self._ready = False
     
     def _build_feature_vector(self, mesures: dict) -> np.ndarray:
