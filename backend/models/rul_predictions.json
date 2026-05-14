@@ -1,213 +1,189 @@
 {
-    "timestamp": "2026-05-14T08:53:36",
+    "timestamp": "2026-05-14T14:19:11",
     "model_type": "Random Forest — Pannes Critiques (Gravité GMAO, horizon 24 h)",
-    "methode": "Classification supervisée · split chronologique 80/20 · class_weight='balanced' · features glissantes 1 h",
+    "methode": "Classification supervisée | split chronologique 80/20 | class_weight='balanced' | features glissantes 1 h",
     "horizon_h": 24,
     "fenetre_features_min": 60,
     "sources": {
-        "capteurs": "app/ocp/data/Data_Capteurs_Panne_nettoyee.xlsx",
-        "gmao": "app/ocp/data/gmao_anomalies.xlsx"
+        "capteurs": "app\\ocp\\data\\Data_Capteurs_Panne_nettoyee.xlsx",
+        "gmao": "app\\ocp\\data\\gmao_anomalies.xlsx"
     },
     "model_principal": "Cohort `panne` interne",
-    "auc": 0.61,
-    "f1": 0.37,
-    "precision": 0.264,
-    "recall": 0.618,
-    "seuil_optimal": 0.38,
-    "proba_24h_courante": 0.653,
+    "auc": 0.628,
+    "f1": 0.402,
+    "precision": 0.312,
+    "recall": 0.564,
+    "seuil_optimal": 0.44,
+    "proba_24h_courante": 0.665,
     "verdict": "alerte",
     "capteurs": [
         {
-            "nom": "Température huile direction",
-            "importance": 0.4058,
-            "importance_pct": 40.6,
-            "criticite": 12
+            "nom": "Temp. huile direction",
+            "importance": 0.417,
+            "importance_pct": 41.7,
+            "criticite": 10
         },
         {
-            "nom": "Température sortie convertisseur",
-            "importance": 0.1408,
-            "importance_pct": 14.1,
-            "criticite": 12
-        },
-        {
-            "nom": "Température liquide refroidissement",
-            "importance": 0.1296,
-            "importance_pct": 13.0,
-            "criticite": 16
+            "nom": "Temp. sortie convertisseur",
+            "importance": 0.1555,
+            "importance_pct": 15.5,
+            "criticite": 10
         },
         {
             "nom": "Pression huile moteur",
-            "importance": 0.1283,
-            "importance_pct": 12.8,
+            "importance": 0.1461,
+            "importance_pct": 14.6,
             "criticite": 16
         },
         {
-            "nom": "Régime moteur",
-            "importance": 0.1194,
-            "importance_pct": 11.9,
-            "criticite": 14
+            "nom": "Regime moteur",
+            "importance": 0.1411,
+            "importance_pct": 14.1,
+            "criticite": 10
         },
         {
-            "nom": "Régime convertisseur",
-            "importance": 0.076,
-            "importance_pct": 7.6,
-            "criticite": 12
+            "nom": "Temp. liquide refroidissement",
+            "importance": 0.1404,
+            "importance_pct": 14.0,
+            "criticite": 10
         }
     ],
     "variantes": {
         "panne_cohort": {
-            "auc": 0.61,
-            "f1": 0.37,
-            "precision": 0.264,
-            "recall": 0.618,
-            "seuil_optimal": 0.38,
+            "auc": 0.628,
+            "f1": 0.402,
+            "precision": 0.312,
+            "recall": 0.564,
+            "seuil_optimal": 0.44,
             "n_train": 37670,
             "n_test": 9418,
             "n_pannes_train": 9807,
             "n_pannes_test": 1919,
             "pct_positifs": 24.9,
-            "proba_24h_courante": 0.653,
+            "proba_24h_courante": 0.665,
             "verdict": "alerte",
             "capteurs": [
                 {
-                    "nom": "Température huile direction",
-                    "importance": 0.4058,
-                    "importance_pct": 40.6,
-                    "criticite": 12
+                    "nom": "Temp. huile direction",
+                    "importance": 0.417,
+                    "importance_pct": 41.7,
+                    "criticite": 10
                 },
                 {
-                    "nom": "Température sortie convertisseur",
-                    "importance": 0.1408,
-                    "importance_pct": 14.1,
-                    "criticite": 12
-                },
-                {
-                    "nom": "Température liquide refroidissement",
-                    "importance": 0.1296,
-                    "importance_pct": 13.0,
-                    "criticite": 16
+                    "nom": "Temp. sortie convertisseur",
+                    "importance": 0.1555,
+                    "importance_pct": 15.5,
+                    "criticite": 10
                 },
                 {
                     "nom": "Pression huile moteur",
-                    "importance": 0.1283,
-                    "importance_pct": 12.8,
+                    "importance": 0.1461,
+                    "importance_pct": 14.6,
                     "criticite": 16
                 },
                 {
-                    "nom": "Régime moteur",
-                    "importance": 0.1194,
-                    "importance_pct": 11.9,
-                    "criticite": 14
+                    "nom": "Regime moteur",
+                    "importance": 0.1411,
+                    "importance_pct": 14.1,
+                    "criticite": 10
                 },
                 {
-                    "nom": "Régime convertisseur",
-                    "importance": 0.076,
-                    "importance_pct": 7.6,
-                    "criticite": 12
+                    "nom": "Temp. liquide refroidissement",
+                    "importance": 0.1404,
+                    "importance_pct": 14.0,
+                    "criticite": 10
                 }
             ]
         },
         "grav2": {
-            "auc": 0.518,
-            "f1": 0.722,
-            "precision": 0.565,
-            "recall": 1.0,
-            "seuil_optimal": 0.3,
+            "auc": 0.589,
+            "f1": 0.109,
+            "precision": 0.077,
+            "recall": 0.188,
+            "seuil_optimal": 0.64,
             "n_train": 37670,
             "n_test": 9418,
-            "n_pannes_train": 29768,
-            "n_pannes_test": 5314,
-            "pct_positifs": 74.5,
-            "proba_24h_courante": 0.836,
-            "verdict": "critique",
+            "n_pannes_train": 983,
+            "n_pannes_test": 414,
+            "pct_positifs": 2.97,
+            "proba_24h_courante": 0.247,
+            "verdict": "stable",
             "capteurs": [
                 {
+                    "nom": "Temp. liquide refroidissement",
+                    "importance": 0.4172,
+                    "importance_pct": 41.7,
+                    "criticite": 10
+                },
+                {
+                    "nom": "Temp. huile direction",
+                    "importance": 0.1917,
+                    "importance_pct": 19.2,
+                    "criticite": 10
+                },
+                {
                     "nom": "Pression huile moteur",
-                    "importance": 0.1825,
-                    "importance_pct": 18.2,
+                    "importance": 0.1513,
+                    "importance_pct": 15.1,
                     "criticite": 16
                 },
                 {
-                    "nom": "Régime convertisseur",
-                    "importance": 0.1737,
-                    "importance_pct": 17.4,
-                    "criticite": 12
+                    "nom": "Regime moteur",
+                    "importance": 0.1208,
+                    "importance_pct": 12.1,
+                    "criticite": 10
                 },
                 {
-                    "nom": "Régime moteur",
-                    "importance": 0.1727,
-                    "importance_pct": 17.3,
-                    "criticite": 14
-                },
-                {
-                    "nom": "Température huile direction",
-                    "importance": 0.1703,
-                    "importance_pct": 17.0,
-                    "criticite": 12
-                },
-                {
-                    "nom": "Température liquide refroidissement",
-                    "importance": 0.1571,
-                    "importance_pct": 15.7,
-                    "criticite": 16
-                },
-                {
-                    "nom": "Température sortie convertisseur",
-                    "importance": 0.1437,
-                    "importance_pct": 14.4,
-                    "criticite": 12
+                    "nom": "Temp. sortie convertisseur",
+                    "importance": 0.119,
+                    "importance_pct": 11.9,
+                    "criticite": 10
                 }
             ]
         },
         "grav3": {
-            "auc": 0.536,
-            "f1": 0.161,
-            "precision": 0.128,
-            "recall": 0.216,
-            "seuil_optimal": 0.46,
+            "auc": 0.589,
+            "f1": 0.109,
+            "precision": 0.077,
+            "recall": 0.188,
+            "seuil_optimal": 0.64,
             "n_train": 37670,
             "n_test": 9418,
-            "n_pannes_train": 3122,
-            "n_pannes_test": 402,
-            "pct_positifs": 7.48,
-            "proba_24h_courante": 0.222,
+            "n_pannes_train": 983,
+            "n_pannes_test": 414,
+            "pct_positifs": 2.97,
+            "proba_24h_courante": 0.247,
             "verdict": "stable",
             "capteurs": [
                 {
-                    "nom": "Température huile direction",
-                    "importance": 0.2002,
-                    "importance_pct": 20.0,
-                    "criticite": 12
+                    "nom": "Temp. liquide refroidissement",
+                    "importance": 0.4172,
+                    "importance_pct": 41.7,
+                    "criticite": 10
                 },
                 {
-                    "nom": "Température liquide refroidissement",
-                    "importance": 0.1902,
-                    "importance_pct": 19.0,
-                    "criticite": 16
+                    "nom": "Temp. huile direction",
+                    "importance": 0.1917,
+                    "importance_pct": 19.2,
+                    "criticite": 10
                 },
                 {
                     "nom": "Pression huile moteur",
-                    "importance": 0.1678,
-                    "importance_pct": 16.8,
+                    "importance": 0.1513,
+                    "importance_pct": 15.1,
                     "criticite": 16
                 },
                 {
-                    "nom": "Régime moteur",
-                    "importance": 0.1499,
-                    "importance_pct": 15.0,
-                    "criticite": 14
+                    "nom": "Regime moteur",
+                    "importance": 0.1208,
+                    "importance_pct": 12.1,
+                    "criticite": 10
                 },
                 {
-                    "nom": "Régime convertisseur",
-                    "importance": 0.146,
-                    "importance_pct": 14.6,
-                    "criticite": 12
-                },
-                {
-                    "nom": "Température sortie convertisseur",
-                    "importance": 0.1458,
-                    "importance_pct": 14.6,
-                    "criticite": 12
+                    "nom": "Temp. sortie convertisseur",
+                    "importance": 0.119,
+                    "importance_pct": 11.9,
+                    "criticite": 10
                 }
             ]
         }

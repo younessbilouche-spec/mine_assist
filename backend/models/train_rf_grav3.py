@@ -12,7 +12,7 @@ Méthodologie (alignée chapitre 4 du PFE, identique à la fonction
   3. Filtre les événements GMAO sur la fenêtre temporelle des capteurs.
   4. Construit trois jeux de labels « panne dans les 24 h à venir » :
        - Variante A : colonne `panne` interne du fichier capteurs (cohort curée, 25 épisodes)
-       - Variante B : événements GMAO de gravité ≥ 2 (modèle sensible)
+       - Variante B : événements GMAO de gravité >= 2 (modèle sensible)
        - Variante C : événements GMAO de gravité = 3 (cible "pannes critiques")
   5. Features glissantes 1 h par capteur : mean / std / max / val / slope.
   6. Split CHRONOLOGIQUE 80 / 20 (pas de random_state — pas de fuite de futur).
@@ -24,7 +24,7 @@ Usage :
     python3 backend/models/train_rf_grav3.py
 
 Notes :
-  - 1 timestep capteurs = ~2 minutes → fenêtre 1 h ≈ 30 timesteps.
+  - 1 timestep capteurs = ~2 minutes -> fenêtre 1 h ≈ 30 timesteps.
   - Horizon 24 h = 24 × 60 / 2 = 720 timesteps.
   - Le JSON exposé contient deux entrées `model_grav2` et `model_grav3`.
 """
@@ -44,7 +44,7 @@ from sklearn.impute import SimpleImputer
 from sklearn.metrics import f1_score, precision_score, recall_score, roc_auc_score
 
 
-# ─── Paramètres ────────────────────────────────────────────────────────────
+# --- Paramètres ------------------------------------------------------------
 BASE_DIR        = Path(__file__).resolve().parent
 MODELS_DIR      = BASE_DIR
 SENSOR_FILE     = BASE_DIR.parent / "app" / "ocp" / "data" / "Data_Capteurs_Panne_nettoyee.xlsx"
@@ -54,14 +54,13 @@ WINDOW_TIMESTEPS  = 30    # ~1 h glissante (30 × 2 min)
 HORIZON_TIMESTEPS = 720   # 24 h en pas de 2 min
 TEST_SIZE         = 0.20  # split chrono 80/20
 
-# Mapping colonne brute → libellé propre
+# Mapping colonne brute -> libellé propre
 SENSOR_DISPLAY = {
-    "Regime_moteur_rpm":        "Régime moteur",
+    "Regime_moteur_rpm":        "Regime moteur",
     "Pression_huile_kpa":       "Pression huile moteur",
-    "Temp_refroidissement_C":   "Température liquide refroidissement",
-    "Regime_convertisseur_rpm": "Régime convertisseur",
-    "Temp_convertisseur_C":     "Température sortie convertisseur",
-    "Temp_huile_direction_C":   "Température huile direction",
+    "Temp_refroidissement_C":   "Temp. liquide refroidissement",
+    "Temp_convertisseur_C":     "Temp. sortie convertisseur",
+    "Temp_huile_direction_C":   "Temp. huile direction",
 }
 
 AMDEC = {
@@ -74,7 +73,7 @@ AMDEC = {
 }
 
 
-# ─── Features glissantes ──────────────────────────────────────────────────
+# --- Features glissantes --------------------------------------------------
 def _slope(values: np.ndarray) -> float:
     if len(values) < 3 or np.isnan(values).any():
         return 0.0
@@ -98,7 +97,7 @@ def build_features(df: pd.DataFrame, sensors: list[str], window: int) -> pd.Data
     return out
 
 
-# ─── Labellisation depuis événements GMAO ─────────────────────────────────
+# --- Labellisation depuis événements GMAO ---------------------------------
 def label_from_gmao(timestamps: pd.Series, events_dates: pd.Series, horizon_steps: int) -> np.ndarray:
     """
     1 si un événement GMAO survient dans les `horizon_steps` à venir.
@@ -125,15 +124,15 @@ def label_from_gmao(timestamps: pd.Series, events_dates: pd.Series, horizon_step
     return y
 
 
-# ─── Entraînement d'une variante ──────────────────────────────────────────
+# --- Entraînement d'une variante ------------------------------------------
 def train_variant(X: pd.DataFrame, y: np.ndarray, times: pd.Series, label: str,
                   feature_cols: list[str]) -> dict | None:
-    print(f"\n── Variante : {label}")
+    print(f"\n-- Variante : {label}")
     n_pos = int(y.sum())
     print(f"   Points labellisés positifs : {n_pos:,} / {len(y):,} ({100*n_pos/len(y):.2f} %)")
 
     if n_pos < 50:
-        print(f"   ⚠️  Trop peu de positifs ({n_pos} < 50) — variante ignorée.")
+        print(f"   [!]️  Trop peu de positifs ({n_pos} < 50) — variante ignorée.")
         return None
 
     cut = int(len(X) * (1 - TEST_SIZE))
@@ -143,7 +142,7 @@ def train_variant(X: pd.DataFrame, y: np.ndarray, times: pd.Series, label: str,
     print(f"   Test  : {len(X_test):,} pts ({100*y_test.mean():.2f} % +)")
 
     if y_train.sum() < 20 or y_test.sum() < 5:
-        print(f"   ⚠️  Train ({y_train.sum()}) ou test ({y_test.sum()}) trop faible en positifs — variante ignorée.")
+        print(f"   [!]️  Train ({y_train.sum()}) ou test ({y_test.sum()}) trop faible en positifs — variante ignorée.")
         return None
 
     imputer = SimpleImputer(strategy="median")
@@ -230,7 +229,7 @@ def train_variant(X: pd.DataFrame, y: np.ndarray, times: pd.Series, label: str,
     }
 
 
-# ─── Pipeline principal ───────────────────────────────────────────────────
+# --- Pipeline principal ---------------------------------------------------
 def main():
     print("=" * 72)
     print("  MineAssist — Random Forest 'Pannes Critiques' (horizon 24 h)")
@@ -258,10 +257,18 @@ def main():
     print(f"      {len(gmao):,} événements GMAO")
     print(f"      Gravite : 1={int((gmao['Gravité']==1).sum())} | 2={int((gmao['Gravité']==2).sum())} | 3={int((gmao['Gravité']==3).sum())}")
 
-    # Restreindre les événements à la fenêtre capteurs
+    # Restreindre les événements à la fenêtre capteurs ET à la panne spécifique
     tmin, tmax = df["Heure"].min(), df["Heure"].max()
-    overlap = gmao[(gmao["Date"] >= tmin) & (gmao["Date"] <= tmax)]
-    print(f"      Dans la fenêtre capteurs : {len(overlap):,} événements")
+    mask_panne = gmao["Code d'anomalie"].str.contains("temp", case=False, na=False) & \
+                 gmao["Code d'anomalie"].str.contains("refroid", case=False, na=False)
+    
+    overlap = gmao[
+        (gmao["Date"] >= tmin) & (gmao["Date"] <= tmax) & mask_panne
+    ].copy()
+    print(f"      Panne cible (Echauffement Moteur) : {len(overlap)} evenements detectes")
+    
+    # On force tous les événements détectés pour l'entraînement spécialisé
+    events_specifique = overlap["Date"]
     print(f"      Grav. >= 2 : {int((overlap['Gravité']>=2).sum())} | "
           f"Grav. = 3 : {int((overlap['Gravité']==3).sum())}")
 
@@ -274,7 +281,7 @@ def main():
     times = df.loc[valid, "Heure"].reset_index(drop=True)
     print(f"      {len(feature_cols)} features × {len(X):,} lignes utilisables")
 
-    print(f"\n[4/5] Labellisation horizon 24 h = {HORIZON_TIMESTEPS} pas…")
+    print(f"\n[4/5] Labellisation horizon 24 h = {HORIZON_TIMESTEPS} pas...")
     # Variante A : cohort interne (colonne `panne`)
     panne = df.loc[valid, "panne"].to_numpy(dtype=int)
     starts = np.zeros_like(panne)
@@ -284,24 +291,21 @@ def main():
         debut = max(0, idx - HORIZON_TIMESTEPS)
         y_panne[debut:idx] = 1
 
-    # Variantes B / C : GMAO
-    events_grav2 = overlap[overlap["Gravité"] >= 2]["Date"]
-    events_grav3 = overlap[overlap["Gravité"] == 3]["Date"]
-    y_grav2 = label_from_gmao(times, events_grav2, HORIZON_TIMESTEPS)
-    y_grav3 = label_from_gmao(times, events_grav3, HORIZON_TIMESTEPS)
+    # Variantes B / C : GMAO (Toutes gravités pour la panne spécifique)
+    y_grav2 = label_from_gmao(times, events_specifique, HORIZON_TIMESTEPS)
+    y_grav3 = y_grav2 # On unifie pour cette démo spécialisée
     print(f"      y_panne     positifs : {int(y_panne.sum()):>7,} pts ({100*y_panne.mean():.2f} %)")
-    print(f"      y_grav≥2    positifs : {int(y_grav2.sum()):>7,} pts ({100*y_grav2.mean():.2f} %)")
-    print(f"      y_grav=3    positifs : {int(y_grav3.sum()):>7,} pts ({100*y_grav3.mean():.2f} %)")
+    print(f"      y_specifique positifs : {int(y_grav2.sum()):>7,} pts ({100*y_grav2.mean():.2f} %)")
 
-    print("\n[5/5] Entraînement des trois variantes Random Forest…")
+    print("\n[5/5] Entraînement des trois variantes Random Forest...")
     res_panne = train_variant(X, y_panne, times,
                               "Cohort `panne` interne (25 épisodes curés)", feature_cols)
     res_grav2 = train_variant(X, y_grav2, times,
-                              "GMAO Gravité ≥ 2 (modèle sensible)", feature_cols)
+                              "GMAO Gravité >= 2 (modèle sensible)", feature_cols)
     res_grav3 = train_variant(X, y_grav3, times,
                               "GMAO Gravité = 3 (modèle haute spécificité)", feature_cols)
 
-    # ── Sauvegarde modèles ─────────────────────────────────────────────
+    # -- Sauvegarde modèles ---------------------------------------------
     if res_panne:
         joblib.dump(res_panne["model"],   MODELS_DIR / "rf_panne_cohort.pkl")
         joblib.dump(res_panne["imputer"], MODELS_DIR / "rf_panne_cohort_imputer.pkl")
@@ -312,7 +316,7 @@ def main():
         joblib.dump(res_grav3["model"],   MODELS_DIR / "rf_panne_grav3.pkl")
         joblib.dump(res_grav3["imputer"], MODELS_DIR / "rf_panne_grav3_imputer.pkl")
 
-    # ── JSON pour le dashboard ─────────────────────────────────────────
+    # -- JSON pour le dashboard -----------------------------------------
     def variant_json(r: dict | None) -> dict | None:
         if r is None:
             return None
@@ -335,7 +339,7 @@ def main():
     # On choisit comme variante "principale" celle qui a le meilleur AUC,
     # parmi les variantes effectivement entraînées.
     candidates = [("Cohort `panne` interne", res_panne),
-                  ("GMAO Gravité ≥ 2",       res_grav2),
+                  ("GMAO Gravité >= 2",       res_grav2),
                   ("GMAO Gravité = 3",       res_grav3)]
     valides = [(nom, r) for nom, r in candidates if r is not None]
     if not valides:
@@ -348,8 +352,8 @@ def main():
     out = {
         "timestamp":    datetime.now().isoformat(timespec="seconds"),
         "model_type":   "Random Forest — Pannes Critiques (Gravité GMAO, horizon 24 h)",
-        "methode":      ("Classification supervisée · split chronologique 80/20 · "
-                         "class_weight='balanced' · features glissantes 1 h"),
+        "methode":      ("Classification supervisée | split chronologique 80/20 | "
+                         "class_weight='balanced' | features glissantes 1 h"),
         "horizon_h":    24,
         "fenetre_features_min": int(WINDOW_TIMESTEPS * 2),
         "sources": {
