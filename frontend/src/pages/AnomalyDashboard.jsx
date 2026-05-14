@@ -1,9 +1,9 @@
 
 import { useState, useEffect, useMemo } from "react"
 import {
-  ComposedChart, Line, XAxis, YAxis,
+  ComposedChart, Line, Area, XAxis, YAxis,
   CartesianGrid, Tooltip, Legend, ResponsiveContainer,
-  ReferenceLine
+  ReferenceLine, Radar, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis
 } from "recharts"
 import { API , C} from "../config"
 
@@ -292,20 +292,37 @@ export default function AnomalyDashboard() {
       </div>
 
       {activeTab === "timeline" && (
-        <Card>
-          <CardTitle accent={C.danger} right={<span style={{ fontSize: 10, fontWeight: 400, color: C.textLight }}>{data.training_start?.slice(0, 10)} → {data.training_end?.slice(0, 10)}</span>}>
-            Score d'anomalie dans le temps
+        <Card style={{ padding: "30px" }}>
+          <CardTitle accent={C.danger} right={
+            <div style={{ display: "flex", gap: 15 }}>
+               <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                  <div style={{ width: 10, height: 10, borderRadius: "50%", background: C.green }} />
+                  <span style={{ fontSize: 10, fontWeight: 700 }}>STABLE</span>
+               </div>
+               <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                  <div style={{ width: 10, height: 10, borderRadius: "50%", background: C.danger }} />
+                  <span style={{ fontSize: 10, fontWeight: 700 }}>ANOMALIE</span>
+               </div>
+            </div>
+          }>
+            Score de Risque Multi-Dimensionnel (Heatmap)
           </CardTitle>
-          <ResponsiveContainer width="100%" height={380}>
-            <ComposedChart data={timelineColored} margin={{ top: 8, right: 20, left: 0, bottom: 20 }}>
-              <CartesianGrid strokeDasharray="3 3" stroke={C.border} />
-              <XAxis dataKey="t" tick={{ fontSize: 9, fill: C.textMuted }} interval={Math.floor(timelineColored.length / 15)} angle={-30} textAnchor="end" height={50} />
-              <YAxis tick={{ fontSize: 10, fill: C.textMuted }} />
+          <ResponsiveContainer width="100%" height={400}>
+            <ComposedChart data={timelineColored} margin={{ top: 20, right: 30, left: 0, bottom: 20 }}>
+              <defs>
+                <linearGradient id="colorScore" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="5%" stopColor={C.danger} stopOpacity={0.3}/>
+                  <stop offset="95%" stopColor={C.green} stopOpacity={0.05}/>
+                </linearGradient>
+              </defs>
+              <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="rgba(0,0,0,0.05)" />
+              <XAxis dataKey="t" tick={{ fontSize: 9, fill: C.textMuted }} interval={Math.floor(timelineColored.length / 15)} />
+              <YAxis tick={{ fontSize: 10, fill: C.textMuted }} domain={['auto', 'auto']} />
               <Tooltip content={<TimelineTooltip />} />
-              <Legend wrapperStyle={{ fontSize: 11, fontFamily: "'Rajdhani',sans-serif" }} />
-              <ReferenceLine y={0} stroke={C.danger} strokeDasharray="4 2" strokeWidth={1.5} label={{ value: "frontière anomalie", position: "insideTopRight", fontSize: 10, fill: C.danger }} />
-              <Line type="monotone" dataKey="score_normal" name="Normal" stroke={C.green} strokeWidth={1} dot={false} connectNulls={false} />
-              <Line type="monotone" dataKey="score_anomaly" name="Anomalie" stroke={C.danger} strokeWidth={2} dot={{ r: 3, fill: C.danger }} connectNulls={false} />
+              <Area type="monotone" dataKey="score" stroke="none" fillOpacity={1} fill="url(#colorScore)" />
+              <ReferenceLine y={0} stroke={C.danger} strokeDasharray="5 5" label={{ value: "SEUIL CRITIQUE", position: "right", fill: C.danger, fontSize: 10, fontWeight: 800 }} />
+              <Line type="monotone" dataKey="score_normal" name="Normal" stroke={C.green} strokeWidth={2} dot={false} />
+              <Line type="monotone" dataKey="score_anomaly" name="Alerte" stroke={C.danger} strokeWidth={3} dot={{ r: 4, fill: C.danger, strokeWidth: 2, stroke: "#fff" }} />
             </ComposedChart>
           </ResponsiveContainer>
         </Card>
@@ -451,24 +468,44 @@ export default function AnomalyDashboard() {
           </button>
 
           {predictResult && !predictResult.error && (
-            <div style={{
-              marginTop: 20, padding: "20px 24px",
-              background: predictResult.is_anomaly ? C.dangerPale : C.greenPale,
-              border: `2px solid ${predictResult.is_anomaly ? C.danger : C.green}`,
-              borderLeft: `6px solid ${predictResult.is_anomaly ? C.danger : C.green}`,
-            }}>
-              <div style={{ fontSize: 22, fontWeight: 700, color: predictResult.is_anomaly ? C.danger : C.green, marginBottom: 10 }}>
-                {predictResult.verdict}
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 30, marginTop: 30 }}>
+              <div style={{
+                padding: "25px",
+                background: predictResult.is_anomaly ? C.dangerPale : C.greenPale,
+                borderRadius: 24,
+                borderLeft: `6px solid ${predictResult.is_anomaly ? C.danger : C.green}`,
+              }}>
+                <div style={{ fontSize: 10, fontWeight: 900, color: C.textMuted, letterSpacing: 2, marginBottom: 10 }}>VERDICT SYSTÈME</div>
+                <div style={{ fontSize: 32, fontWeight: 800, color: predictResult.is_anomaly ? C.danger : C.green, marginBottom: 15 }}>
+                  {predictResult.verdict}
+                </div>
+                <div style={{ display: "flex", gap: 30 }}>
+                  <div>
+                    <div style={{ fontSize: 10, fontWeight: 700, color: C.textMuted, marginBottom: 5 }}>SCORE D'ISOLATION</div>
+                    <div style={{ fontSize: 24, fontWeight: 800 }}>{predictResult.score?.toFixed(4)}</div>
+                  </div>
+                  <div>
+                    <div style={{ fontSize: 10, fontWeight: 700, color: C.textMuted, marginBottom: 5 }}>CONFIANCE</div>
+                    <div style={{ fontSize: 24, fontWeight: 800, color: predictResult.is_anomaly ? C.danger : C.green }}>{predictResult.confiance}%</div>
+                  </div>
+                </div>
               </div>
-              <div style={{ display: "flex", gap: 20, flexWrap: "wrap" }}>
-                <div>
-                  <div style={{ fontSize: 10, fontWeight: 700, color: C.textMuted, letterSpacing: 2, textTransform: "uppercase", marginBottom: 4 }}>Score</div>
-                  <div style={{ fontSize: 20, fontWeight: 700, color: C.textMid }}>{predictResult.score?.toFixed(4)}</div>
-                </div>
-                <div>
-                  <div style={{ fontSize: 10, fontWeight: 700, color: C.textMuted, letterSpacing: 2, textTransform: "uppercase", marginBottom: 4 }}>Confiance relative</div>
-                  <div style={{ fontSize: 20, fontWeight: 700, color: predictResult.is_anomaly ? C.danger : C.green }}>{predictResult.confiance}%</div>
-                </div>
+
+              <div style={{ background: "#fff", padding: "20px", borderRadius: 24, border: `1px solid ${C.border}` }}>
+                <div style={{ fontSize: 10, fontWeight: 900, color: C.textMuted, letterSpacing: 2, marginBottom: 20, textAlign: "center" }}>RADAR DE DÉVIATION (Z-SCORE)</div>
+                <ResponsiveContainer width="100%" height={250}>
+                  <RadarChart cx="50%" cy="50%" outerRadius="80%" data={
+                    PREDICT_LABELS.map((p, i) => ({
+                      subject: p.label.split(" ").pop(),
+                      A: Math.abs((parseFloat(predictVals[i]) - [85, 450, 450, 100, 300, 1500][i]) / 10), // Simplification pour le radar
+                      fullMark: 10,
+                    }))
+                  }>
+                    <PolarGrid stroke="#eee" />
+                    <PolarAngleAxis dataKey="subject" tick={{ fontSize: 10, fontWeight: 700, fill: C.textMuted }} />
+                    <Radar name="Déviation" dataKey="A" stroke={predictResult.is_anomaly ? C.danger : C.green} fill={predictResult.is_anomaly ? C.danger : C.green} fillOpacity={0.5} />
+                  </RadarChart>
+                </ResponsiveContainer>
               </div>
             </div>
           )}
