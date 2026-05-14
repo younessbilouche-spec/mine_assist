@@ -30,6 +30,7 @@ from app.auth import auth_router
 from app.capteur_thresholds import (
     CAPTEUR_THRESHOLDS,
     find_capteur_rule,
+    clean_param_name,
 )
 
 # ── Chemins de base ──────────────────────────────────────────────────────────
@@ -142,6 +143,9 @@ app.include_router(sim_router)
 app.include_router(ocp_router, prefix="/pred", tags=["Maintenance Prédictive — XGBoost + RF"])
 app.include_router(history_router)
 app.include_router(ml_v6_router, prefix="/ml", tags=["ML v6 — Insights"])
+
+from app.routers.rul_degradation import router as rul_router
+app.include_router(rul_router, prefix="/rul", tags=["RUL — MSDM"])
 
 from app.routers.multi_agent_router import multi_agent_router
 app.include_router(multi_agent_router)

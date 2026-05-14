@@ -20,6 +20,8 @@ import OilAnalysisDashboard from "./pages/OilAnalysisDashboard"
 
 import LoginPage from "./pages/LoginPage"
 import DiagnosticRenderer from "./pages/DiagnosticRenderer"
+import RULDashboard from "./pages/RULDashboard"
+import OcpDefautPage from "./pages/OcpDefautPage"
 
 
 import { API, C } from "./config"
@@ -1046,7 +1048,7 @@ const TABS = [
   { id:"gmao",            icon:"📊", label:"GMAO Analytics",          shortLabel:"GMAO" },
   { id:"geo",             icon:"📍", label:"Analyse Géo",             shortLabel:"Géo" },
   { id:"anomaly",         icon:"🤖", label:"Détection IA",            shortLabel:"IA" },
-  { id:"multi_agent",     icon:"💬", label:"Conseil Experts",         shortLabel:"Agents" },
+  { id:"rul_dashboard",   icon:"⏱️", label:"Prédiction RUL",          shortLabel:"RUL" },
   { id:"oil",             icon:"🛢️", label:"Analyses Huiles",         shortLabel:"Huiles" },
   { id:"historique",      icon:"📚", label:"Historique",              shortLabel:"Hist" },
   { id:"ocp_upload",      icon:"📁", label:"Import Données",          shortLabel:"Import" },
@@ -1178,9 +1180,9 @@ export default function App() {
                 {activeTab === "geo" && <GeoAnomalyDashboard />}
                 {activeTab === "capteurs" && <CapteursPage />}
                 {activeTab === "anomaly" && <AnomalyDashboard />}
-                {activeTab === "multi_agent" && <MultiAgentDiagnosticPage />}
                 {activeTab === "oil" && <OilAnalysisDashboard />}
                 {activeTab === "ocp_upload" && <OcpFilesPage apiFetch={apiFetch} onNavigate={handleTabChange} />}
+                {activeTab === "ocp_defaut" && <OcpDefautPage apiFetch={apiFetch} onNavigate={handleTabChange} />}
                 {activeTab === "alerts_ocp" && <UnifiedAlertsPage apiFetch={apiFetch} onNavigate={handleTabChange} />}
                 {activeTab === "ocp_sante" && <UnifiedHealthPage apiFetch={apiFetch} onNavigate={handleTabChange} />}
                 {activeTab === "ocp_troubleshooting" && (
@@ -1192,6 +1194,7 @@ export default function App() {
                 )}
                 {activeTab === "historique" && <MaintenanceHistoryDashboard apiFetch={apiFetch} />}
                 {activeTab === "ml_insights" && <MLInsightsPage apiFetch={apiFetch} />}
+                {activeTab === "rul_dashboard" && <RULDashboard />}
               </>
             )}
           </div>

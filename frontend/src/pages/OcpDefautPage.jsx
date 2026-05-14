@@ -122,7 +122,7 @@ export default function OcpDefautPage({ apiFetch, onNavigate }) {
     } catch (_) {}
 
     if (typeof onNavigate === 'function') {
-      onNavigate('/ask')
+      onNavigate('ask')
     } else {
       // Fallback si onNavigate non passé : navigation hash
       window.location.hash = '#/ask'

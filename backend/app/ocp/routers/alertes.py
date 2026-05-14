@@ -5,7 +5,7 @@
 # GET /pred/alertes  → alertes actives + plan d interventions
 #
 # v2 PERF (perf_patch) :
-#   - Utilise le modèle XGBoost/RF (rul_router) pour la prédiction RUL.
+#   - Utilise le modèle Random Forest (rul_router) pour la prédiction RUL.
 #   - Cache du DataFrame charge (mtime + size).
 #   - Cache du resultat alertes complet (mtime + size).
 # ============================================================
@@ -211,7 +211,7 @@ def get_alertes(request: Request):
             X = _build_features_from_wide(df_rul)
             r = _predict_rul(X)
             t_pred = round((time.time() - t1) * 1000)
-            rul_h = r["rul_heures"].get("global_grav2")
+            rul_h = r["rul_heures"].get("global")
             rul_prediction = {
                 "disponible":    True,
                 "rul_heures":    r["rul_heures"],
@@ -227,7 +227,7 @@ def get_alertes(request: Request):
                     "type":          "RUL",
                     "urgence":       urgence_rul,
                     "capteur":       None,
-                    "capteur_label": "Prédiction IA — XGBoost RUL",
+                    "capteur_label": "Prédiction IA — Random Forest RUL",
                     "unite":         "h",
                     "valeur_actuelle": round(rul_h or 0, 1),
                     "seuil_alarme":  72,

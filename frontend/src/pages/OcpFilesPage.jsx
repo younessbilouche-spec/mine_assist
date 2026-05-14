@@ -82,26 +82,44 @@ export default function OcpFilesPage({ apiFetch, onNavigate }) {
         </div>
 
         {/* Drop zone */}
-        <label className="card"
+        <div className="card"
           onDragOver={e=>{e.preventDefault();setDrag(true)}}
           onDragLeave={()=>setDrag(false)}
           onDrop={handleDrop}
-          style={{ display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', minHeight:320, cursor:'pointer', padding:32, border: drag ? '2px dashed #00843D' : '2px dashed #D4C9B0', background: drag ? '#E8F5EE' : '#FFFFFF', transition:'all 0.2s', gap:16, boxShadow:'0 8px 24px rgba(42,42,30,0.06)' }}>
-          <input type="file" accept=".xlsx,.xls" onChange={handleFileChange} style={{display:'none'}} />
+          style={{ display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', minHeight:320, padding:32, border: drag ? '2px dashed #00843D' : '2px dashed #D4C9B0', background: drag ? '#E8F5EE' : '#FFFFFF', transition:'all 0.2s', gap:16, boxShadow:'0 8px 24px rgba(42,42,30,0.06)', position:'relative' }}>
+          
+          <input type="file" id="ocp-file-input" accept=".xlsx,.xls" onChange={handleFileChange} style={{display:'none'}} />
+          
           <div style={{ fontSize:52 }}>📁</div>
-          <div style={{ fontFamily:'Rajdhani, sans-serif', fontSize:26, fontWeight:900, color: drag ? '#00843D' : '#2A2A1E' }}>
+          <div style={{ fontFamily:'Rajdhani, sans-serif', fontSize:26, fontWeight:900, color: drag ? '#00843D' : '#2A2A1E', textAlign:'center' }}>
             {file ? file.name : 'Glissez votre fichier ici'}
           </div>
           <div style={{ fontSize:13, color:'#8A7D60', textAlign:'center' }}>
             {file ? `${(file.size/1024/1024).toFixed(2)} MB` : 'ou cliquez pour sélectionner • .xlsx, .xls'}
           </div>
-          {file && !uploaded && (
-            <button onClick={e=>{e.preventDefault();handleUpload()}} disabled={loading}
-              className="btn btn-primary" style={{ marginTop:8 }}>
-              {loading ? '⏳ Chargement...' : '↑ Uploader'}
-            </button>
-          )}
-        </label>
+
+          <div style={{ display:'flex', gap:10, marginTop:10 }}>
+            {!file && (
+              <label htmlFor="ocp-file-input" className="btn btn-outline" style={{ cursor:'pointer' }}>
+                Sélectionner un fichier
+              </label>
+            )}
+            
+            {file && !uploaded && (
+              <button onClick={handleUpload} disabled={loading}
+                className="btn btn-primary">
+                {loading ? '⏳ Chargement...' : '↑ Lancer l\'import'}
+              </button>
+            )}
+
+            {file && (
+              <button onClick={() => { setFile(null); setUploaded(false); setResult(null); setError(null); }} 
+                className="btn btn-outline" style={{ borderColor:'#C0392B', color:'#C0392B' }}>
+                Réinitialiser
+              </button>
+            )}
+          </div>
+        </div>
       </div>
 
       {/* Résultat upload */}
@@ -127,10 +145,16 @@ export default function OcpFilesPage({ apiFetch, onNavigate }) {
           {result.label_counts && (
             <div style={{ padding:'12px 22px', borderTop:'1px solid #D4C9B0', display:'flex', gap:20, flexWrap:'wrap' }}>
               {Object.entries(result.label_counts).map(([label, count]) => {
-                const color = label === 'Normal' ? '#22c55e' : label === 'Anomalie' ? '#ef4444' : '#f59e0b'
+                const colorMap = {
+                  'Normal': '#22c55e',
+                  'Pre-alerte': '#f59e0b',
+                  'Anomalie': '#ef4444',
+                  'Critique': '#7c3aed'
+                }
+                const color = colorMap[label] || '#6b7280'
                 return (
                   <div key={label} style={{ display:'flex', alignItems:'center', gap:6 }}>
-                    <div style={{ width:8, height:8, borderRadius:'50%', background:color }} />
+                    <div style={{ width:8, height:8, borderRadius:'50%', background:color, boxShadow:`0 0 5px ${color}44` }} />
                     <span style={{ fontSize:12, color:'#5A5240' }}>{label}: <strong style={{ color }}>{count?.toLocaleString()}</strong></span>
                   </div>
                 )
@@ -145,7 +169,7 @@ export default function OcpFilesPage({ apiFetch, onNavigate }) {
         <div style={{ display:'flex', gap:12, justifyContent:'center', marginTop:28 }}>
           <button onClick={() => onNavigate?.('ocp_defaut')} className="btn btn-outline">⚠ Analyser les défauts</button>
           <button onClick={() => onNavigate?.('ocp_sante')} className="btn btn-outline">❤ Santé engin</button>
-          <button onClick={() => onNavigate?.('alertes_ocp')} className="btn btn-primary">🚨 Voir les Alertes →</button>
+          <button onClick={() => onNavigate?.('alerts_ocp')} className="btn btn-primary">🚨 Voir les Alertes →</button>
         </div>
       )}
 

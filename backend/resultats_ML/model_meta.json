@@ -1,0 +1,20 @@
+{
+  "trained_at": "2026-05-14T08:22:44",
+  "language": "R",
+  "approach": "engineering_grade_v5_R",
+  "modules": [
+    "health_score",
+    "isolation_forest",
+    "kmeans"
+  ],
+  "n_samples": 43929,
+  "health_score_stats": {
+    "mean": 54.3,
+    "pct_below_70": 82.5,
+    "pct_below_30": 13.8
+  },
+  "isolation_forest": {
+    "contamination": 0.54,
+    "n_anomalies": 2197
+  }
+}

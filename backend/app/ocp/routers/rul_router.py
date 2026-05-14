@@ -10,8 +10,8 @@ LSTM existant. Ajoute les endpoints :
   GET  /rul/alert-class     → classe d'alerte RED/ORANGE/GREEN temps réel
 
 Modèles utilisés :
-  - XGBoost entraîné sur 6 capteurs × 6 définitions de RUL
-  - RandomForest classifier (RED / ORANGE / GREEN)
+  - Random Forest Regressor (Pipeline Python v2)
+  - Random Forest Classifier (RED / ORANGE / GREEN)
   - Isolation Forest (détection non-supervisée)
 """
 
@@ -33,16 +33,15 @@ logger = logging.getLogger("uvicorn.error")
 router = APIRouter()
 
 # ─── Chemins ────────────────────────────────────────────────────────────────
-MODELS_DIR = Path(__file__).resolve().parent.parent / "models" / "rul"
+MODELS_DIR = Path(__file__).resolve().parent.parent.parent.parent / "models"
 
 MODEL_FILES = {
-    "xgb_global":       MODELS_DIR / "xgb_RUL_A_grav2.pkl",
-    "xgb_moteur":       MODELS_DIR / "xgb_RUL_C_Moteur.pkl",
-    "xgb_transmission": MODELS_DIR / "xgb_RUL_C_Transmission.pkl",
-    "xgb_hydraulique":  MODELS_DIR / "xgb_RUL_C_Hydraulique.pkl",
-    "rf_classifier":    MODELS_DIR / "rf_classifier.pkl",
+    "rf_global":        MODELS_DIR / "random_forest_rul.pkl",
+    "rf_grav3":         MODELS_DIR / "random_forest_grav3.pkl",
+    "rf_gravite":       MODELS_DIR / "random_forest_gravite.pkl",
+    "rf_classifier":    MODELS_DIR / "random_forest_gravite.pkl", # Fallback
     "iso_forest":       MODELS_DIR / "isolation_forest.pkl",
-    "iso_scaler":       MODELS_DIR / "isolation_scaler.pkl",
+    "iso_scaler":       MODELS_DIR / "scaler_if.pkl",
 }
 
 # ─── 6 capteurs sélectionnés (score composite multi-critères) ───────────────
@@ -204,12 +203,16 @@ def _predict_rul(X: pd.DataFrame) -> dict:
 
     # Aligner les colonnes sur ce que le modèle attend
     for name, model in _models.items():
-        if not name.startswith("xgb_"):
+        if not name.startswith("rf_"):
             continue
         try:
-            expected_cols = model.get_booster().feature_names
-            # Ajouter les colonnes manquantes avec 0, supprimer les inconnues
-            X_aligned = last_point.reindex(columns=expected_cols, fill_value=0)
+            # Pour RF, on utilise feature_names_in_ de scikit-learn
+            expected_cols = getattr(model, 'feature_names_in_', None)
+            if expected_cols is not None:
+                X_aligned = last_point.reindex(columns=expected_cols, fill_value=0)
+            else:
+                X_aligned = last_point
+                
             rul_h = float(model.predict(X_aligned)[0])
             rul_h = max(0.0, min(rul_h, 336.0))
             results[name] = rul_h
@@ -261,10 +264,9 @@ def _predict_rul(X: pd.DataFrame) -> dict:
 
     return {
         "rul_heures": {
-            "global_grav2":  results.get("xgb_global"),
-            "moteur":        results.get("xgb_moteur"),
-            "transmission":  results.get("xgb_transmission"),
-            "hydraulique":   results.get("xgb_hydraulique"),
+            "global":        results.get("rf_global"),
+            "grav3":         results.get("rf_grav3"),
+            "gravite":       results.get("rf_gravite"),
         },
         "alert_class":       alert_class,
         "alert_proba":       alert_proba,
@@ -277,10 +279,8 @@ def _predict_rul(X: pd.DataFrame) -> dict:
         "nb_points":    len(X),
         "capteurs_utilises": SELECTED_SENSORS,
         "modeles": {
-            "xgb_global": "XGBoost — RUL global (gravité ≥ 2)",
-            "xgb_moteur": "XGBoost — RUL sous-système Moteur",
-            "xgb_transmission": "XGBoost — RUL sous-système Transmission",
-            "xgb_hydraulique": "XGBoost — RUL sous-système Hydraulique",
+            "rf_global": "Random Forest — RUL global",
+            "rf_grav3":  "Random Forest — RUL haute gravité",
             "rf_classifier": "Random Forest — Classification RED/ORANGE/GREEN",
         },
     }

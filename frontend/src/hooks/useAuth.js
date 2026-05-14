@@ -43,12 +43,16 @@ export function useAuth() {
    * Wrapper fetch qui gère automatiquement les erreurs 401 (déconnexion)
    */
   const apiFetch = useCallback(async (url, options = {}) => {
+    const headers = { ...authHeaders(), ...(options.headers || {}) }
+    
+    // Si c'est un FormData, on laisse le navigateur gérer le Content-Type
+    if (options.body instanceof FormData) {
+      delete headers["Content-Type"]
+    }
+
     const response = await fetch(url, {
       ...options,
-      headers: {
-        ...authHeaders(),
-        ...(options.headers || {}),
-      },
+      headers
     })
     if (response.status === 401) {
       logout()

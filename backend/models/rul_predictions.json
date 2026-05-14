@@ -1,0 +1,57 @@
+{
+    "rul_systeme_j": 38,
+    "date_critique": "2026-06-20",
+    "capteur_pilote": "Pression huile moteur",
+    "capteurs": [
+        {
+            "nom": "Température liquide refroidissement",
+            "rul_jours": 1,
+            "di_pct": 28.0,
+            "pente_par_jour": 2.8,
+            "verdict": "critique",
+            "criticite": 16
+        },
+        {
+            "nom": "Température échappement Droit",
+            "rul_jours": 3,
+            "di_pct": 6.5,
+            "pente_par_jour": 0.655,
+            "verdict": "critique",
+            "criticite": 14
+        },
+        {
+            "nom": "Température échappement gauche",
+            "rul_jours": 5,
+            "di_pct": 3.4,
+            "pente_par_jour": 0.343,
+            "verdict": "critique",
+            "criticite": 14
+        },
+        {
+            "nom": "Température sortie convertisseur",
+            "rul_jours": 2,
+            "di_pct": 7.6,
+            "pente_par_jour": 0.76,
+            "verdict": "critique",
+            "criticite": 12
+        },
+        {
+            "nom": "Pression huile moteur",
+            "rul_jours": 0,
+            "di_pct": 48.8,
+            "pente_par_jour": 4.875,
+            "verdict": "critique",
+            "criticite": 16
+        },
+        {
+            "nom": "Régime moteur",
+            "rul_jours": 3,
+            "di_pct": 5.7,
+            "pente_par_jour": 0.567,
+            "verdict": "critique",
+            "criticite": 14
+        }
+    ],
+    "timestamp": "2026-05-14T08:59:18.869387",
+    "model_type": "Random Forest Regressor (ML)"
+}

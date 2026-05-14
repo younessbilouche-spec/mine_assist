@@ -54,14 +54,21 @@ async function request(apiFetch, path, options = {}) {
   return res.json()
 }
 
-async function uploadRequest(path, file) {
+async function uploadRequest(apiFetch, path, file) {
   const formData = new FormData()
   formData.append('file', file)
-  const headers = authHeaders()
-
+  
+  // Note: On ne met pas Content-Type pour les FormData, le navigateur le fait.
+  // apiFetch va ajouter le Bearer token via authHeaders().
+  
   let res
   try {
-    res = await fetch(`${BASE_URL}${path}`, { method: 'POST', headers, body: formData })
+    if (apiFetch) {
+      res = await apiFetch(`${BASE_URL}${path}`, { method: 'POST', body: formData })
+    } else {
+      const headers = authHeaders()
+      res = await fetch(`${BASE_URL}${path}`, { method: 'POST', headers, body: formData })
+    }
   } catch {
     throw new Error(`Backend OCP indisponible (${BASE_URL}${path})`)
   }
@@ -72,7 +79,7 @@ async function uploadRequest(path, file) {
 }
 
 export async function uploadOcpFile(apiFetch, file) {
-  return uploadRequest('/upload', file)
+  return uploadRequest(apiFetch, '/upload', file)
 }
 
 export function getOcpUploadStatus(apiFetch) {
