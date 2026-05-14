@@ -98,12 +98,18 @@ def load_rul_models():
         for name, path in MODEL_FILES.items():
             if path.exists():
                 try:
-                    _models[name] = joblib.load(path)
+                    m = joblib.load(path)
+                    _models[name] = m
                     logger.info(f"[RUL] ✓ {name} chargé ({path.name})")
+                    
+                    # Tenter de restaurer les feature_names_in_ si absents
+                    if name == "rf_gravite" and not hasattr(m, 'feature_names_in_'):
+                        f_names = MODELS_DIR / "feature_names.json"
+                        if f_names.exists():
+                            with open(f_names) as j:
+                                m.feature_names_in_ = np.array(json.load(j))
                 except Exception as e:
-                    logger.warning(f"[RUL] ✗ {name} : {e}")
-            else:
-                logger.warning(f"[RUL] Modèle absent : {path}")
+                    logger.error(f"[RUL] Erreur chargement {name} : {e}")
 
         _models_loaded = True
         logger.info(f"[RUL] {len(_models)}/{len(MODEL_FILES)} modèles chargés.")
@@ -203,18 +209,29 @@ def _predict_rul(X: pd.DataFrame) -> dict:
 
     # Aligner les colonnes sur ce que le modèle attend
     for name, model in _models.items():
-        if not name.startswith("rf_"):
+        if not name.startswith("rf_") or name == "rf_classifier":
             continue
         try:
-            # Pour RF, on utilise feature_names_in_ de scikit-learn
+            expected_n = getattr(model, 'n_features_in_', None)
             expected_cols = getattr(model, 'feature_names_in_', None)
+            
             if expected_cols is not None:
                 X_aligned = last_point.reindex(columns=expected_cols, fill_value=0)
+            elif expected_n is not None:
+                # Fallback : tronquer ou compléter si on connaît le nombre mais pas les noms
+                if last_point.shape[1] > expected_n:
+                    X_aligned = last_point.iloc[:, :expected_n]
+                else:
+                    X_aligned = last_point.reindex(columns=last_point.columns.tolist() + [f"pad_{i}" for i in range(expected_n - last_point.shape[1])], fill_value=0)
             else:
                 X_aligned = last_point
                 
             rul_h = float(model.predict(X_aligned)[0])
-            rul_h = max(0.0, min(rul_h, 336.0))
+            # Conversion si le modèle prédit des jours au lieu d'heures (nouveaux modèles)
+            if name in ["rf_grav3", "rf_panne_grav2", "rf_panne_cohort"]:
+                rul_h = rul_h * 24.0 # jours -> heures
+                
+            rul_h = max(0.0, min(rul_h, 720.0))
             results[name] = rul_h
         except Exception as e:
             logger.warning(f"[RUL] predict {name} : {e}")

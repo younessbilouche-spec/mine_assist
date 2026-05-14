@@ -248,7 +248,7 @@ def main():
     df["Heure"] = pd.to_datetime(df["Heure"])
     df = df.sort_values("Heure").reset_index(drop=True)
     sensors = [c for c in SENSOR_DISPLAY if c in df.columns]
-    print(f"      {len(df):,} timesteps  |  {df['Heure'].min()} → {df['Heure'].max()}")
+    print(f"      {len(df):,} timesteps  |  {df['Heure'].min()} -> {df['Heure'].max()}")
     print(f"      Capteurs détectés : {len(sensors)} / 6")
 
     print(f"\n[2/5] Chargement GMAO     : {GMAO_FILE.name}")
@@ -256,18 +256,16 @@ def main():
     gmao["Date"] = pd.to_datetime(gmao["Date de l'anomalie"])
     gmao = gmao.dropna(subset=["Date", "Gravité"]).sort_values("Date")
     print(f"      {len(gmao):,} événements GMAO")
-    print(f"      Gravité : 1={int((gmao['Gravité']==1).sum())} · "
-          f"2={int((gmao['Gravité']==2).sum())} · "
-          f"3={int((gmao['Gravité']==3).sum())}")
+    print(f"      Gravite : 1={int((gmao['Gravité']==1).sum())} | 2={int((gmao['Gravité']==2).sum())} | 3={int((gmao['Gravité']==3).sum())}")
 
     # Restreindre les événements à la fenêtre capteurs
     tmin, tmax = df["Heure"].min(), df["Heure"].max()
     overlap = gmao[(gmao["Date"] >= tmin) & (gmao["Date"] <= tmax)]
     print(f"      Dans la fenêtre capteurs : {len(overlap):,} événements")
-    print(f"      Grav. ≥ 2 : {int((overlap['Gravité']>=2).sum())} · "
+    print(f"      Grav. >= 2 : {int((overlap['Gravité']>=2).sum())} | "
           f"Grav. = 3 : {int((overlap['Gravité']==3).sum())}")
 
-    print(f"\n[3/5] Features glissantes (fenêtre {WINDOW_TIMESTEPS} pas ≈ 1 h)…")
+    print(f"\n[3/5] Features glissantes (fenêtre {WINDOW_TIMESTEPS} pas approx 1 h)...")
     X = build_features(df, sensors, WINDOW_TIMESTEPS)
     feature_cols = list(X.columns)
 

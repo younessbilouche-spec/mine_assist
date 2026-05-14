@@ -488,27 +488,45 @@ Le dictionnaire \texttt{feature\_names.json} gère dynamiquement l'alignement de
   \item \textbf{Méta-features temporelles} : Dérivées premières des signaux (vélocité de changement), moyennes mobiles, et accumulation des heures de service.
 \end{itemize}
 
-\section{Évaluation et Performance des Modèles}
+\section{Étude Comparative des Architectures (Nouvelle Démarche)}
 
-L'évaluation des modèles montre une haute précision sur les données historiques CAT 994F. Le modèle \textbf{Random Forest} pour le RUL atteint une précision de prédiction supérieure à 92\% sur l'ensemble de test.
+Dans le cadre de l'optimisation de MineAssist, une étude comparative a été menée entre trois architectures majeures pour la prédiction de la durée de vie résiduelle (RUL) : \textbf{XGBoost}, \textbf{Random Forest} et \textbf{LSTM} (Long Short-Term Memory).
 
-\begin{itemize}
-  \item \textbf{Matrice de Confusion} : Validation du modèle Isolation Forest pour la détection d'anomalies.
-  \item \textbf{Courbe d'Apprentissage} : Convergence rapide du modèle Random Forest sans surapprentissage.
-\end{itemize}
+\subsection{Performance Quantitative (RMSE)}
+L'analyse des erreurs quadratiques moyennes (RMSE) montre une supériorité du modèle \textbf{XGBoost} sur ce jeu de données spécifique de la CAT 994F, suivi de près par le Random Forest. Le modèle LSTM, bien que performant sur des séries temporelles longues, présente ici une erreur plus élevée due à la volatilité des signaux capteurs.
+
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=0.75\textwidth]{images/comparatif_rmse.png}
+  \caption{Comparaison des performances RMSE entre XGBoost, Random Forest et LSTM}
+\end{figure}
+
+\subsection{Validation par Matrice de Confusion}
+La capacité de classification (Panne vs Non-Panne) a été validée par des matrices de confusion croisées. Le modèle \textbf{Random Forest} affiche la meilleure spécificité, réduisant considérablement le taux de faux positifs, ce qui est crucial pour éviter des arrêts de maintenance inutiles en exploitation minière.
+
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=1\textwidth]{images/comparatif_confusion.png}
+  \caption{Matrices de confusion comparées des trois architectures testées}
+\end{figure}
+
+\subsection{Analyse des Résidus et Prédictions}
+L'étude des résidus pour le modèle XGBoost (Figure \ref{fig:residuals}) et des prédictions LSTM (Figure \ref{fig:lstm}) confirme la linéarité du modèle sur les phases de dégradation stable, avec une dispersion accrue à l'approche du point de rupture.
 
 \begin{figure}[H]
   \centering
   \begin{subfigure}[b]{0.48\textwidth}
-    \includegraphics[width=\textwidth]{../backend/models/assets_report/confusion_matrix_isolation.png}
-    \caption{Matrice de Confusion (Isolation Forest)}
+    \includegraphics[width=\textwidth]{images/xgboost_residuals.png}
+    \caption{Résidus vs RUL Prédite (XGBoost)}
+    \label{fig:residuals}
   \end{subfigure}
   \hfill
   \begin{subfigure}[b]{0.48\textwidth}
-    \includegraphics[width=\textwidth]{../backend/models/assets_report/learning_curve_rul.png}
-    \caption{Courbe d'Apprentissage (Random Forest)}
+    \includegraphics[width=\textwidth]{images/lstm_predictions.png}
+    \caption{Prédictions RUL vs Réel (LSTM)}
+    \label{fig:lstm}
   \end{subfigure}
-  \caption{Métriques de performance des modèles IA de MineAssist}
+  \caption{Analyses détaillées des modèles de régression RUL}
 \end{figure}
 
 % ══════════════════════════════════════════════════════════════
