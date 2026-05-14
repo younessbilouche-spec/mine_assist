@@ -1,15 +1,22 @@
 """
-MineAssist — Endpoint RUL par dégradation physique (MSDM)
+MineAssist — Endpoint Random Forest "Pannes Critiques" (horizon 24 h)
 À placer dans : backend/app/routers/rul_degradation.py
 
 Endpoints :
-  GET  /rul/predict          → RUL système depuis les résultats R
-  GET  /rul/capteur/{nom}    → RUL d'un capteur spécifique
-  POST /rul/predict-live     → RUL calculé en temps réel sur mesures reçues
+  GET  /rul/predict          → résumé du dernier entraînement RF
+  POST /rul/run-model        → exécute train_rf_grav3.py (3 variantes)
+  POST /rul/predict-live     → évaluation de proba 24 h sur des mesures live
+  GET  /rul/dashboard        → données agrégées pour le dashboard React
+
+Approche supervisée :
+  - Cible : 3 variantes testées (cohort `panne` interne, GMAO grav.≥2, grav.=3)
+  - Horizon : 24 h à venir
+  - Features : moyenne / std / max / val / pente sur fenêtre glissante 1 h
+  - Split : chronologique 80 / 20
 
 Branchement dans api.py :
   from app.routers.rul_degradation import router as rul_router
-  app.include_router(rul_router, prefix="/rul", tags=["RUL — MSDM"])
+  app.include_router(rul_router, prefix="/rul", tags=["RUL — Random Forest"])
 """
 
 import json
@@ -93,48 +100,52 @@ def estimer_rul(di: float, pente_par_jour: float) -> dict:
     }
 
 
-# ─── ENDPOINT 1 : RUL depuis les résultats R ────────────────────────────────
+# ─── ENDPOINT 1 : Résumé du dernier entraînement RF ─────────────────────────
 @router.get("/predict")
 def rul_depuis_r():
     """
-    Retourne les prédictions RUL calculées par le script R.
-    Lit ./models/rul_predictions.json produit par degradation_model.R.
+    Retourne le JSON produit par le dernier entraînement Random Forest.
+    Lit ./models/rul_predictions.json produit par train_rf_grav3.py.
     """
     f = MODELS / "rul_predictions.json"
     if not f.exists():
         raise HTTPException(404,
             "rul_predictions.json non trouvé. "
-            "Lance mineassist_ML_SIMPLE.R puis run_degradation_model(pivot).")
+            "Lance d'abord POST /rul/run-model.")
     with open(f, encoding="utf-8") as fp:
         return json.load(fp)
 
 @router.post("/run-model")
 def run_rul_model():
     """
-    Exécute le véritable modèle Machine Learning Python (Random Forest).
-    Met à jour le fichier rul_predictions.json.
+    Exécute train_rf_grav3.py : entraîne les 3 variantes Random Forest
+    sur les vraies cibles (cohort `panne` interne + GMAO gravité ≥ 2 + GMAO gravité = 3),
+    horizon 24 h, split chronologique 80/20, et met à jour rul_predictions.json.
     """
     import subprocess
     import sys
-    
-    script_path = MODELS / "train_rul_ml.py"
-    
+
+    script_path = MODELS / "train_rf_grav3.py"
+
     try:
-        # Exécuter le script d'entraînement Python
         result = subprocess.run(
             [sys.executable, str(script_path)],
             capture_output=True,
             text=True,
-            check=True
+            check=True,
+            timeout=600,
         )
-        
         return {
-            "status": "success", 
-            "message": "Modèle Random Forest entraîné et RUL prédit avec succès",
-            "logs": result.stdout
+            "status":  "success",
+            "message": "Random Forest entraîné (3 variantes) et JSON mis à jour",
+            "logs":    result.stdout,
         }
     except subprocess.CalledProcessError as e:
-        raise HTTPException(status_code=500, detail=f"Erreur lors de l'entraînement : {e.stderr}")
+        raise HTTPException(status_code=500,
+            detail=f"Erreur lors de l'entraînement : {e.stderr}")
+    except subprocess.TimeoutExpired:
+        raise HTTPException(status_code=504,
+            detail="Timeout : l'entraînement RF a dépassé 600 s.")
 
 
 # ─── ENDPOINT 2 : RUL temps réel depuis mesures capteurs ────────────────────
@@ -229,24 +240,48 @@ def rul_temps_reel(body: MesuresRUL):
 # ─── ENDPOINT 3 : Dashboard RUL ─────────────────────────────────────────────
 @router.get("/dashboard")
 def rul_dashboard():
-    """Données agrégées pour le composant React RUL Dashboard."""
+    """
+    Données agrégées pour le composant React RULDashboard.
+    Expose les métriques des 3 variantes RF + la variante principale
+    (celle qui a obtenu le meilleur AUC sur le test chronologique).
+    """
     f = MODELS / "rul_predictions.json"
     if not f.exists():
-        return {"available": False, "message": "Lance le pipeline R d'abord."}
+        return {
+            "available": False,
+            "message": "Lance d'abord POST /rul/run-model pour entraîner le Random Forest.",
+        }
     with open(f, encoding="utf-8") as fp:
         data = json.load(fp)
 
-    capteurs = data.get("capteurs", [])
-    urgents  = [c for c in capteurs if c.get("verdict") in ("critique", "alerte")]
-    urgents.sort(key=lambda c: c.get("rul_jours", 999))
+    capteurs = data.get("capteurs", []) or []
+    top_capteurs = sorted(
+        capteurs,
+        key=lambda c: c.get("importance", 0),
+        reverse=True,
+    )[:6]
 
     return {
-        "available":       True,
-        "rul_systeme_j":   data.get("rul_systeme_j"),
-        "date_critique":   data.get("date_critique"),
-        "capteur_pilote":  data.get("capteur_pilote"),
-        "n_en_alerte":     len(urgents),
-        "capteurs_urgents": urgents[:3],
-        "tous_capteurs":   capteurs,
-        "calcule_a":       data.get("timestamp"),
+        "available":           True,
+        "model_type":          data.get("model_type"),
+        "model_principal":     data.get("model_principal"),
+        "methode":             data.get("methode"),
+        "horizon_h":           data.get("horizon_h"),
+        "fenetre_features_min": data.get("fenetre_features_min"),
+        "sources":             data.get("sources"),
+        # Métriques de la variante principale
+        "auc":                 data.get("auc"),
+        "f1":                  data.get("f1"),
+        "precision":           data.get("precision"),
+        "recall":              data.get("recall"),
+        "seuil_optimal":       data.get("seuil_optimal"),
+        "proba_24h_courante":  data.get("proba_24h_courante"),
+        "verdict":             data.get("verdict"),
+        # Top capteurs par importance (pour barres horizontales)
+        "capteurs":            top_capteurs,
+        # Les 3 variantes détaillées (transparence pour le jury)
+        "variantes":           data.get("variantes", {}),
+        # Lecture honnête à afficher dans le dashboard
+        "interpretation":      data.get("interpretation"),
+        "calcule_a":           data.get("timestamp"),
     }

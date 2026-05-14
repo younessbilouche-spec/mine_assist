@@ -30,7 +30,7 @@ router = APIRouter()
 
 BASE_DIR    = Path(__file__).resolve().parent.parent.parent
 MODELS_DIR  = BASE_DIR / "models"
-TRAIN_SCRIPT = BASE_DIR / "pipeline_ml.py"
+TRAIN_SCRIPT = BASE_DIR / "pipeline_ml_FINAL_v5.py"
 
 
 # ─── Schémas Pydantic ─────────────────────────────────────────────────────────
