@@ -4,6 +4,7 @@
 \usepackage[utf8]{inputenc}
 \usepackage[T1]{fontenc}
 \usepackage[french]{babel}
+\usepackage{amsmath}
 \usepackage{geometry}
 \usepackage{graphicx}
 \usepackage{xcolor}
@@ -23,7 +24,7 @@
 \usepackage{microtype}
 \usepackage{setspace}
 
-\geometry{left=2.5cm, right=2.5cm, top=3cm, bottom=3cm}
+\geometry{left=2.5cm, right=2.5cm, top=3cm, bottom=3cm, headheight=25pt}
 
 % ── Couleurs OCP ──────────────────────────────────────────────
 \definecolor{ocpGreen}{RGB}{0,132,61}
@@ -557,16 +558,16 @@ Le pipeline CI/CD automatisé comprend 3 jobs :
 
 \begin{lstlisting}[language=bash, caption={Structure Docker du projet}]
 AI_994F_Assistant/
-├── backend/
-│   └── Dockerfile          # Python 3.11-slim + uvicorn
-├── frontend/
-│   └── Dockerfile          # Node 20 build + Nginx serve
-└── docker-compose.yml      # Orchestration complète
+|-- backend/
+|   |-- Dockerfile          # Python 3.11-slim + uvicorn
+|-- frontend/
+|   |-- Dockerfile          # Node 20 build + Nginx serve
+|-- docker-compose.yml      # Orchestration complete
 \end{lstlisting}
 
-% ══════════════════════════════════════════════════════════════
+% --------------------------------------------------------------
 \chapter{Conclusion et Perspectives}
-% ══════════════════════════════════════════════════════════════
+% --------------------------------------------------------------
 
 \section{Bilan}
 
