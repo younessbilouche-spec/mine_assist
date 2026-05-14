@@ -117,7 +117,7 @@
   \vspace{0.5cm}
 
   {\fontsize{38}{46}\selectfont\bfseries\textcolor{ocpGreen}{MineAssist}}\\[0.3cm]
-  {\Large\textcolor{ocpGold}{Plateforme Intelligente de Maintenance Prédictive}}\\[0.2cm]
+  {\Large\textcolor{ocpGold}{Démonstrateur de Plateforme de Maintenance Prédictive}}\\[0.2cm]
   {\large\textcolor{gray}{CAT 994F -- OCP Benguérir -- Site Phosphate}}
 
   \vspace{1cm}
@@ -156,8 +156,8 @@ La plateforme intègre :
 \begin{itemize}[leftmargin=1.5cm]
   \item Un \textbf{moteur RAG} (Retrieval-Augmented Generation) basé sur la documentation technique CAT 994F
   \item Un système de \textbf{diagnostic de pannes} avec décodage automatique des codes MID/CID/FMI et VIMS
-  \item Des \textbf{modèles ML} (XGBoost, Random Forest, Isolation Forest) pour la détection d'anomalies
-  \item Un \textbf{dashboard exécutif} unifié (Elite v2) avec KPIs consolidés
+  \item Des \textbf{modèles ML} (XGBoost, Random Forest, Isolation Forest) pour la détection de dérives
+  \item Un \textbf{tableau de bord centralisé} avec KPIs consolidés
   \item Une \textbf{analyse d'huile} complète (VHVI, usure, contamination)
   \item Une interface \textbf{trilingue} (Français, Anglais, Arabe) pour l'IA
 \end{itemize}
@@ -231,8 +231,8 @@ MineAssist suit une architecture \textbf{microservices} découplée en deux couc
 \section{Architecture Hybride Production/Validation}
 Le système adopte une architecture bi-langage optimisée :
 \begin{itemize}
-  \item \textbf{Production (Python/FastAPI)} : exécution des modèles \texttt{joblib} pour une inférence temps réel ultra-rapide ($<2$ ms).
-  \item \textbf{Recherche et Validation (R)} : utilisé en back-office pour le recalibrage mensuel des seuils et la validation statistique des modèles avant leur déploiement en Python.
+  \item \textbf{Moteur d'inférence (Python/FastAPI)} : exécution des modèles \texttt{joblib} pour une analyse à faible latence.
+  \item \textbf{Recherche et Validation (R)} : utilisé en back-office pour le recalibrage périodique des seuils et la validation statistique des modèles.
 \end{itemize}
 \section{Stack technologique}
 
@@ -270,7 +270,7 @@ Le backend FastAPI expose \textbf{96+ routes} organisées en modules :
   \item \texttt{/gmao/*} -- Analytics GMAO (anomalies, capteurs, géo)
   \item \texttt{/oil/*} -- Analyse d'huile
   \item \texttt{/auth/*} -- Authentification JWT
-  \item \texttt{/notifications/*} -- Alertes en temps réel
+  \item \texttt{/notifications/*} -- Alertes et notifications consolidées
   \item \texttt{/metrics} -- Métriques Prometheus
 \end{itemize}
 
@@ -303,20 +303,20 @@ d'entrée. L'authentification est sécurisée par JWT avec gestion des rôles (a
   \caption{Page de connexion sécurisée MineAssist}
 \end{figure}
 
-\section{Dashboard Exécutif 360°}
+\section{Tableau de Bord Centralisé}
 
-Le tableau de bord principal offre une vue consolidée de l'état de flotte :
+L'interface principale offre une vue consolidée de l'état de la flotte :
 
 \begin{itemize}
-  \item KPIs en temps réel (disponibilité, score de santé, alertes actives)
-  \item Graphiques de tendance (anomalies par mois, répartition par sous-système)
-  \item Navigation rapide vers tous les modules
+  \item KPIs en quasi temps réel (disponibilité, indicateur de santé, alertes actives)
+  \item Graphiques de tendance (dérives par mois, répartition par sous-système)
+  \item Navigation structurée vers les modules d'analyse
 \end{itemize}
 
 \begin{figure}[H]
   \centering
   \includegraphics[width=0.9\textwidth]{images/screen3.png}
-  \caption{Dashboard Exécutif 360° -- Vue globale de la flotte}
+  \caption{Tableau de bord centralisé -- Vue globale de la flotte}
 \end{figure}
 
 \section{MineAssist AI -- Question-Réponse Documentaire}
@@ -337,7 +337,7 @@ schémas hydrauliques et électriques).
   \item \textbf{Illustrations extraites} : les pages PDF pertinentes sont affichées
   \item \textbf{Localisation dans les schémas} : mise en évidence automatique
   des composants sur les schémas hydrauliques/électriques
-  \item \textbf{Streaming} : réponse en temps réel (endpoint \texttt{/ask/stream})
+  \item \textbf{Streaming} : réponse fluide (endpoint \texttt{/ask/stream})
 \end{itemize}
 
 \section{Expert Diagnostic -- Décodeur de Pannes}
@@ -376,7 +376,7 @@ températures, pressions, vitesses, avec détection des dépassements de seuils.
 \begin{figure}[H]
   \centering
   \includegraphics[width=0.9\textwidth]{images/screen7.png}
-  \caption{Page Capteurs \& Live -- Monitoring des paramètres temps réel}
+  \caption{Page Capteurs -- Monitoring continu des paramètres}
 \end{figure}
 
 \section{Centre d'Alertes OCP}
@@ -390,9 +390,9 @@ avec filtrage par machine, sous-système et période.
   \caption{Centre d'Alertes -- Tableau de bord des alertes actives}
 \end{figure}
 
-\section{Performance \& Santé Machine (Elite v2)}
+\section{Performance \& Santé Machine (Version Consolidée)}
 
-Le module de santé a été entièrement refondu en version Elite v2. Il intègre un score de santé dynamique calculé par un modèle \textbf{Random Forest} optimisé, l'historique des pannes, et une estimation précise du RUL (Remaining Useful Life) par sous-système (Moteur, Transmission, Hydraulique).
+Le module de santé intègre un indicateur de santé dynamique calculé par un modèle \textbf{Random Forest}, l'historique des pannes, et une estimation expérimentale de la dégradation par sous-système (Moteur, Transmission, Hydraulique).
 
 \begin{figure}[H]
   \centering
@@ -576,22 +576,18 @@ AI_994F_Assistant/
 
 \section{Bilan}
 
-MineAssist constitue une solution complète et opérationnelle de maintenance prédictive
-adaptée aux contraintes industrielles d'OCP. Le projet démontre la faisabilité
-d'intégrer des technologies d'IA avancées (LLM, RAG, ML) dans un contexte de
-maintenance industrielle critique.
+MineAssist constitue un prototype opérationnel avancé de maintenance prédictive adapté aux contraintes industrielles d'OCP. Le projet démontre la faisabilité technique d'intégrer des méthodes d'IA (RAG, ML) dans un contexte de maintenance industrielle.
 
 \subsection*{Résultats clés}
 \begin{itemize}
-  \item \textbf{96+ endpoints API} couvrant tous les besoins fonctionnels
-  \item \textbf{Base documentaire complète} : CHF442, RENR6306, RENR9347, schémas
-  \item \textbf{3 modèles ML} entraînés sur données réelles GMAO
-  \item \textbf{Temps de réponse diagnostic} : $<$ 3 secondes (décodage local)
-  \item \textbf{Architecture scalable} : Docker + GitHub Actions CI/CD
+  \item \textbf{Interface centralisée} couvrant les besoins de diagnostic et de suivi
+  \item \textbf{Base documentaire indexée} : CHF442, RENR6306, RENR9347, schémas
+  \item \textbf{Modèles ML} de détection de dérives entraînés sur données GMAO
+  \item \textbf{Démarche Shadow Mode} validant la robustesse du pipeline sur flux rejoués
 \end{itemize}
 
-\subsection*{Validation industrielle et ROI}
-Bien que le module RUL reste expérimental, le ROI calculé (An 1 : 25\%) est sécurisé par la capacité de l'Isolation Forest à détecter les dérives bien avant la casse. Le flux "Live" fonctionne actuellement en \textbf{Shadow Mode} pour valider la robustesse du pipeline sur des flux historiques rejoués.
+\subsection*{Perspectives de ROI}
+L'analyse coût-bénéfice suggère un ROI prospectif estimé à 25\% en première année, porté par la capacité de détection précoce des dérives via l'Isolation Forest, permettant d'anticiper les ruptures critiques.
 
 \subsection*{Lutte contre la fatigue d'alerte}
 Pour garantir l'adoption par les équipes, MineAssist intègre un mécanisme de \textbf{Cooldown (10 min)} et exige la corrélation entre une anomalie IF et une chute du Health Score avant d'émettre une notification prioritaire sur WhatsApp.
