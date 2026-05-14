@@ -208,7 +208,7 @@ MineAssist vise à :
 \begin{enumerate}
   \item Centraliser et rendre interrogeable l'ensemble de la documentation technique via une IA
   \item Automatiser le décodage des codes défauts et proposer des procédures de diagnostic
-  \item Prédire les défaillances avant qu'elles n'impactent la production
+  \item Prédire les défaillances critiques (\textbf{RUL exploratoire}) avant qu'elles n'impactent la production
   \item Fournir un tableau de bord unifié pour les équipes de maintenance et la direction
 \end{enumerate}
 
@@ -228,6 +228,12 @@ MineAssist suit une architecture \textbf{microservices} découplée en deux couc
 \end{tcolorbox}
 \end{center}
 
+\section{Architecture Hybride Production/Validation}
+Le système adopte une architecture bi-langage optimisée :
+\begin{itemize}
+  \item \textbf{Production (Python/FastAPI)} : exécution des modèles \texttt{joblib} pour une inférence temps réel ultra-rapide ($<2$ ms).
+  \item \textbf{Recherche et Validation (R)} : utilisé en back-office pour le recalibrage mensuel des seuils et la validation statistique des modèles avant leur déploiement en Python.
+\end{itemize}
 \section{Stack technologique}
 
 \begin{table}[H]
@@ -273,14 +279,14 @@ Le backend FastAPI expose \textbf{96+ routes} organisées en modules :
 Le cœur du système de Q\&R documentaire est basé sur :
 
 \begin{enumerate}
-  \item \textbf{Indexation} : Les documents techniques (PDF, PPTX) sont découpés en chunks
-  et vectorisés via un modèle d'embeddings
-  \item \textbf{Stockage} : Les vecteurs sont stockés dans ChromaDB avec fallback lexical
-  \item \textbf{Récupération} : Pour chaque question, les $k$ chunks les plus pertinents
-  sont extraits
-  \item \textbf{Génération} : Le contexte + la question sont envoyés au LLM
-  (LLaMA 3.3 70B via OpenRouter)
+  \item \textbf{Indexation} : Les documents techniques (PDF, PPTX) sont découpés en chunks et vectorisés via un modèle d'embeddings.
+  \item \textbf{Stockage} : Les vecteurs sont stockés dans ChromaDB avec fallback lexical.
+  \item \textbf{Récupération} : Pour chaque question, les $k$ chunks les plus pertinents sont extraits.
+  \item \textbf{Génération} : Le contexte + la question sont envoyés au LLM (LLaMA 3.3 70B via OpenRouter).
 \end{enumerate}
+
+\section{Extraction visuelle par heuristique de proximité}
+Bien que ChromaDB indexe du texte, MineAssist récupère les schémas via le script \texttt{pdf\_image\_extractor.py}. Lorsqu'un chunk textuel est identifié comme pertinent, le système récupère le numéro de page source et extrait dynamiquement les éléments graphiques de cette page pour enrichir la réponse de l'IA.
 
 % ══════════════════════════════════════════════════════════════
 \chapter{Fonctionnalités et Captures d'Écran}
@@ -444,8 +450,7 @@ d'anomalies et de capteurs, avec validation et résumé statistique automatique.
 % ══════════════════════════════════════════════════════════════
 
 \section{Architecture du Pipeline ML}
-
-Le backend intègre un pipeline Machine Learning complet pour l'analyse prédictive et la détection d'anomalies, entraîné sur l'historique GMAO et les séries temporelles des capteurs. La persistance des modèles et des transformateurs est assurée via \texttt{joblib} (format \texttt{.pkl}).
+Le backend intègre un pipeline Machine Learning complet. Le fenêtrage temporel est modulable selon l'usage : \textbf{2 minutes} pour la détection d'anomalies (réactivité) et \textbf{5 minutes} pour le Health Score (stabilité statistique).
 
 \subsection{Préparation des données (Preprocessing)}
 Avant l'inférence, les données subissent plusieurs étapes de transformation mathématique :
@@ -584,6 +589,12 @@ maintenance industrielle critique.
   \item \textbf{Temps de réponse diagnostic} : $<$ 3 secondes (décodage local)
   \item \textbf{Architecture scalable} : Docker + GitHub Actions CI/CD
 \end{itemize}
+
+\subsection*{Validation industrielle et ROI}
+Bien que le module RUL reste expérimental, le ROI calculé (An 1 : 25\%) est sécurisé par la capacité de l'Isolation Forest à détecter les dérives bien avant la casse. Le flux "Live" fonctionne actuellement en \textbf{Shadow Mode} pour valider la robustesse du pipeline sur des flux historiques rejoués.
+
+\subsection*{Lutte contre la fatigue d'alerte}
+Pour garantir l'adoption par les équipes, MineAssist intègre un mécanisme de \textbf{Cooldown (10 min)} et exige la corrélation entre une anomalie IF et une chute du Health Score avant d'émettre une notification prioritaire sur WhatsApp.
 
 \section{Perspectives}
 
