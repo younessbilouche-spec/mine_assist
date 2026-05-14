@@ -13,3 +13,11 @@ backend/.env.txt
 backend/venv/
 *.pyc
 __pycache__/
+
+# LaTeX
+*.aux
+*.log
+*.out
+*.toc
+*.synctex*
+!MineAssist_PFE_FINAL.pdf
