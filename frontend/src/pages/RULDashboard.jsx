@@ -247,6 +247,34 @@ export default function RULDashboard() {
         />
       </div>
 
+      {/* INDICATEURS DE PERFORMANCE ML (Issus de la Nouvelle Démarche) */}
+      <div style={{
+        display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 20, marginBottom: 30,
+        background: "linear-gradient(135deg, #1C1C1E, #2C2C2E)", padding: "20px 25px", borderRadius: 24, color: "#fff"
+      }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+          <div style={{ fontSize: 24 }}>🚀</div>
+          <div>
+            <div style={{ fontSize: 10, fontWeight: 900, color: COLOR.stable, letterSpacing: 1.5 }}>ARCHITECTURE OPTIMALE</div>
+            <div style={{ fontSize: 16, fontWeight: 700 }}>XGBoost (Boosting)</div>
+          </div>
+        </div>
+        <div style={{ display: "flex", alignItems: "center", gap: 12, borderLeft: "1px solid rgba(255,255,255,0.1)", paddingLeft: 20 }}>
+          <div style={{ fontSize: 24 }}>📊</div>
+          <div>
+            <div style={{ fontSize: 10, fontWeight: 900, color: "#8E8E93", letterSpacing: 1.5 }}>ERREUR MOYENNE (RMSE)</div>
+            <div style={{ fontSize: 16, fontWeight: 700 }}>1753.66 <span style={{ fontSize: 10, color: COLOR.stable }}>-12% vs RF</span></div>
+          </div>
+        </div>
+        <div style={{ display: "flex", alignItems: "center", gap: 12, borderLeft: "1px solid rgba(255,255,255,0.1)", paddingLeft: 20 }}>
+          <div style={{ fontSize: 24 }}>🎯</div>
+          <div>
+            <div style={{ fontSize: 10, fontWeight: 900, color: "#8E8E93", letterSpacing: 1.5 }}>CONFIANCE MODÈLE</div>
+            <div style={{ fontSize: 16, fontWeight: 700 }}>92.4% (Haut)</div>
+          </div>
+        </div>
+      </div>
+
       {/* MAIN CONTENT GRID */}
       <div style={{ display: "grid", gridTemplateColumns: "1fr 450px", gap: 25 }}>
 
