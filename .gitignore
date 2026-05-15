@@ -1,18 +1,24 @@
+# Environnements
 backend/venv/
-backend/data/
 frontend/node_modules/
 __pycache__/
 *.pyc
-.env
+
+# Variables d'environnement
 .env
 .env.txt
 *.env
-backend/.env.txt
-# Modèles Keras/TF supprimés (remplacés par XGBoost)
-*.keras
-backend/venv/
-*.pyc
-__pycache__/
+
+# PDFs
+*.pdf
+
+# Archives
+*.zip
+*.tar.gz
+*.rar
+
+# Données
+backend/data/
 
 # LaTeX
 *.aux
@@ -20,4 +26,10 @@ __pycache__/
 *.out
 *.toc
 *.synctex*
-!MineAssist_PFE_FINAL.pdf
+
+# Dossier temp
+temp_improvements/
+_diffs/
+
+# Pytest
+.pytest_cache/

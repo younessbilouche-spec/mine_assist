@@ -157,9 +157,14 @@ export default function MLInsightsPage({ apiFetch }) {
 
       {/* En-tête */}
       <div style={{ marginBottom: 24 }}>
-        <h1 className="page-title">ML Insights — Aide à la décision</h1>
-        <p className="page-subtitle">
-          Prédiction P-F · Seuils dynamiques · Recommandations prescriptives
+        <div style={{ fontSize: 10, fontWeight: 800, color: C.orange, letterSpacing: 3, textTransform: 'uppercase', marginBottom: 4 }}>
+          OCP Benguerir · Maintenance Prédictive
+        </div>
+        <h1 style={{ fontFamily: "'Rajdhani', sans-serif", fontSize: 26, fontWeight: 800, color: C.text, margin: '0 0 6px' }}>
+          ML Insights — Aide à la décision
+        </h1>
+        <p style={{ fontSize: 13, color: C.textMid, margin: 0 }}>
+          Intervalle P-F · Seuils dynamiques par mode opératoire · Recommandations prescriptives
         </p>
       </div>
 

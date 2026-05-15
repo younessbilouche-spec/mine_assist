@@ -1,0 +1,42 @@
+======================================================================
+  RAPPORT DE MAINTENANCE PREDICTIVE
+  Chargeuse CAT 994F1 - OCP Benguerir
+  Methode : Detection d'Anomalies Non Supervisee
+======================================================================
+
+--- DONNEES UTILISEES ---
+  Periode capteurs : 2025-01-01 -> 2025-12-01
+  Lignes capteurs  : 54673
+  Capteurs         : P_Huile, Regime, T_Convert, T_Echap_D, T_Echap_G, T_Refroid
+  Anomalies GMAO   : 1373
+
+--- HEALTH INDEX ---
+  Moyenne annuelle   : 70.4 / 100
+  Minimum            : 47.9
+  % temps etat Bon   : 9.1%
+  % temps Attention  : 85.1%
+  % temps Alerte     : 5.8%
+
+--- ISOLATION FOREST ---
+  Seuil alerte       : 70.7 / 100
+  % temps en alerte  : 3.0%
+  Nb periodes alerte : 204
+
+--- VALIDATION GMAO ---
+  Anomalies comparees : 463
+  Score avant panne   : 24.3
+  Score periode ref   : 25.0
+  Delta moyen         : +-1.8
+  Taux detection      : 38% des pannes ont un score plus eleve avant
+
+--- CAPTEURS : STATISTIQUES ---
+  P_Huile                moy=  442.0  max=  633.0  seuil=140.0  % proche seuil=0.3%
+  Regime                 moy= 1402.0  max= 1734.0  seuil=1750.0  % proche seuil=53.0%
+  T_Convert              moy=   95.3  max=  127.0  seuil=129.0  % proche seuil=4.8%
+  T_Echap_D              moy=  392.3  max=  579.5  seuil=600.0  % proche seuil=1.9%
+  T_Echap_G              moy=  389.1  max=  612.5  seuil=600.0  % proche seuil=1.1%
+  T_Refroid              moy=   85.5  max=  113.0  seuil=105.0  % proche seuil=17.1%
+
+--- INTERPRETATION ---
+  Etat general : BON - Surveillance normale recommandee
+  Health Index moyen = 70.4/100

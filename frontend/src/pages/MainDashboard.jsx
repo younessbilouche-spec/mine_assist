@@ -346,22 +346,75 @@ function calcKpis(fleet) {
 export default function MainDashboard() {
   const [fleet,        setFleet]        = useState([])
   const [anomParJour,  setAnomParJour]  = useState([])
+  const [gmaoStats,    setGmaoStats]    = useState(null)
   const [modelStatus,  setModelStatus]  = useState(null)
   const [loading,      setLoading]      = useState(true)
   const [selected,     setSelected]     = useState(null)
   const [lastRefresh,  setLastRefresh]  = useState(new Date())
+  const [dataSource,   setDataSource]   = useState('mock')
 
   // ── Chargement données ──────────────────────
   const loadData = useCallback(async () => {
     setLoading(true)
     try {
-      // Essaie l'API réelle, sinon fallback sur mock
       let fleetData = generateFleetMock()
+      let usingRealData = false
+
+      // ── Données GMAO réelles ─────────────────
+      try {
+        const r = await fetch(`${API}/gmao/stats?machine=994F-1`)
+        if (r.ok) {
+          const stats = await r.json()
+          setGmaoStats(stats)
+          usingRealData = true
+
+          // Transformer monthly_risk en données graphique
+          if (stats.monthly_risk?.length) {
+            const chart = stats.monthly_risk.slice(-6).map(m => ({
+              jour: m.month?.slice(0, 7) || '?',
+              grav1: Math.max(0, (m.risk_score || 0) - (m.g2 || 0) - (m.g3 || 0)),
+              grav2: m.g2 || 0,
+              grav3: m.g3 || 0,
+            }))
+            setAnomParJour(chart)
+          } else {
+            setAnomParJour(generateAnomaliesParJour())
+          }
+
+          // Construire la carte 994F-1 depuis les vraies données
+          const g3 = stats.summary?.g3_total || 0
+          const g2 = stats.summary?.g2_total || 0
+          const riskScore = stats.priority_risks?.[0]?.risk_score || 0
+          const statut = g3 > 5 ? 'RED' : g2 > 10 ? 'ORANGE' : 'GREEN'
+          const hours = stats.service_hours_by_machine?.['994F-1'] || 0
+          const period = stats.date_range_by_machine?.['994F-1']
+
+          fleetData = [{
+            id: '994F-1',
+            nom: 'Chargeuse 994F-1',
+            zone: 'OCP Benguerir',
+            rul_A: Math.max(0, Math.round(500 - riskScore * 2)),
+            rul_B: hours,
+            statut,
+            proba_panne: Math.min(0.99, riskScore / 100),
+            nb_anomalies_24h: g3,
+            derniere_maj: period?.end ? new Date(period.end).toISOString() : new Date().toISOString(),
+            capteurs: SENSORS.reduce((acc, s) => { acc[s.key] = null; return acc }, {}),
+            _real: true,
+            _g2: g2,
+            _g3: g3,
+            _events: stats.summary?.total_events || 0,
+          }]
+        }
+      } catch {
+        setAnomParJour(generateAnomaliesParJour())
+      }
+
+      // ── RUL model demo ────────────────────────
       try {
         const r = await fetch(`${API}/pred/rul/predict/demo`)
         if (r.ok) {
           const demo = await r.json()
-          // Le premier équipement de la flotte reçoit les données réelles
           if (demo?.rul_A || demo?.rul) {
             fleetData[0] = {
               ...fleetData[0],
@@ -371,11 +424,9 @@ export default function MainDashboard() {
             }
           }
         }
-      } catch {
-        fleetData = generateFleetMock()
-      }
+      } catch { /* RUL demo optionnel */ }
 
-      // Statut des modèles
+      // ── Statut modèles ────────────────────────
       try {
         const r = await fetch(`${API}/pred/rul/status`)
         if (r.ok) setModelStatus(await r.json())
@@ -384,7 +435,7 @@ export default function MainDashboard() {
       }
 
       setFleet(fleetData)
-      setAnomParJour(generateAnomaliesParJour())
+      setDataSource(usingRealData ? 'live' : 'mock')
       setLastRefresh(new Date())
     } finally {
       setLoading(false)
@@ -479,13 +530,29 @@ export default function MainDashboard() {
 
         {loading ? (
           <div style={{ textAlign: 'center', padding: 80, color: OCP.gray400 }}>
-            <div style={{ fontSize: 32, marginBottom: 12 }}>⚙️</div>
-            <div style={{ fontSize: 14 }}>Chargement des données en cours…</div>
+            <div style={{ fontSize: 36, marginBottom: 14, animation: 'pulse 1.2s infinite' }}>⚙️</div>
+            <div style={{ fontSize: 14, fontWeight: 600 }}>Connexion au backend MineAssist…</div>
+            <div style={{ fontSize: 11, color: OCP.gray400, marginTop: 6 }}>Récupération des données GMAO 994F-1</div>
           </div>
         ) : (
           <>
+            {/* ── BANDEAU SOURCE DE DONNÉES ── */}
+            <div style={{
+              display: 'flex', alignItems: 'center', gap: 10,
+              padding: '8px 16px', borderRadius: 8, marginBottom: 18,
+              background: dataSource === 'live' ? OCP.greenLight : OCP.orangeLight,
+              border: `1px solid ${dataSource === 'live' ? OCP.green : OCP.orange}`,
+              fontSize: 11, fontWeight: 600,
+              color: dataSource === 'live' ? OCP.green : OCP.orange,
+            }}>
+              <span>{dataSource === 'live' ? '🟢' : '🟡'}</span>
+              {dataSource === 'live'
+                ? `Données live GMAO · ${gmaoStats?.summary?.total_events?.toLocaleString('fr-FR') || '—'} événements · ${gmaoStats?.date_range_by_machine?.['994F-1']?.start?.slice(0,10) || '?'} → ${gmaoStats?.date_range_by_machine?.['994F-1']?.end?.slice(0,10) || '?'}`
+                : 'Mode démonstration — backend non connecté ou données GMAO indisponibles'}
+            </div>
+
             {/* ── ALERTES BANNER ── */}
-            {kpis.alertes > 0 && (
+            {fleet[0]?._g3 > 0 && (
               <div style={{
                 background: OCP.redLight,
                 border: `1px solid ${OCP.red}`,
@@ -499,10 +566,10 @@ export default function MainDashboard() {
                 <span style={{ fontSize: 20 }}>🚨</span>
                 <div>
                   <div style={{ fontWeight: 700, color: OCP.red, fontSize: 14 }}>
-                    {kpis.alertes} équipement(s) en état CRITIQUE — intervention immédiate requise
+                    {fleet[0]._g3} anomalie(s) gravité 3 détectée(s) sur 994F-1 — vérification requise
                   </div>
                   <div style={{ fontSize: 11, color: OCP.gray400, marginTop: 2 }}>
-                    RUL estimé inférieur à 24h · Cliquer sur la carte pour le détail
+                    Gravité 2 : {fleet[0]._g2} · Total événements GMAO : {fleet[0]._events?.toLocaleString('fr-FR')}
                   </div>
                 </div>
               </div>
@@ -511,32 +578,31 @@ export default function MainDashboard() {
             {/* ── KPI ROW ── */}
             <div style={{ display: 'flex', gap: 14, flexWrap: 'wrap', marginBottom: 24 }}>
               <KpiCard
-                titre="Score de santé flotte"
-                valeur={kpis.santeScore}
-                unite="%"
-                sousTitre={`${kpis.total - kpis.alertes - kpis.warnings} engins nominaux`}
-                couleur={kpis.santeScore > 80 ? OCP.green : kpis.santeScore > 50 ? OCP.orange : OCP.red}
-                icone="💚"
+                titre="Anomalies G3 (critiques)"
+                valeur={gmaoStats ? (gmaoStats.summary?.g3_total ?? '—') : kpis.alertes}
+                sousTitre={gmaoStats ? `sur ${gmaoStats.summary?.total_events?.toLocaleString('fr-FR')} événements` : `${kpis.total - kpis.alertes - kpis.warnings} engins nominaux`}
+                couleur={(gmaoStats?.summary?.g3_total || kpis.alertes) > 0 ? OCP.red : OCP.green}
+                icone="🚨"
               />
               <KpiCard
-                titre="RUL moyen flotte"
-                valeur={kpis.rulMoyen}
-                unite="h"
-                sousTitre="Remaining Useful Life médian"
-                couleur={kpis.rulMoyen > 72 ? OCP.green : kpis.rulMoyen > 24 ? OCP.orange : OCP.red}
+                titre="Anomalies G2 (attention)"
+                valeur={gmaoStats ? (gmaoStats.summary?.g2_total ?? '—') : kpis.warnings}
+                sousTitre={gmaoStats ? 'Niveau de surveillance élevé' : 'En vigilance orange'}
+                couleur={(gmaoStats?.summary?.g2_total || kpis.warnings) > 0 ? OCP.orange : OCP.green}
+                icone="⚠️"
+              />
+              <KpiCard
+                titre="Heures de service"
+                valeur={gmaoStats ? ((gmaoStats.service_hours_by_machine?.['994F-1'] || 0).toLocaleString('fr-FR')) : kpis.rulMoyen}
+                unite={gmaoStats ? 'h' : 'h RUL'}
+                sousTitre={gmaoStats ? 'CAT 994F-1 · cumulées' : 'Remaining Useful Life médian'}
+                couleur={OCP.green}
                 icone="⏱️"
               />
               <KpiCard
-                titre="Alertes critiques"
-                valeur={kpis.alertes}
-                sousTitre={`+ ${kpis.warnings} en vigilance (ORANGE)`}
-                couleur={kpis.alertes > 0 ? OCP.red : OCP.green}
-                icone={kpis.alertes > 0 ? '🚨' : '✅'}
-              />
-              <KpiCard
-                titre="Engins surveillés"
-                valeur={kpis.total}
-                sousTitre="CAT 994F · Benguerir"
+                titre="Machine surveillée"
+                valeur="994F-1"
+                sousTitre="CAT 994F · OCP Benguerir"
                 couleur={OCP.green}
                 icone="🏗️"
               />
@@ -578,9 +644,12 @@ export default function MainDashboard() {
                 background: OCP.white, borderRadius: 10,
                 border: `1px solid ${OCP.gray100}`, boxShadow: OCP.shadow, padding: 20,
               }}>
-                <h3 style={{ margin: '0 0 16px', fontSize: 14, fontWeight: 700, color: OCP.gray900 }}>
-                  Anomalies détectées — 14 derniers jours
+                <h3 style={{ margin: '0 0 4px', fontSize: 14, fontWeight: 700, color: OCP.gray900 }}>
+                  {gmaoStats ? 'Tendance mensuelle des anomalies GMAO — 994F-1' : 'Anomalies détectées — 14 derniers jours (simulation)'}
                 </h3>
+                <div style={{ fontSize: 10, color: OCP.gray400, marginBottom: 14, fontFamily: 'monospace' }}>
+                  {gmaoStats ? 'Source : fichier GMAO réel · Gravité 1/2/3' : 'Données de démonstration'}
+                </div>
                 <ResponsiveContainer width="100%" height={220}>
                   <BarChart data={anomParJour} barSize={12} barGap={2}>
                     <CartesianGrid strokeDasharray="3 3" stroke={OCP.gray100} vertical={false} />

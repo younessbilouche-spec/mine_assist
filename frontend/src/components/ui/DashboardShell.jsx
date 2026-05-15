@@ -44,7 +44,10 @@ export default function DashboardShell({
           {!collapsed && (
             <div style={{ paddingLeft: 4 }}>
               <div style={{ fontSize: 9, color: C.orange, fontWeight: 800, letterSpacing: 3, textTransform: "uppercase" }}>
-                Diagnostic IA · CAT 994F
+                Maintenance Prédictive
+              </div>
+              <div style={{ fontSize: 8, color: C.textLight, fontWeight: 700, letterSpacing: 1.5, textTransform: "uppercase", marginTop: 2 }}>
+                CAT 994F1 · OCP Benguerir
               </div>
             </div>
           )}

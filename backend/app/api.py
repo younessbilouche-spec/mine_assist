@@ -27,6 +27,7 @@ from app.sim_router import sim_router
 from app.ocp.router import ocp_router
 from app.ocp_history_router import history_router
 from app.auth import auth_router
+from app.routers.amdec_router import router as amdec_router
 from app.capteur_thresholds import (
     CAPTEUR_THRESHOLDS,
     find_capteur_rule,
@@ -42,13 +43,18 @@ GMAO_CAPTEURS_DIR = DATA_DIR / "gmao" / "capteurs"
 
 
 _GMAO_CAPTEURS_CACHE = None
+_GMAO_CAPTEURS_CACHE_TIME = None
+_GMAO_CAPTEURS_CACHE_TTL = 1800  # 30 minutes
 
 
 def load_gmao_capteurs() -> tuple[pd.DataFrame, list[dict]]:
-    global _GMAO_CAPTEURS_CACHE
+    global _GMAO_CAPTEURS_CACHE, _GMAO_CAPTEURS_CACHE_TIME
+    import time
 
-    if _GMAO_CAPTEURS_CACHE is not None:
-        return _GMAO_CAPTEURS_CACHE, []
+    now = time.monotonic()
+    if _GMAO_CAPTEURS_CACHE is not None and _GMAO_CAPTEURS_CACHE_TIME is not None:
+        if now - _GMAO_CAPTEURS_CACHE_TIME < _GMAO_CAPTEURS_CACHE_TTL:
+            return _GMAO_CAPTEURS_CACHE, []
 
     print("⏳ Chargement des capteurs (cache froid)...")
 
@@ -111,6 +117,7 @@ def load_gmao_capteurs() -> tuple[pd.DataFrame, list[dict]]:
     df = df.sort_values("horodatage").reset_index(drop=True)
 
     _GMAO_CAPTEURS_CACHE = df
+    _GMAO_CAPTEURS_CACHE_TIME = time.monotonic()
     return _GMAO_CAPTEURS_CACHE, file_debug
 
 
@@ -146,6 +153,7 @@ app.include_router(ml_v6_router, prefix="/ml", tags=["ML v6 — Insights"])
 
 from app.routers.rul_degradation import router as rul_router
 app.include_router(rul_router, prefix="/rul", tags=["RUL — MSDM"])
+app.include_router(amdec_router, prefix="/amdec", tags=["AMDEC — Maintenance Prédictive"])
 
 from app.routers.multi_agent_router import multi_agent_router
 app.include_router(multi_agent_router)

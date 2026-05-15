@@ -139,14 +139,43 @@ export default function RULDashboard() {
   if (loading) return <div style={{ padding: 40, textAlign: "center" }}>Chargement...</div>
 
   if (!data?.available) return (
-    <div style={{ padding: 100, textAlign: "center", background: "#fff", borderRadius: 30, margin: "20px" }}>
-      <div style={{ fontSize: 60 }}>🧠</div>
-      <h2 style={{ fontFamily: "Rajdhani", fontWeight: 800 }}>Modèle non entraîné</h2>
-      <p>Lancez l'entraînement Random Forest (3 variantes : cohort interne, GMAO grav. ≥ 2, GMAO grav. = 3).</p>
-      <button onClick={handleRefresh} style={{
-        background: COLOR.accent, color: "#fff", border: "none", padding: "15px 30px",
-        borderRadius: 12, fontWeight: 800, cursor: "pointer", marginTop: 20
-      }}>ENTRAÎNER LE MODÈLE MAINTENANT</button>
+    <div style={{ padding: "40px 30px", background: "#F8F9FA", borderRadius: 20, margin: "20px" }}>
+      <div style={{ maxWidth: 700, margin: "0 auto" }}>
+        <div style={{ fontSize: 11, fontWeight: 800, color: COLOR.accent, letterSpacing: 3, textTransform: "uppercase", marginBottom: 8 }}>
+          Prédiction RUL — Pannes Critiques
+        </div>
+        <h2 style={{ fontFamily: "Rajdhani", fontWeight: 800, fontSize: 24, marginBottom: 12 }}>
+          Prédiction Random Forest — Note méthodologique
+        </h2>
+        <div style={{ fontSize: 13, color: "#5A5240", lineHeight: 1.7, marginBottom: 24, background: "#fff", padding: "18px 22px", borderRadius: 12, borderLeft: "4px solid #C4760A" }}>
+          L'approche supervisée (Random Forest, horizon 24 h) a été évaluée sur les données CAT 994F1.
+          Le taux d'événements critiques dans les données GMAO étant très faible et la plupart des
+          signaux étant d'origine électrique (peu corrélés aux six capteurs physiques retenus), le
+          modèle supervisé n'atteint pas un niveau de performance industriel exploitable.<br /><br />
+          <b>Approche retenue :</b> détection d'anomalies non supervisée (IsolationForest) couplée à
+          un Health Index pondéré par les poids RPN de l'AMDEC — voir l'onglet
+          <b> AMDEC & Prédictif</b>.
+        </div>
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 14, marginBottom: 24 }}>
+          {[
+            { label: "Variantes testées", val: "3", sub: "cohort / GMAO grav≥2 / grav=3" },
+            { label: "Split temporel", val: "80/20", sub: "validation chrono (TimeSeriesSplit)" },
+            { label: "Approche finale", val: "IsoForest", sub: "Health Index AMDEC pondéré" },
+          ].map((k, i) => (
+            <div key={i} style={{ background: "#fff", borderRadius: 14, padding: 18, boxShadow: "0 4px 12px rgba(0,0,0,0.04)", textAlign: "center" }}>
+              <div style={{ fontSize: 28, fontWeight: 900, color: COLOR.accent, fontFamily: "Rajdhani, sans-serif" }}>{k.val}</div>
+              <div style={{ fontSize: 11, fontWeight: 800, color: "#8E8E93", letterSpacing: 1, textTransform: "uppercase", marginTop: 6 }}>{k.label}</div>
+              <div style={{ fontSize: 11, color: "#636366", marginTop: 4 }}>{k.sub}</div>
+            </div>
+          ))}
+        </div>
+        <button onClick={handleRefresh} style={{
+          background: COLOR.accent, color: "#fff", border: "none", padding: "13px 28px",
+          borderRadius: 12, fontWeight: 800, cursor: "pointer", fontSize: 13
+        }}>
+          Tenter l'entraînement RF →
+        </button>
+      </div>
     </div>
   )
 

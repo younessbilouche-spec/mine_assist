@@ -249,7 +249,7 @@ def _build_pdf(req: RapportDiagRequest) -> bytes:
     elements.append(HRFlowable(width="100%", thickness=0.5, color=colors.HexColor("#D4C9B0")))
     elements.append(Spacer(1, 6))
     elements.append(Paragraph(
-        f"MineAssist PFE · CAT 994F OCP Khouribga · Rapport {rapport_id} · "
+        f"MineAssist · CAT 994F1 · OCP Benguerir · Rapport {rapport_id} · "
         f"Généré le {now.strftime('%d/%m/%Y à %H:%M')} · "
         "Ce document est une aide à la décision, non un document d'intervention officiel.",
         style_footer

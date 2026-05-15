@@ -1,0 +1,230 @@
+========================================================================
+  RAPPORT DE MAINTENANCE PREDICTIVE AVEC INTEGRATION AMDEC
+  Chargeuse CAT 994F1 - OCP Benguerir
+  Genere le : 2026-05-15 20:17
+========================================================================
+
+1. ETAT DE LA MACHINE
+----------------------------------------
+   Health Index moyen    : 67.4 / 100
+   % temps Bon (>80)     : 10.9%
+   % temps Attention     : 65.7%
+   % temps Alerte (<60)  : 23.4%
+   Seuil anomalie        : 69.1 / 100
+
+2. STATISTIQUES DES 6 CAPTEURS
+----------------------------------------
+   P_Huile                : moy=  442.0  max=  633.0  seuil=140.0  proche_seuil=0.3%
+   Regime                 : moy= 1402.0  max= 1734.0  seuil=1750.0  proche_seuil=53.0%
+   T_Convert              : moy=   95.3  max=  127.0  seuil=129.0  proche_seuil=4.8%
+   T_Echap_D              : moy=  392.3  max=  579.5  seuil=600.0  proche_seuil=1.9%
+   T_Echap_G              : moy=  389.1  max=  612.5  seuil=600.0  proche_seuil=1.1%
+   T_Refroid              : moy=   85.5  max=  113.0  seuil=105.0  proche_seuil=17.1%
+
+3. ANALYSE AMDEC - CRITICITE PAR CAPTEUR
+----------------------------------------
+
+   [T_Echap_D]  RPN_moy=5.14  modes=7  critiques(G1)=0  poids_health=1.500
+
+   [T_Echap_G]  RPN_moy=5.14  modes=7  critiques(G1)=0  poids_health=1.500
+
+   [P_Huile]  RPN_moy=1.64  modes=14  critiques(G1)=11  poids_health=0.500
+
+   [Regime]  RPN_moy=2.93  modes=15  critiques(G1)=0  poids_health=0.869
+
+   [T_Refroid]  RPN_moy=4.0  modes=9  critiques(G1)=0  poids_health=1.173
+
+   [T_Convert]  RPN_moy=3.47  modes=30  critiques(G1)=10  poids_health=1.021
+
+4. TABLE DE DIAGNOSTIC - ALERTES ET ACTIONS
+----------------------------------------
+   (Quand un capteur depasse son seuil, consulter ce tableau)
+
+
+   *** ALERTE T_Echap_D (seuil = 600.0 deg C) ***
+   Circuits AMDEC : CIRUCIT  D'ADMISSION ET  D'ECHAPPEMENT, CIRCUIT D'AIR
+   Modes totaux   : 7  |  Critiques G1 : 0
+   Top modes de defaillance :
+     1. [COMPRESSEUR D'AIR] Manque air admission
+        Cause  : Filtre colmater
+        Effet  : Bruit
+        RPN=6 (G=2 O=A)
+        Action : Inspection visuelle  |  Freq : A definir
+     2. [REFROIDISSEUR AIR D'ADMISSION] Débit faible
+        Cause  : Manque air de refroidissement
+        Effet  : Faible puissance
+        RPN=6 (G=2 O=A)
+        Action : Contrôle systématique  |  Freq : Journalier
+     3. [TURBOCOMPRESSEUR] Débit faible
+        Cause  : Manque air de refroidissement
+        Effet  : Faible puissance
+        RPN=6 (G=2 O=A)
+        Action : Inspection visuelle  |  Freq : A definir
+     4. [TURBOCOMPRESSEUR] Débit faible
+        Cause  : Filtre comlmater
+        Effet  : Faible puissance
+        RPN=6 (G=2 O=A)
+        Action : Inspection visuelle  |  Freq : A definir
+     5. [COMPRESSEUR D'AIR] Pas de débit
+        Cause  : Arbres cisaillés
+        Effet  : Coincement
+        RPN=4 (G=2 O=B)
+        Action : Contrôle systématique  |  Freq : 250H
+
+   *** ALERTE T_Echap_G (seuil = 600.0 deg C) ***
+   Circuits AMDEC : CIRUCIT  D'ADMISSION ET  D'ECHAPPEMENT, CIRCUIT D'AIR
+   Modes totaux   : 7  |  Critiques G1 : 0
+   Top modes de defaillance :
+     1. [COMPRESSEUR D'AIR] Manque air admission
+        Cause  : Filtre colmater
+        Effet  : Bruit
+        RPN=6 (G=2 O=A)
+        Action : Inspection visuelle  |  Freq : A definir
+     2. [REFROIDISSEUR AIR D'ADMISSION] Débit faible
+        Cause  : Manque air de refroidissement
+        Effet  : Faible puissance
+        RPN=6 (G=2 O=A)
+        Action : Contrôle systématique  |  Freq : Journalier
+     3. [TURBOCOMPRESSEUR] Débit faible
+        Cause  : Manque air de refroidissement
+        Effet  : Faible puissance
+        RPN=6 (G=2 O=A)
+        Action : Inspection visuelle  |  Freq : A definir
+     4. [TURBOCOMPRESSEUR] Débit faible
+        Cause  : Filtre comlmater
+        Effet  : Faible puissance
+        RPN=6 (G=2 O=A)
+        Action : Inspection visuelle  |  Freq : A definir
+     5. [COMPRESSEUR D'AIR] Pas de débit
+        Cause  : Arbres cisaillés
+        Effet  : Coincement
+        RPN=4 (G=2 O=B)
+        Action : Contrôle systématique  |  Freq : 250H
+
+   *** ALERTE P_Huile (seuil = 140.0 kPa) ***
+   Circuits AMDEC : CIRCUIT DE  LUBRIFICATION, BLOC
+   Modes totaux   : 14  |  Critiques G1 : 11
+   Top modes de defaillance :
+     1. [REFREGERANT HUILE MOTEUR] Bouchage des faisceaux tubulaire
+        Cause  : Présence des impuretés
+        Effet  : Echauffement
+        RPN=4 (G=2 O=B)
+        Action : Inspection visuelle  |  Freq : A definir
+     2. [REFREGERANT HUILE MOTEUR] Fuite externe
+        Cause  : Joint défectueux
+        Effet  : Echauffement
+        RPN=4 (G=2 O=B)
+        Action : Inspection visuelle  |  Freq : A definir
+     3. [REFREGERANT HUILE MOTEUR] Fuites interne
+        Cause  : Picage ou fissure des faisceaux
+        Effet  : Echauffement
+        RPN=4 (G=2 O=B)
+        Action : Inspection visuelle  |  Freq : A definir
+     4. [POMPE D'HUILE MOTEUR] Fuite interne
+        Cause  : Usure de la pompe
+        Effet  : Dégradation rapide du moteur
+        RPN=1 (G=1 O=C)
+        Action : Contrôle systématique  |  Freq : 1000H
+     5. [POMPE D'HUILE MOTEUR] Coincement du clapet
+        Cause  : Déréglage du pression
+        Effet  : Dégradation rapide du moteur
+        RPN=1 (G=1 O=C)
+        Action : Inspection visuelle  |  Freq : A definir
+
+   *** ALERTE Regime (seuil = 1750.0 tr/min) ***
+   Circuits AMDEC : CIRCUIT DE  GASOIL, CIRCUIT D'AIR
+   Modes totaux   : 15  |  Critiques G1 : 0
+   Top modes de defaillance :
+     1. [COMPRESSEUR D'AIR] Manque air admission
+        Cause  : Filtre colmater
+        Effet  : Bruit
+        RPN=6 (G=2 O=A)
+        Action : Inspection visuelle  |  Freq : A definir
+     2. [POMPE DE TRANSFERT] Faible débit de combustible
+        Cause  : Filtre colmaté
+        Effet  : Faible puissance
+        RPN=4 (G=2 O=B)
+        Action : Inspection visuelle  |  Freq : A definir
+     3. [POMPE D'INJECTION] Faible débit de combustible
+        Cause  : Filtre colmaté
+        Effet  : Faible puissance
+        RPN=4 (G=2 O=B)
+        Action : Inspection visuelle  |  Freq : A definir
+     4. [COMPRESSEUR D'AIR] Pas de débit
+        Cause  : Arbres cisaillés
+        Effet  : Coincement
+        RPN=4 (G=2 O=B)
+        Action : Contrôle systématique  |  Freq : 250H
+     5. [COMPRESSEUR D'AIR] Débit insufisant
+        Cause  : Usure
+        Effet  : Faible pression d'air
+        RPN=4 (G=2 O=B)
+        Action : Inspection visuelle  |  Freq : A definir
+
+   *** ALERTE T_Refroid (seuil = 105.0 deg C) ***
+   Circuits AMDEC : CIRCUIT  DE REFROIDISSEMENT
+   Modes totaux   : 9  |  Critiques G1 : 0
+   Top modes de defaillance :
+     1. [VASE D'EXPANSSION] Bouchage
+        Cause  : Présence des impuretés
+        Effet  : Echauffement
+        RPN=4 (G=2 O=B)
+        Action : Contrôle systématique  |  Freq : 2000H
+     2. [RADIATEUR] Colmatage
+        Cause  : Présence de l'humidités et de la poussière
+        Effet  : Echauffement
+        RPN=4 (G=2 O=B)
+        Action : Inspection visuelle  |  Freq : A definir
+     3. [RADIATEUR] Fuite
+        Cause  : Bouchon non étanche
+        Effet  : Fuite d'eau
+        RPN=4 (G=2 O=B)
+        Action : Inspection visuelle  |  Freq : A definir
+     4. [RADIATEUR] Bouchage des faisceaux
+        Cause  : Présence des impuretés
+        Effet  : Echauffement
+        RPN=4 (G=2 O=B)
+        Action : Inspection visuelle  |  Freq : A definir
+     5. [POMPE A EAU AUXILIAIRE] Pas de débit
+        Cause  : Manque eau
+        Effet  : Echauffement
+        RPN=4 (G=2 O=B)
+        Action : Inspection visuelle  |  Freq : A definir
+
+   *** ALERTE T_Convert (seuil = 129.0 deg C) ***
+   Circuits AMDEC : CIRCUIT DE TRANSMISSION, CIRCUIT DE GRAISSAGE
+   Modes totaux   : 30  |  Critiques G1 : 10
+   Top modes de defaillance :
+     1. [SURPRESSEUR DE GRAISSE] Fuite interne
+        Cause  : Usure interne
+        Effet  : Echauffement
+        RPN=6 (G=2 O=A)
+        Action : Contrôle systématique  |  Freq : Journalier
+     2. [SURPRESSEUR DE GRAISSE] fuite  externe
+        Cause  : Usure des joint
+        Effet  : Faible graissage
+        RPN=6 (G=2 O=A)
+        Action : Inspection visuelle  |  Freq : A definir
+     3. [POMPE DE TRANSMISSION] Fuite externe
+        Cause  : Mauvaise étanchéité
+        Effet  : Faible puissance
+        RPN=6 (G=2 O=A)
+        Action : Inspection visuelle  |  Freq : A definir
+     4. [CONVERTISSEUR DE COUPLE] Fuite externe
+        Cause  : Problèmes des joints
+        Effet  : nan
+        RPN=6 (G=2 O=A)
+        Action : Inspection visuelle  |  Freq : A definir
+     5. [CONVERTISSEUR DE COUPLE] Manque huile
+        Cause  : Fuite importante
+        Effet  : nan
+        RPN=6 (G=2 O=A)
+        Action : Inspection visuelle  |  Freq : A definir
+
+5. RECOMMANDATIONS FINALES
+----------------------------------------
+   ETAT GENERAL : ATTENTION - Reviser le plan de maintenance
+   POINTS D'ATTENTION IDENTIFIES :
+   !! T_Convert max=127.0 tres proche du seuil 129.0 => surveiller transmission
+   !! T_Echap_G max=612.5 > seuil=600.0 => verifier turbocompresseur
+   !! T_Refroid max=113.0 > seuil=105.0 => verifier circuit refroidissement

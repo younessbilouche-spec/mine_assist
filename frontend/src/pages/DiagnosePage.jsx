@@ -757,7 +757,7 @@ export default function DiagnosePage({ onSave, apiFetch }) {
             {/* Colonne droite — Décodeur instantané */}
             <div>
               <div style={{ ...S.label, marginBottom: 10 }}>⚡ Décodage instantané</div>
-              <DecoderPanel parsed={parsed} faultCode={faultCode} />
+              <DecoderPanel parsed={parsed} />
 
               {/* Table FMI mini */}
               {faultCode && parsed?.fmi !== undefined && (

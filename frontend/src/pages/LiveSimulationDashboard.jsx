@@ -1,4 +1,4 @@
-/**
+﻿/**
  * LiveSimulationDashboard.jsx — v3 (mai 2026)
  * MineAssist · OCP Benguerir · CAT 994F1 — Console de supervision live
  *
@@ -47,7 +47,6 @@ const SENSORS = [
   { key: "Température huile freinage",         sub: "freinage",     unit: "°C",     icon: "🌡", min: 40,   max: 110,  color: "#F59E0B" },
   { key: "Température essieux arrière",        sub: "essieux",      unit: "°C",     icon: "🌡", min: 38,   max: 90,   color: "#10B981" },
   { key: "Pression d'air au réservoir",        sub: "pneumatique",  unit: "kPa",    icon: "💨", min: 420,  max: 850,  color: "#EC4899" },
-  { key: "Pression d\u2019air au réservoir",   sub: "pneumatique",  unit: "kPa",    icon: "💨", min: 420,  max: 850,  color: "#EC4899" },
 ]
 
 const SUBSYSTEMS = [

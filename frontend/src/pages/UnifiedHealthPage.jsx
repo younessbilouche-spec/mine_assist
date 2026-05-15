@@ -8,14 +8,14 @@ const MODES = [
     id: "current",
     icon: "❤️",
     label: "Score Actuel",
-    sublabel: "santé temps réel · CAT 994F",
+    sublabel: "score temps réel · CAT 994F1",
     accent: C.green,
   },
   {
     id: "history",
     icon: "📈",
     label: "Analyses ML",
-    sublabel: "historique 11 mois · Pipeline R",
+    sublabel: "historique 11 mois · IsolationForest",
     accent: C.orange,
   },
 ]

@@ -1,0 +1,535 @@
+{
+  "modele": "IsolationForest",
+  "version": "1.0",
+  "date_entrainement": "2026-05-15",
+  "periode_data": "2025-01-01 / 2025-12-01",
+  "nb_features": 84,
+  "capteurs": [
+    "P_Huile",
+    "Regime",
+    "T_Convert",
+    "T_Echap_D",
+    "T_Echap_G",
+    "T_Refroid"
+  ],
+  "seuils_alarme": {
+    "T_Echap_D": 600.0,
+    "T_Echap_G": 600.0,
+    "P_Huile": 140.0,
+    "Regime": 1750.0,
+    "T_Refroid": 105.0,
+    "T_Convert": 129.0
+  },
+  "poids_amdec": {
+    "T_Echap_D": 1.5,
+    "T_Echap_G": 1.5,
+    "P_Huile": 0.5,
+    "Regime": 0.8687,
+    "T_Refroid": 1.1735,
+    "T_Convert": 1.0211
+  },
+  "rpn_details": {
+    "T_Echap_D": {
+      "rpn_moy": 5.14,
+      "rpn_max": 6.0,
+      "nb_modes": 7,
+      "modes_critiques": 0
+    },
+    "T_Echap_G": {
+      "rpn_moy": 5.14,
+      "rpn_max": 6.0,
+      "nb_modes": 7,
+      "modes_critiques": 0
+    },
+    "P_Huile": {
+      "rpn_moy": 1.64,
+      "rpn_max": 4.0,
+      "nb_modes": 14,
+      "modes_critiques": 11
+    },
+    "Regime": {
+      "rpn_moy": 2.93,
+      "rpn_max": 6.0,
+      "nb_modes": 15,
+      "modes_critiques": 0
+    },
+    "T_Refroid": {
+      "rpn_moy": 4.0,
+      "rpn_max": 4.0,
+      "nb_modes": 9,
+      "modes_critiques": 0
+    },
+    "T_Convert": {
+      "rpn_moy": 3.47,
+      "rpn_max": 6.0,
+      "nb_modes": 30,
+      "modes_critiques": 10
+    }
+  },
+  "threshold_anomaly": 69.13,
+  "stats_capteurs": {
+    "P_Huile": {
+      "mean": 442.02,
+      "std": 34.76,
+      "p5": 394.0,
+      "p95": 479.0,
+      "min": 1.0,
+      "max": 633.0,
+      "seuil_alarme": 140.0
+    },
+    "Regime": {
+      "mean": 1402.04,
+      "std": 284.78,
+      "p5": 750.5,
+      "p95": 1683.5,
+      "min": 326.0,
+      "max": 1734.0,
+      "seuil_alarme": 1750.0
+    },
+    "T_Convert": {
+      "mean": 95.27,
+      "std": 10.7,
+      "p5": 78.24,
+      "p95": 109.5,
+      "min": 13.0,
+      "max": 127.0,
+      "seuil_alarme": 129.0
+    },
+    "T_Echap_D": {
+      "mean": 392.33,
+      "std": 85.57,
+      "p5": 210.0,
+      "p95": 495.0,
+      "min": 44.5,
+      "max": 579.5,
+      "seuil_alarme": 600.0
+    },
+    "T_Echap_G": {
+      "mean": 389.09,
+      "std": 82.24,
+      "p5": 214.5,
+      "p95": 489.0,
+      "min": 30.0,
+      "max": 612.5,
+      "seuil_alarme": 600.0
+    },
+    "T_Refroid": {
+      "mean": 85.49,
+      "std": 6.75,
+      "p5": 79.0,
+      "p95": 94.0,
+      "min": 1.0,
+      "max": 113.0,
+      "seuil_alarme": 105.0
+    }
+  },
+  "health_index": {
+    "moyenne_annuelle": 67.41,
+    "pct_bon": 10.9,
+    "pct_attention": 65.7,
+    "pct_alerte": 23.4
+  },
+  "table_diagnostic": {
+    "T_Echap_D": {
+      "seuil_alarme": 600.0,
+      "circuits_amdec": [
+        "CIRUCIT  D'ADMISSION ET  D'ECHAPPEMENT",
+        "CIRCUIT D'AIR"
+      ],
+      "nb_modes_total": 7,
+      "modes_critiques_g1": 0,
+      "rpn_moyen": 5.14,
+      "top_modes": [
+        {
+          "composant": "COMPRESSEUR D'AIR",
+          "mode": "Manque air admission",
+          "causes": "Filtre colmater",
+          "effet": "Bruit",
+          "gravite": 2,
+          "occurrence": "A",
+          "rpn": 6.0,
+          "tache": "Inspection visuelle",
+          "frequence": "A definir"
+        },
+        {
+          "composant": "REFROIDISSEUR AIR D'ADMISSION",
+          "mode": "Débit faible",
+          "causes": "Manque air de refroidissement",
+          "effet": "Faible puissance",
+          "gravite": 2,
+          "occurrence": "A",
+          "rpn": 6.0,
+          "tache": "Contrôle systématique",
+          "frequence": "Journalier"
+        },
+        {
+          "composant": "TURBOCOMPRESSEUR",
+          "mode": "Débit faible",
+          "causes": "Manque air de refroidissement",
+          "effet": "Faible puissance",
+          "gravite": 2,
+          "occurrence": "A",
+          "rpn": 6.0,
+          "tache": "Inspection visuelle",
+          "frequence": "A definir"
+        },
+        {
+          "composant": "TURBOCOMPRESSEUR",
+          "mode": "Débit faible",
+          "causes": "Filtre comlmater",
+          "effet": "Faible puissance",
+          "gravite": 2,
+          "occurrence": "A",
+          "rpn": 6.0,
+          "tache": "Inspection visuelle",
+          "frequence": "A definir"
+        },
+        {
+          "composant": "COMPRESSEUR D'AIR",
+          "mode": "Pas de débit",
+          "causes": "Arbres cisaillés",
+          "effet": "Coincement",
+          "gravite": 2,
+          "occurrence": "B",
+          "rpn": 4.0,
+          "tache": "Contrôle systématique",
+          "frequence": "250H"
+        }
+      ]
+    },
+    "T_Echap_G": {
+      "seuil_alarme": 600.0,
+      "circuits_amdec": [
+        "CIRUCIT  D'ADMISSION ET  D'ECHAPPEMENT",
+        "CIRCUIT D'AIR"
+      ],
+      "nb_modes_total": 7,
+      "modes_critiques_g1": 0,
+      "rpn_moyen": 5.14,
+      "top_modes": [
+        {
+          "composant": "COMPRESSEUR D'AIR",
+          "mode": "Manque air admission",
+          "causes": "Filtre colmater",
+          "effet": "Bruit",
+          "gravite": 2,
+          "occurrence": "A",
+          "rpn": 6.0,
+          "tache": "Inspection visuelle",
+          "frequence": "A definir"
+        },
+        {
+          "composant": "REFROIDISSEUR AIR D'ADMISSION",
+          "mode": "Débit faible",
+          "causes": "Manque air de refroidissement",
+          "effet": "Faible puissance",
+          "gravite": 2,
+          "occurrence": "A",
+          "rpn": 6.0,
+          "tache": "Contrôle systématique",
+          "frequence": "Journalier"
+        },
+        {
+          "composant": "TURBOCOMPRESSEUR",
+          "mode": "Débit faible",
+          "causes": "Manque air de refroidissement",
+          "effet": "Faible puissance",
+          "gravite": 2,
+          "occurrence": "A",
+          "rpn": 6.0,
+          "tache": "Inspection visuelle",
+          "frequence": "A definir"
+        },
+        {
+          "composant": "TURBOCOMPRESSEUR",
+          "mode": "Débit faible",
+          "causes": "Filtre comlmater",
+          "effet": "Faible puissance",
+          "gravite": 2,
+          "occurrence": "A",
+          "rpn": 6.0,
+          "tache": "Inspection visuelle",
+          "frequence": "A definir"
+        },
+        {
+          "composant": "COMPRESSEUR D'AIR",
+          "mode": "Pas de débit",
+          "causes": "Arbres cisaillés",
+          "effet": "Coincement",
+          "gravite": 2,
+          "occurrence": "B",
+          "rpn": 4.0,
+          "tache": "Contrôle systématique",
+          "frequence": "250H"
+        }
+      ]
+    },
+    "P_Huile": {
+      "seuil_alarme": 140.0,
+      "circuits_amdec": [
+        "CIRCUIT DE  LUBRIFICATION",
+        "BLOC"
+      ],
+      "nb_modes_total": 14,
+      "modes_critiques_g1": 11,
+      "rpn_moyen": 1.64,
+      "top_modes": [
+        {
+          "composant": "REFREGERANT HUILE MOTEUR",
+          "mode": "Bouchage des faisceaux tubulaire",
+          "causes": "Présence des impuretés",
+          "effet": "Echauffement",
+          "gravite": 2,
+          "occurrence": "B",
+          "rpn": 4.0,
+          "tache": "Inspection visuelle",
+          "frequence": "A definir"
+        },
+        {
+          "composant": "REFREGERANT HUILE MOTEUR",
+          "mode": "Fuite externe",
+          "causes": "Joint défectueux",
+          "effet": "Echauffement",
+          "gravite": 2,
+          "occurrence": "B",
+          "rpn": 4.0,
+          "tache": "Inspection visuelle",
+          "frequence": "A definir"
+        },
+        {
+          "composant": "REFREGERANT HUILE MOTEUR",
+          "mode": "Fuites interne",
+          "causes": "Picage ou fissure des faisceaux",
+          "effet": "Echauffement",
+          "gravite": 2,
+          "occurrence": "B",
+          "rpn": 4.0,
+          "tache": "Inspection visuelle",
+          "frequence": "A definir"
+        },
+        {
+          "composant": "POMPE D'HUILE MOTEUR",
+          "mode": "Fuite interne",
+          "causes": "Usure de la pompe",
+          "effet": "Dégradation rapide du moteur",
+          "gravite": 1,
+          "occurrence": "C",
+          "rpn": 1.0,
+          "tache": "Contrôle systématique",
+          "frequence": "1000H"
+        },
+        {
+          "composant": "POMPE D'HUILE MOTEUR",
+          "mode": "Coincement du clapet",
+          "causes": "Déréglage du pression",
+          "effet": "Dégradation rapide du moteur",
+          "gravite": 1,
+          "occurrence": "C",
+          "rpn": 1.0,
+          "tache": "Inspection visuelle",
+          "frequence": "A definir"
+        }
+      ]
+    },
+    "Regime": {
+      "seuil_alarme": 1750.0,
+      "circuits_amdec": [
+        "CIRCUIT DE  GASOIL",
+        "CIRCUIT D'AIR"
+      ],
+      "nb_modes_total": 15,
+      "modes_critiques_g1": 0,
+      "rpn_moyen": 2.93,
+      "top_modes": [
+        {
+          "composant": "COMPRESSEUR D'AIR",
+          "mode": "Manque air admission",
+          "causes": "Filtre colmater",
+          "effet": "Bruit",
+          "gravite": 2,
+          "occurrence": "A",
+          "rpn": 6.0,
+          "tache": "Inspection visuelle",
+          "frequence": "A definir"
+        },
+        {
+          "composant": "POMPE DE TRANSFERT",
+          "mode": "Faible débit de combustible",
+          "causes": "Filtre colmaté",
+          "effet": "Faible puissance",
+          "gravite": 2,
+          "occurrence": "B",
+          "rpn": 4.0,
+          "tache": "Inspection visuelle",
+          "frequence": "A definir"
+        },
+        {
+          "composant": "POMPE D'INJECTION",
+          "mode": "Faible débit de combustible",
+          "causes": "Filtre colmaté",
+          "effet": "Faible puissance",
+          "gravite": 2,
+          "occurrence": "B",
+          "rpn": 4.0,
+          "tache": "Inspection visuelle",
+          "frequence": "A definir"
+        },
+        {
+          "composant": "COMPRESSEUR D'AIR",
+          "mode": "Pas de débit",
+          "causes": "Arbres cisaillés",
+          "effet": "Coincement",
+          "gravite": 2,
+          "occurrence": "B",
+          "rpn": 4.0,
+          "tache": "Contrôle systématique",
+          "frequence": "250H"
+        },
+        {
+          "composant": "COMPRESSEUR D'AIR",
+          "mode": "Débit insufisant",
+          "causes": "Usure",
+          "effet": "Faible pression d'air",
+          "gravite": 2,
+          "occurrence": "B",
+          "rpn": 4.0,
+          "tache": "Inspection visuelle",
+          "frequence": "A definir"
+        }
+      ]
+    },
+    "T_Refroid": {
+      "seuil_alarme": 105.0,
+      "circuits_amdec": [
+        "CIRCUIT  DE REFROIDISSEMENT"
+      ],
+      "nb_modes_total": 9,
+      "modes_critiques_g1": 0,
+      "rpn_moyen": 4.0,
+      "top_modes": [
+        {
+          "composant": "VASE D'EXPANSSION",
+          "mode": "Bouchage",
+          "causes": "Présence des impuretés",
+          "effet": "Echauffement",
+          "gravite": 2,
+          "occurrence": "B",
+          "rpn": 4.0,
+          "tache": "Contrôle systématique",
+          "frequence": "2000H"
+        },
+        {
+          "composant": "RADIATEUR",
+          "mode": "Colmatage",
+          "causes": "Présence de l'humidités et de la poussière",
+          "effet": "Echauffement",
+          "gravite": 2,
+          "occurrence": "B",
+          "rpn": 4.0,
+          "tache": "Inspection visuelle",
+          "frequence": "A definir"
+        },
+        {
+          "composant": "RADIATEUR",
+          "mode": "Fuite",
+          "causes": "Bouchon non étanche",
+          "effet": "Fuite d'eau",
+          "gravite": 2,
+          "occurrence": "B",
+          "rpn": 4.0,
+          "tache": "Inspection visuelle",
+          "frequence": "A definir"
+        },
+        {
+          "composant": "RADIATEUR",
+          "mode": "Bouchage des faisceaux",
+          "causes": "Présence des impuretés",
+          "effet": "Echauffement",
+          "gravite": 2,
+          "occurrence": "B",
+          "rpn": 4.0,
+          "tache": "Inspection visuelle",
+          "frequence": "A definir"
+        },
+        {
+          "composant": "POMPE A EAU AUXILIAIRE",
+          "mode": "Pas de débit",
+          "causes": "Manque eau",
+          "effet": "Echauffement",
+          "gravite": 2,
+          "occurrence": "B",
+          "rpn": 4.0,
+          "tache": "Inspection visuelle",
+          "frequence": "A definir"
+        }
+      ]
+    },
+    "T_Convert": {
+      "seuil_alarme": 129.0,
+      "circuits_amdec": [
+        "CIRCUIT DE TRANSMISSION",
+        "CIRCUIT DE GRAISSAGE"
+      ],
+      "nb_modes_total": 30,
+      "modes_critiques_g1": 10,
+      "rpn_moyen": 3.47,
+      "top_modes": [
+        {
+          "composant": "SURPRESSEUR DE GRAISSE",
+          "mode": "Fuite interne",
+          "causes": "Usure interne",
+          "effet": "Echauffement",
+          "gravite": 2,
+          "occurrence": "A",
+          "rpn": 6.0,
+          "tache": "Contrôle systématique",
+          "frequence": "Journalier"
+        },
+        {
+          "composant": "SURPRESSEUR DE GRAISSE",
+          "mode": "fuite  externe",
+          "causes": "Usure des joint",
+          "effet": "Faible graissage",
+          "gravite": 2,
+          "occurrence": "A",
+          "rpn": 6.0,
+          "tache": "Inspection visuelle",
+          "frequence": "A definir"
+        },
+        {
+          "composant": "POMPE DE TRANSMISSION",
+          "mode": "Fuite externe",
+          "causes": "Mauvaise étanchéité",
+          "effet": "Faible puissance",
+          "gravite": 2,
+          "occurrence": "A",
+          "rpn": 6.0,
+          "tache": "Inspection visuelle",
+          "frequence": "A definir"
+        },
+        {
+          "composant": "CONVERTISSEUR DE COUPLE",
+          "mode": "Fuite externe",
+          "causes": "Problèmes des joints",
+          "effet": "nan",
+          "gravite": 2,
+          "occurrence": "A",
+          "rpn": 6.0,
+          "tache": "Inspection visuelle",
+          "frequence": "A definir"
+        },
+        {
+          "composant": "CONVERTISSEUR DE COUPLE",
+          "mode": "Manque huile",
+          "causes": "Fuite importante",
+          "effet": "nan",
+          "gravite": 2,
+          "occurrence": "A",
+          "rpn": 6.0,
+          "tache": "Inspection visuelle",
+          "frequence": "A definir"
+        }
+      ]
+    }
+  }
+}

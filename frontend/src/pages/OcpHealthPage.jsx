@@ -97,8 +97,8 @@ export default function OcpHealthPage({ apiFetch, onNavigate }) {
   return (
     <div style={{ maxWidth: 1180, margin: '0 auto', padding: '34px 28px', color: '#2A2A1E' }}>
 
-      <h1 className="page-title">Indicateur Santé de l'Engin</h1>
-      <p className="page-subtitle">CHARGEUSE 994F · Temps réel + Historique 11 mois (Pipeline R)</p>
+      <h1 className="page-title">Indicateur Santé de l'Engin — CAT 994F1</h1>
+      <p className="page-subtitle">OCP Benguerir · Score temps réel + Historique 11 mois (Pipeline ML — IsolationForest + AMDEC)</p>
 
       {/* ── SCORE TEMPS RÉEL ─────────────────────────────────────────────── */}
       {loadLive ? (
@@ -196,7 +196,7 @@ export default function OcpHealthPage({ apiFetch, onNavigate }) {
               fontSize: 10, fontWeight: 700, letterSpacing: '2px',
               textTransform: 'uppercase', color: '#B0A080', marginBottom: 4
             }}>
-              Tendance historique — Pipeline R (mineassist_ML_SIMPLE.R)
+              Tendance historique — Pipeline ML
             </div>
             <div style={{ fontSize: 15, fontWeight: 700, color: '#2A2A1E' }}>
               Health Score sur {days} derniers jours

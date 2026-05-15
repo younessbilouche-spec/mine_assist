@@ -106,13 +106,19 @@ function rpnItem({ source, equipement, mode, cause, action, gravite, probabilite
   return { source, equipement, mode, cause, action, gravite, probabilite, detectabilite, rpn: gravite * probabilite * detectabilite, delai, responsable }
 }
 
+const REFRESH_INTERVAL = 60_000 // 60 secondes
+
 export default function MaintenanceExecutiveDashboard({ apiFetch: ocpFetch, onNavigate }) {
   const [loading, setLoading] = useState(true)
   const [errors, setErrors] = useState([])
   const [data, setData] = useState({ oilSummary: null, oilList: [], alertes: null, health: null, prediction: null, upload: null })
+  const [amdec, setAmdec] = useState(null)
+  const [lastUpdated, setLastUpdated] = useState(null)
+  const [refreshing, setRefreshing] = useState(false)
 
-  const load = useCallback(async () => {
-    setLoading(true)
+  const load = useCallback(async (silent = false) => {
+    if (!silent) setLoading(true)
+    else setRefreshing(true)
     const next = { oilSummary: null, oilList: [], alertes: null, health: null, prediction: null, upload: null }
     const errs = []
     await Promise.all([
@@ -120,15 +126,23 @@ export default function MaintenanceExecutiveDashboard({ apiFetch: ocpFetch, onNa
       apiFetch("/oil/analyses").then(v => next.oilList = v.analyses || []).catch(e => errs.push(`Huile liste: ${e.message}`)),
       getOcpAlertes(ocpFetch).then(v => next.alertes = v).catch(e => errs.push(`OCP alertes: ${e.message}`)),
       getOcpEngineHealth(ocpFetch).then(v => next.health = v).catch(e => errs.push(`OCP santé: ${e.message}`)),
-      runOcpPrediction(ocpFetch).then(v => next.prediction = v).catch(e => errs.push(`LSTM: ${e.message}`)),
+      runOcpPrediction(ocpFetch).then(v => next.prediction = v).catch(e => errs.push(`Prédiction ML: ${e.message}`)),
       getOcpUploadStatus(ocpFetch).then(v => next.upload = v).catch(e => errs.push(`Upload OCP: ${e.message}`)),
+      fetch(`${API}/amdec/summary`).then(r => r.ok ? r.json() : null).then(v => setAmdec(v)).catch(() => {}),
     ])
     setData(next)
     setErrors(errs)
-    setLoading(false)
+    setLastUpdated(new Date())
+    if (!silent) setLoading(false)
+    else setRefreshing(false)
   }, [ocpFetch])
 
-  useEffect(() => { load() }, [load])
+  // Chargement initial + auto-refresh toutes les 60s
+  useEffect(() => {
+    load()
+    const id = setInterval(() => load(true), REFRESH_INTERVAL)
+    return () => clearInterval(id)
+  }, [load])
 
   const oilLatest = useMemo(() => {
     const map = new Map()
@@ -188,10 +202,28 @@ export default function MaintenanceExecutiveDashboard({ apiFetch: ocpFetch, onNa
     <div style={{ display: "flex", justifyContent: "space-between", gap: 18, alignItems: "flex-end", marginBottom: 22, flexWrap: "wrap" }}>
       <div>
         <div style={{ fontSize: 11, fontWeight: 900, color: C.orange, letterSpacing: 4, textTransform: "uppercase" }}>MineAssist · Pilotage Maintenance</div>
-        <h1 style={{ fontSize: 32, color: C.dark, margin: "4px 0", fontFamily: "Georgia, serif" }}>Vue 360° CAT 994F</h1>
-        <div style={{ color: C.muted, fontSize: 13 }}>Maintenance prédictive · GMAO · Capteurs · Health Score · Analyse huiles · Aide à la décision</div>
+        <h1 style={{ fontSize: 32, color: C.dark, margin: "4px 0", fontFamily: "Georgia, serif" }}>Vue 360° — CAT 994F1</h1>
+        <div style={{ color: C.muted, fontSize: 13 }}>Maintenance prédictive · AMDEC · IsolationForest · GMAO · Health Score AMDEC · Analyse huiles · RAG diagnostique</div>
       </div>
-      <button onClick={load} style={{ border: "none", background: C.green, color: "white", borderRadius: 8, padding: "10px 18px", fontWeight: 900, cursor: "pointer" }}>{loading ? "Chargement..." : "Actualiser"}</button>
+      <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 6 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+          <div style={{
+            width: 8, height: 8, borderRadius: "50%",
+            background: refreshing ? C.amber : C.green,
+            boxShadow: `0 0 6px ${refreshing ? C.amber : C.green}`,
+            animation: refreshing ? "none" : "pulse 2s infinite",
+          }} />
+          <span style={{ fontSize: 11, color: C.muted }}>
+            {refreshing ? "Actualisation..." : lastUpdated
+              ? `Actualisé à ${lastUpdated.toLocaleTimeString("fr-FR")}`
+              : "Chargement..."}
+          </span>
+        </div>
+        <button onClick={() => load(false)} style={{ border: "none", background: C.green, color: "white", borderRadius: 8, padding: "9px 16px", fontWeight: 900, cursor: "pointer", fontSize: 12 }}>
+          {loading ? "Chargement..." : "Forcer actualisation"}
+        </button>
+        <span style={{ fontSize: 10, color: C.textLight }}>Auto-refresh 60s</span>
+      </div>
     </div>
 
     {errors.length > 0 && <Card style={{ marginBottom: 16, background: C.amberPale, borderLeft: `5px solid ${C.amber}` }}>
@@ -201,10 +233,10 @@ export default function MaintenanceExecutiveDashboard({ apiFetch: ocpFetch, onNa
 
     <div style={{ display: "flex", gap: 12, flexWrap: "wrap", marginBottom: 16 }}>
       <Kpi title="État global" value={<StatusBadge status={globalRank} />} sub="pire état détecté" status={globalRank} icon="🏭" />
+      <Kpi title="Health Index AMDEC" value={amdec?.health_moyen != null ? `${amdec.health_moyen.toFixed(1)}/100` : "—"} sub="IsolationForest pondéré RPN" status={amdec?.health_moyen == null ? 0 : amdec.health_moyen < 50 ? 3 : amdec.health_moyen < 67 ? 2 : 1} icon="🔬" />
       <Kpi title="Santé huile" value={oilAvg == null ? "—" : `${oilAvg}/100`} sub={`${oilLatest.length} composant(s) suivis`} status={oilAvg == null ? 0 : oilAvg < 45 ? 3 : oilAvg < 70 ? 2 : 0} icon="🛢" />
-      <Kpi title="Alertes actives" value={activeAlerts.length} sub="capteurs, seuils et LSTM" status={activeAlerts.length ? 2 : 0} icon="🚨" />
+      <Kpi title="Alertes actives" value={activeAlerts.length} sub="capteurs, seuils et ML" status={activeAlerts.length ? 2 : 0} icon="🚨" />
       <Kpi title="Risque ML" value={rulProb == null ? "—" : `${Math.round(rulProb * 100)}%`} sub="risque panne court terme" status={rulProb == null ? 0 : rulProb >= .75 ? 3 : rulProb >= .45 ? 2 : 1} icon="🔮" />
-      <Kpi title="Fichier OCP" value={data.upload?.has_file || data.upload?.file_exists ? "OK" : "—"} sub={data.upload?.filename || "dernier Excel capteurs"} status={data.upload?.has_file || data.upload?.file_exists ? 0 : 1} icon="📁" />
     </div>
 
     <div style={{ display: "grid", gridTemplateColumns: "1.25fr .75fr", gap: 16, marginBottom: 16 }} className="grid-2col">
@@ -244,10 +276,48 @@ export default function MaintenanceExecutiveDashboard({ apiFetch: ocpFetch, onNa
       </Card>
     </div>
 
+    {amdec && (
+      <Card style={{ marginBottom: 16, borderLeft: `5px solid ${C.green}` }}>
+        <SectionTitle icon="🔬" title="Diagnostic AMDEC & Maintenance Prédictive" sub="IsolationForest pondéré par les poids RPN de l'AMDEC · 191 modes de défaillance · 14 circuits" />
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 10, marginBottom: 12 }} className="grid-4col">
+          {[
+            { k: "Health Index AMDEC", v: `${amdec.health_moyen?.toFixed(1)} / 100`, color: C.green },
+            { k: "% Temps état BON", v: `${amdec.pct_bon?.toFixed(1)}%`, color: C.green },
+            { k: "% Temps en Alerte", v: `${amdec.pct_alerte?.toFixed(1)}%`, color: C.red },
+            { k: "Modes AMDEC analysés", v: `${amdec.nb_modes_amdec ?? 191}`, color: C.orange },
+          ].map(x => (
+            <div key={x.k} style={{ background: C.greenPale, border: `1px solid ${C.green}33`, borderRadius: 10, padding: 12 }}>
+              <div style={{ fontSize: 10, color: C.muted, fontWeight: 900, letterSpacing: 2 }}>{x.k}</div>
+              <div style={{ fontSize: 20, color: x.color, fontWeight: 900, marginTop: 5, fontFamily: "Rajdhani, sans-serif" }}>{x.v}</div>
+            </div>
+          ))}
+        </div>
+        {amdec.alertes_historiques?.length > 0 && (
+          <div style={{ fontSize: 12, color: C.textMid, padding: "8px 12px", background: C.dangerPale, borderLeft: `3px solid ${C.red}`, borderRadius: 4 }}>
+            <b style={{ color: C.red }}>Capteurs ayant dépassé leur seuil d'alarme :</b>{" "}
+            {amdec.alertes_historiques.map(a => `${a.capteur} (max: ${a.max}, seuil: ${a.seuil})`).join(" · ")}
+          </div>
+        )}
+        <button onClick={() => onNavigate?.("amdec")} style={{ marginTop: 12, border: "none", background: C.green, color: "white", borderRadius: 8, padding: "9px 14px", fontWeight: 900, cursor: "pointer", fontSize: 12 }}>
+          Voir Diagnostic AMDEC complet →
+        </button>
+      </Card>
+    )}
+
     <Card>
-      <SectionTitle icon="🔎" title="Traçabilité opérationnelle" sub="Informations à montrer dans le rapport et la soutenance" />
+      <SectionTitle icon="🔎" title="Fiche technique — CAT 994F1" sub="Périmètre, données et chaîne de traitement" />
       <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 10 }} className="grid-4col">
-        {[{ k: "Machine", v: "CAT 994F2 · OCP Benguerir" }, { k: "Données", v: "Capteurs Excel + PDF OKSA + GMAO" }, { k: "IA", v: "Health Score + Isolation Forest + K-Means + RAG" }, { k: "Décision", v: "AMDEC/RPN + plan maintenance" }].map(x => <div key={x.k} style={{ background: C.bg, border: `1px solid ${C.border}`, borderRadius: 10, padding: 12 }}><div style={{ fontSize: 10, color: C.muted, fontWeight: 900, letterSpacing: 2 }}>{x.k}</div><div style={{ fontSize: 13, color: C.text, fontWeight: 800, marginTop: 5 }}>{x.v}</div></div>)}
+        {[
+          { k: "Équipement",   v: "Chargeuse CAT 994F1 · OCP Benguerir" },
+          { k: "Données",      v: "11 mois capteurs · 1 373 anomalies GMAO · AMDEC 191 modes" },
+          { k: "Modèle",       v: "IsolationForest · Health Index pondéré RPN · SHAP" },
+          { k: "Sortie",       v: "Diagnostic AMDEC · Plan maintenance · Prédiction temps réel" },
+        ].map(x => (
+          <div key={x.k} style={{ background: C.bg, border: `1px solid ${C.border}`, borderRadius: 10, padding: 12 }}>
+            <div style={{ fontSize: 10, color: C.muted, fontWeight: 900, letterSpacing: 2 }}>{x.k}</div>
+            <div style={{ fontSize: 12, color: C.text, fontWeight: 800, marginTop: 5 }}>{x.v}</div>
+          </div>
+        ))}
       </div>
     </Card>
   </div>

@@ -12,17 +12,14 @@ import DiagnosePageV2 from "./pages/DiagnosePage"
 import AskPageV2 from "./pages/AskPageV2"
 
 import MLInsightsPage from "./pages/MLInsightsPage"
-import MultiAgentDiagnosticPage from "./pages/MultiAgentDiagnosticPage"
+import AMDECDiagnosticPage from "./pages/AMDECDiagnosticPage"
 import GmaoDashboard from "./pages/GmaoDashboard"
 import AnomalyDashboard from "./pages/AnomalyDashboard"
 import GeoAnomalyDashboard from "./pages/GeoAnomalyDashboard"
 import OilAnalysisDashboard from "./pages/OilAnalysisDashboard"
-
-import LoginPage from "./pages/LoginPage"
-import DiagnosticRenderer from "./pages/DiagnosticRenderer"
 import RULDashboard from "./pages/RULDashboard"
 import OcpDefautPage from "./pages/OcpDefautPage"
-
+import LoginPage from "./pages/LoginPage"
 
 import { API, C } from "./config"
 
@@ -679,322 +676,6 @@ function ChangePasswordModal({ open, onClose, apiFetch, onSuccess }) {
   )
 }
 
-// ── Ask Page (legacy — remplacé par AskPageV2) ───────────────────────────
-// eslint-disable-next-line no-unused-vars
-function AskPage({ onSave, apiFetch }) {
-  const [question,      setQuestion]      = useState("")
-  const [loading,       setLoading]       = useState(false)
-  const [result,        setResult]        = useState(null)
-  const [llmStatus,     setLlmStatus]     = useState(null)
-  const [includeImages, setIncludeImages] = useState(false)
-
-  // Vérifier la config LLM au montage
-  useEffect(() => {
-    apiFetch(`${API}/ask/status`)
-      .then(r => r.json())
-      .then(s => setLlmStatus(s))
-      .catch(() => setLlmStatus({ llm_configured: false, message: "Backend inaccessible" }))
-  }, [apiFetch])
-
-  const handleAsk = async () => {
-    if (!question.trim()) return
-    setLoading(true); setResult(null)
-    try {
-      const r = await apiFetch(`${API}/ask`, {
-        method:"POST",
-        body: JSON.stringify({ question, include_images: includeImages }),
-      })
-      const data = await r.json()
-      // Gérer les erreurs HTTP (ex: 503 clé API manquante, 422 validation)
-      if (!r.ok) {
-        const msg = data?.detail || `Erreur serveur HTTP ${r.status}`
-        setResult({ question, answer: `❌ ${msg}`, sources: [], pdf_images: [] })
-        setLoading(false)
-        return
-      }
-      // Vérifier que answer est bien présent
-      if (!data.answer && data.answer !== 0) {
-        setResult({ question, answer: "⚠ Le serveur a répondu mais sans texte. Vérifiez OPENROUTER_API_KEY dans le fichier .env du backend.", sources: [], pdf_images: [] })
-        setLoading(false)
-        return
-      }
-      setResult({ ...data, question: data.question || question })
-      onSave({
-        id: Date.now(),
-        type: "ask",
-        question,
-        answer: data.answer,
-        sources: data.sources || [],
-        pdf_images: data.pdf_images || [],
-        timestamp: new Date().toISOString(),
-      })
-    } catch(e) {
-      setResult({ question, answer:`❌ API inaccessible : ${e.message}`, sources:[], pdf_images:[] })
-    }
-    setLoading(false)
-  }
-
-  const foc = e => { e.target.style.borderColor=C.green; e.target.style.boxShadow=`0 0 0 3px rgba(0,132,61,0.08)` }
-  const blr = e => { e.target.style.borderColor=C.border; e.target.style.boxShadow="none" }
-
-  return (
-    <div style={{padding:"28px 32px",maxWidth:960,margin:"0 auto",position:"relative",zIndex:1}}>
-      <PageTitle>Question technique libre — CAT 994F</PageTitle>
-
-      {/* Bannière statut LLM */}
-      {llmStatus && !llmStatus.llm_configured && (
-        <div style={{background:"#FEE2E2",border:"1px solid #FCA5A5",borderLeft:"4px solid #DC2626",
-          padding:"12px 18px",marginBottom:18,borderRadius:6,
-          display:"flex",alignItems:"flex-start",gap:12}}>
-          <span style={{fontSize:20}}>⚠️</span>
-          <div>
-            <div style={{fontWeight:700,color:"#DC2626",fontSize:13,marginBottom:3}}>
-              Clé API LLM non configurée
-            </div>
-            <div style={{fontSize:12,color:"#7F1D1D",lineHeight:1.6}}>
-              {llmStatus.message}<br/>
-              Créez un fichier <code style={{background:"#FEE2E2",padding:"1px 4px"}}>.env</code> dans <code>backend/</code> avec :<br/>
-              <code style={{background:"#FEE2E2",padding:"2px 6px",display:"inline-block",marginTop:4}}>
-                OPENROUTER_API_KEY=sk-or-votre-cle-ici
-              </code>
-            </div>
-          </div>
-        </div>
-      )}
-      {llmStatus?.llm_configured && (
-        <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:14,
-          padding:"8px 14px",background:C.greenPale,border:`1px solid ${C.border}`,
-          borderRadius:6,width:"fit-content"}}>
-          <div style={{width:7,height:7,borderRadius:"50%",background:C.green,
-            boxShadow:`0 0 5px ${C.green}`}}/>
-          <span style={{fontSize:11,fontWeight:700,color:C.greenDark}}>
-            LLM opérationnel · {llmStatus.model}
-          </span>
-        </div>
-      )}
-
-      <Card>
-        <CardTitle>Nouvelle question</CardTitle>
-        <label style={S.label}>Votre question</label>
-        <textarea style={S.textarea}
-          placeholder="Ex: Procédure de remplacement du filtre hydraulique ?"
-          value={question} onChange={e=>setQuestion(e.target.value)}
-          onKeyDown={e=>e.key==="Enter"&&e.ctrlKey&&handleAsk()}
-          onFocus={foc} onBlur={blr}
-        />
-        <div style={{marginTop:14,display:"flex",alignItems:"center",gap:14,flexWrap:"wrap"}}>
-          <button style={loading||!question.trim() ? S.btnOff : S.btn}
-            onClick={handleAsk} disabled={loading||!question.trim()}>
-            {loading ? "⟳  Recherche..." : "▶  Poser la question"}
-          </button>
-          <span style={{fontSize:11,color:C.textLight}}>Ctrl+Entrée</span>
-
-          {/* Toggle images PDF — opt-in */}
-          <label style={{
-            display:"flex", alignItems:"center", gap:8, cursor:"pointer",
-            marginLeft:"auto", padding:"6px 12px",
-            background: includeImages ? C.greenPale : "transparent",
-            border: `1px solid ${includeImages ? C.green : C.border}`,
-            borderRadius:6, transition:"all 0.2s",
-          }}>
-            <input
-              type="checkbox"
-              checked={includeImages}
-              onChange={e => setIncludeImages(e.target.checked)}
-              style={{accentColor: C.green, cursor:"pointer"}}
-            />
-            <span style={{
-              fontSize:11, fontWeight:700, letterSpacing:1,
-              color: includeImages ? C.greenDark : C.textMuted,
-              textTransform:"uppercase",
-            }}>
-              📷 Inclure images PDF
-            </span>
-          </label>
-        </div>
-        <div style={{marginTop:6, fontSize:10, color:C.textLight, fontStyle:"italic"}}>
-          💡 Astuce : pour voir une image/schéma, cochez la case ci-dessus OU utilisez les mots "image", "schéma", "voir", "montre"…
-        </div>
-      </Card>
-
-      {result && (
-        <Card>
-          <CardTitle>Réponse</CardTitle>
-          <div style={{fontSize:11,color:C.textMuted,marginBottom:5,letterSpacing:1}}>QUESTION</div>
-          <div style={{color:C.greenDark,fontSize:15,fontWeight:700,marginBottom:14}}>
-            {result.question || question}
-          </div>
-          {/* Réponse — affichage robuste même si answer est vide */}
-          {result.answer ? (
-            <div style={{...S.answerBox, minHeight:60}}>
-              {result.answer}
-            </div>
-          ) : (
-            <div style={{background:"#FEF3C7",border:"1px solid #F59E0B",borderLeft:"4px solid #F59E0B",
-              padding:"14px 18px",borderRadius:4,color:"#92400E",fontSize:13}}>
-              ⚠ Aucune réponse reçue. Vérifiez que <code>OPENROUTER_API_KEY</code> est bien définie dans le fichier <code>.env</code> du backend.
-            </div>
-          )}
-          <AnswerSources sources={result.sources}/>
-          <PdfImages images={result.pdf_images}/>
-        </Card>
-      )}
-    </div>
-  )
-}
-
-// ── Diagnose Page (legacy — remplacé par DiagnosePageV2) ─────
-// eslint-disable-next-line no-unused-vars
-function DiagnosePageOLD({ onSave, apiFetch }) {
-  const [faultCode, setFaultCode] = useState("")
-  const [symptoms, setSymptoms]   = useState("")
-  const [gmaoCtx, setGmaoCtx]     = useState("")
-  const [hours, setHours]         = useState("")
-  const [loading, setLoading]     = useState(false)
-  const [result, setResult]       = useState(null)
-  const [exporting, setExporting] = useState(false)
-
-  const handleDiagnose = async () => {
-    setLoading(true); setResult(null)
-    try {
-      const r = await apiFetch(`${API}/diagnose`, {
-        method:"POST",
-        body: JSON.stringify({
-          fault_code: faultCode||null,
-          symptoms: symptoms.split("\n").map(s=>s.trim()).filter(Boolean),
-          gmao_context: gmaoCtx||null,
-          hours_since_maintenance: hours ? parseInt(hours) : null,
-        }),
-      })
-      const data = await r.json()
-      setResult(data)
-      const q = [faultCode, symptoms.split("\n")[0]].filter(Boolean).join(" — ") || "Diagnostic"
-      onSave({
-        id: Date.now(),
-        type: "diagnose",
-        question: q,
-        answer: data.diagnostic,
-        sources: data.sources,
-        pdf_images: data.pdf_images,
-        schema_locations: data.schema_locations || [],
-        timestamp: new Date().toISOString(),
-      })
-    } catch(e) {
-      setResult({ diagnostic:`❌ API inaccessible: ${e.message}`, sources:[], pdf_images:[] })
-    }
-    setLoading(false)
-  }
-
-  const handleExportPDF = async () => {
-    if (!result) return
-    setExporting(true)
-    try {
-      const r = await apiFetch(`${API}/export/rapport-diagnostic`, {
-        method:"POST",
-        body: JSON.stringify({
-          fault_code: faultCode || null,
-          symptoms: symptoms.split("\n").map(s=>s.trim()).filter(Boolean),
-          gmao_context: gmaoCtx || null,
-          hours_since_maintenance: hours ? parseInt(hours) : null,
-          diagnostic: result.diagnostic,
-          sources: result.sources || [],
-        }),
-      })
-      if (!r.ok) throw new Error(await r.text())
-      const blob = await r.blob()
-      const url  = URL.createObjectURL(blob)
-      const a    = document.createElement("a")
-      const cd   = r.headers.get("Content-Disposition") || ""
-      const fn   = cd.match(/filename="(.+?)"/)?.[1] || "rapport_diagnostic.pdf"
-      a.href = url; a.download = fn; a.click()
-      URL.revokeObjectURL(url)
-    } catch(e) {
-      alert(`Export PDF échoué : ${e.message}`)
-    }
-    setExporting(false)
-  }
-
-  const foc = e => { e.target.style.borderColor=C.green; e.target.style.boxShadow=`0 0 0 3px rgba(0,132,61,0.08)` }
-  const blr = e => { e.target.style.borderColor=C.border; e.target.style.boxShadow="none" }
-
-  return (
-    <div style={{padding:"28px 32px",maxWidth:960,margin:"0 auto",position:"relative",zIndex:1}}>
-      <PageTitle>Diagnostic de panne — CAT 994F</PageTitle>
-
-      <div style={{padding:"11px 18px",marginBottom:16,background:C.orangePale,
-        border:`1px solid rgba(196,118,10,0.3)`,borderLeft:`4px solid ${C.orange}`,
-        display:"flex",gap:10,alignItems:"center",fontSize:13,color:C.textMid}}>
-        <span style={{fontSize:18}}>⚠</span>
-        Aide à la décision — Consulter le manuel officiel CAT avant toute intervention.
-      </div>
-
-      <div style={S.grid2}>
-        <Card style={{marginBottom:0}}>
-          <label style={S.label}>Code défaut</label>
-          <input style={S.input} placeholder="Ex: MID 036 CID 0096 FMI 03"
-            value={faultCode} onChange={e=>setFaultCode(e.target.value)} onFocus={foc} onBlur={blr}/>
-          <div style={{marginTop:14}}>
-            <label style={S.label}>Heures depuis maintenance</label>
-            <input style={S.input} type="number" placeholder="Ex: 250"
-              value={hours} onChange={e=>setHours(e.target.value)} onFocus={foc} onBlur={blr}/>
-          </div>
-        </Card>
-        <Card style={{marginBottom:0}}>
-          <label style={S.label}>Symptômes (un par ligne)</label>
-          <textarea style={{...S.textarea,minHeight:120}}
-            placeholder={"Perte de puissance\nFumée noire\nHydraulique lente"}
-            value={symptoms} onChange={e=>setSymptoms(e.target.value)} onFocus={foc} onBlur={blr}/>
-        </Card>
-      </div>
-
-      <Card>
-        <label style={S.label}>Contexte GMAO / Historique</label>
-        <textarea style={{...S.textarea,minHeight:70}}
-          placeholder="Interventions récentes, observations terrain..."
-          value={gmaoCtx} onChange={e=>setGmaoCtx(e.target.value)} onFocus={foc} onBlur={blr}/>
-        <div style={{marginTop:14}}>
-          <button style={loading ? S.btnOff : S.btn} onClick={handleDiagnose} disabled={loading}>
-            {loading ? "⟳  Diagnostic en cours..." : "▶  Lancer le diagnostic"}
-          </button>
-        </div>
-      </Card>
-
-      {result && (
-        <Card>
-          <CardTitle>Résultat du diagnostic</CardTitle>
-          <DiagnosticRenderer text={result.diagnostic} />
-          <AnswerSources sources={result.sources}/>
-          <PdfImages images={result.pdf_images}/>
-          <SchemaLocations locations={result.schema_locations}/>
-          {result.diagnostic && !result.diagnostic.startsWith("❌") && (
-            <div style={{marginTop:14,display:"flex",gap:10}}>
-              <button
-                onClick={handleExportPDF}
-                disabled={exporting}
-                style={{
-                  background: exporting ? C.border : C.greenDark,
-                  color:"#fff", border:"none", padding:"10px 24px",
-                  fontFamily:"'Rajdhani', sans-serif", fontSize:12, fontWeight:700,
-                  letterSpacing:2, cursor: exporting ? "wait" : "pointer",
-                  textTransform:"uppercase",
-                  clipPath:"polygon(8px 0%, 100% 0%, calc(100% - 8px) 100%, 0% 100%)",
-                  boxShadow:"0 2px 10px rgba(0,92,43,0.2)",
-                  transition:"all 0.2s",
-                }}
-              >
-                {exporting ? "⟳  Génération PDF..." : "⬇  Exporter en PDF"}
-              </button>
-              <span style={{fontSize:11,color:C.textLight,alignSelf:"center"}}>
-                Rapport complet avec sources
-              </span>
-            </div>
-          )}
-        </Card>
-      )}
-    </div>
-  )
-}
-
 // ── History Detail View ───────────────────────────────────────────────────
 function HistoryDetail({ item, onClose }) {
   return (
@@ -1039,19 +720,21 @@ function HistoryDetail({ item, onClose }) {
 
 // ── App ───────────────────────────────────────────────────────────────────
 const TABS = [
-  { id:"maintenance_360", icon:"🏭", label:"Pilotage 360°",           shortLabel:"360°" },
-  { id:"ask",             icon:"💬", label:"MineAssist AI",           shortLabel:"AI" },
-  { id:"diagnose",        icon:"🔧", label:"Expert Diagnostic",       shortLabel:"Diag" },
-  { id:"capteurs",        icon:"📡", label:"Capteurs & Live",        shortLabel:"Live" },
+  { id:"maintenance_360", icon:"🏭", label:"Pilotage 360°",           shortLabel:"360°"    },
+  { id:"amdec",           icon:"🔬", label:"AMDEC & Prédictif",       shortLabel:"AMDEC"   },
+  { id:"capteurs",        icon:"📡", label:"Capteurs & Live",         shortLabel:"Live"    },
   { id:"alerts_ocp",      icon:"⚠️", label:"Centre d'Alertes",        shortLabel:"Alertes" },
-  { id:"ocp_sante",       icon:"❤️", label:"Performance & Santé",     shortLabel:"Santé" },
-  { id:"gmao",            icon:"📊", label:"GMAO Analytics",          shortLabel:"GMAO" },
-  { id:"geo",             icon:"📍", label:"Analyse Géo",             shortLabel:"Géo" },
-  { id:"anomaly",         icon:"🤖", label:"Détection IA",            shortLabel:"IA" },
-  { id:"rul_dashboard",   icon:"⏱️", label:"Prédiction RUL",          shortLabel:"RUL" },
-  { id:"oil",             icon:"🛢️", label:"Analyses Huiles",         shortLabel:"Huiles" },
-  { id:"historique",      icon:"📚", label:"Historique",              shortLabel:"Hist" },
-  { id:"ocp_upload",      icon:"📁", label:"Import Données",          shortLabel:"Import" },
+  { id:"ocp_sante",       icon:"❤️", label:"Santé Machine",           shortLabel:"Santé"   },
+  { id:"anomaly",         icon:"🤖", label:"Détection Anomalies IA",  shortLabel:"IA"      },
+  { id:"rul_dashboard",   icon:"⏱️", label:"Prédiction RUL",          shortLabel:"RUL"     },
+  { id:"ml_insights",     icon:"📈", label:"ML Insights",             shortLabel:"ML"      },
+  { id:"gmao",            icon:"📊", label:"GMAO Analytics",          shortLabel:"GMAO"    },
+  { id:"geo",             icon:"📍", label:"Analyse Géo",             shortLabel:"Géo"     },
+  { id:"oil",             icon:"🛢️", label:"Analyses Huiles",         shortLabel:"Huiles"  },
+  { id:"ask",             icon:"💬", label:"MineAssist AI",           shortLabel:"AI"      },
+  { id:"diagnose",        icon:"🔧", label:"Expert Diagnostic",       shortLabel:"Diag"    },
+  { id:"historique",      icon:"📚", label:"Historique",              shortLabel:"Hist"    },
+  { id:"ocp_upload",      icon:"📁", label:"Import Données",          shortLabel:"Import"  },
 ]
 
 export default function App() {
@@ -1096,7 +779,9 @@ export default function App() {
   }
 
   const sidebarTabActive = !["gmao", "geo", "monitor", "evolution", "anomaly", "multi_agent",
-    "live_sim", "capteurs", "oil", "ocp_upload", "ocp_defaut", "ocp_sante", "ocp_troubleshooting", "maintenance_360", "executive_report", "ml_history", "alertes_ocp"].includes(activeTab)
+    "live_sim", "capteurs", "oil", "ocp_upload", "ocp_defaut", "ocp_sante", "ocp_troubleshooting",
+    "maintenance_360", "executive_report", "ml_history", "alertes_ocp", "amdec",
+    "rul_dashboard", "ml_insights"].includes(activeTab)
   
   const showHistory = sidebarTabActive && !userCollapsedHistory
   const visibleTabs = TABS
@@ -1194,7 +879,9 @@ export default function App() {
                 )}
                 {activeTab === "historique" && <MaintenanceHistoryDashboard apiFetch={apiFetch} />}
                 {activeTab === "ml_insights" && <MLInsightsPage apiFetch={apiFetch} />}
+
                 {activeTab === "rul_dashboard" && <RULDashboard />}
+                {activeTab === "amdec" && <AMDECDiagnosticPage />}
               </>
             )}
           </div>

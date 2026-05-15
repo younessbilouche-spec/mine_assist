@@ -265,7 +265,7 @@ export default function MLHealthHistoryPage() {
         background: C.orangePale, border: `1px solid #fde68a`,
         borderRadius: 10, padding: '12px 18px', fontSize: 12, color: '#92400e'
       }}>
-        <strong>Note PFE :</strong> Le pipeline ML repose sur le Health Score (seuils CAT),
+        <strong>Méthodologie :</strong> Le pipeline ML repose sur le Health Score (seuils CAT),
         l'Isolation Forest (détection d'anomalies non supervisée) et le K-Means
         (classification des modes opérationnels). Cette approche non supervisée
         est adaptée à l'absence de données de panne annotées sur le site OCP Benguerir.

@@ -144,10 +144,32 @@ export default function ExecutiveReportPage({ apiFetch = null }) {
 
   return <div style={{ padding: "26px 30px", maxWidth: 1200, margin: "0 auto" }}>
     <div style={{ marginBottom: 22 }}>
-      <div style={{ fontSize: 11, fontWeight: 900, color: C.orange, letterSpacing: 4, textTransform: "uppercase" }}>MineAssist · Reporting opérationnel</div>
-      <h1 style={{ fontSize: 31, color: C.dark, margin: "4px 0", fontFamily: "Georgia, serif" }}>Rapport exécutif maintenance</h1>
-      <div style={{ color: C.muted, fontSize: 13 }}>Synthèse machine, données, IA, huile, alertes, AMDEC et recommandations.</div>
+      <div style={{ fontSize: 11, fontWeight: 900, color: C.orange, letterSpacing: 4, textTransform: "uppercase" }}>OCP Benguerir · Maintenance Prédictive</div>
+      <h1 style={{ fontSize: 31, color: C.dark, margin: "4px 0", fontFamily: "Georgia, serif" }}>Rapport Exécutif — CAT 994F1</h1>
+      <div style={{ color: C.muted, fontSize: 13 }}>AMDEC · IsolationForest · Health Index pondéré · Aide à la décision maintenance</div>
     </div>
+
+    <Card style={{ marginBottom: 16, borderLeft: `5px solid ${C.orange}` }}>
+      <div style={{ fontSize: 11, fontWeight: 900, color: C.orange, letterSpacing: 3, textTransform: "uppercase", marginBottom: 10 }}>Démarche méthodologique</div>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 12 }}>
+        {[
+          { step: "01", title: "Collecte & Préparation", desc: "11 mois de mesures capteurs (54 673 points), 1 373 anomalies GMAO, AMDEC 191 modes, 6 capteurs critiques sélectionnés", color: C.blue },
+          { step: "02", title: "Feature Engineering",   desc: "90 variables dérivées : statistiques glissantes (15 min → 24 h), tendances, PCA, modes opératoires K-Means",          color: C.green },
+          { step: "03", title: "Modélisation",          desc: "IsolationForest non supervisé, Health Index pondéré par RPN AMDEC, explicabilité SHAP, validation croisée GMAO",     color: C.orange },
+          { step: "04", title: "Industrialisation",     desc: "API FastAPI, interface React, diagnostic AMDEC interactif, prédiction temps réel, export rapports",                    color: C.red },
+        ].map(s => (
+          <div key={s.step} style={{ background: C.bg, borderTop: `3px solid ${s.color}`, borderRadius: "0 0 10px 10px", padding: "14px 16px" }}>
+            <div style={{ fontSize: 22, fontWeight: 900, color: s.color, fontFamily: "Rajdhani, sans-serif" }}>{s.step}</div>
+            <div style={{ fontSize: 12, fontWeight: 800, color: C.dark, marginTop: 4, marginBottom: 6 }}>{s.title}</div>
+            <div style={{ fontSize: 11, color: C.muted, lineHeight: 1.5 }}>{s.desc}</div>
+          </div>
+        ))}
+      </div>
+      <div style={{ marginTop: 14, padding: "10px 14px", background: C.greenPale, borderLeft: `3px solid ${C.green}`, fontSize: 12, color: C.greenDark }}>
+        <b>Indicateurs clés :</b> Health Index moyen = 67.4 / 100 · 3 % du temps en alerte (IsolationForest) ·
+        Corrélation avec anomalies GMAO = 38 % · Dépassements seuils : T_Echap_G 612.5 °C (seuil 600 °C), T_Refroid 113 °C (seuil 105 °C)
+      </div>
+    </Card>
 
     <Card style={{ marginBottom: 16, borderLeft: `5px solid ${C.green}` }}>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 16, flexWrap: "wrap" }}>
