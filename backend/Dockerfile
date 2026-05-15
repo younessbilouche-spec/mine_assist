@@ -24,7 +24,7 @@ RUN pip install --upgrade pip && pip install -r /app/requirements.txt
 # Code applicatif
 COPY app /app/app
 COPY models /app/models
-COPY train_anomaly.py test_openrouter.py test_rag.py /app/
+COPY train_anomaly.py /app/
 
 # Volumes recommandés (montés au runtime) :
 #   /app/data         (Excel + uploads)
